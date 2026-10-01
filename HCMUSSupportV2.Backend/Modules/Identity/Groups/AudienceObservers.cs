@@ -20,3 +20,12 @@ public interface IEmployeeActivationObserver
 {
     Task OnEmployeesActivatedAsync(IReadOnlyCollection<string> employeeCodes, CancellationToken ct);
 }
+
+/// <summary>
+/// Notified after a roster or org-unit sync batch is applied, from the HRM ingest. The groups engine uses this
+/// to recompute org-unit and rule groups (enqueue <c>groups.recompute</c>).
+/// </summary>
+public interface IRosterSyncObserver
+{
+    Task OnRosterSyncedAsync(CancellationToken ct);
+}
