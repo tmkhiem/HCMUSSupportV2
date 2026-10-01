@@ -12,6 +12,9 @@ public static class IdentityClaims
     public const string Role = "role";
     public const string Picture = "picture";
 
+    /// <summary>MSCB of the employee an admin is viewing as (view-as, read-only). Absent when not acting as anyone.</summary>
+    public const string ActingAs = "acting_as";
+
     /// <summary>Unix seconds of the last time the principal was checked against the database.</summary>
     public const string CheckedAt = "chk";
 

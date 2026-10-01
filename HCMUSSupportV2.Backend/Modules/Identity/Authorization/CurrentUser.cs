@@ -21,6 +21,21 @@ public interface ICurrentUser
 
     /// <summary>The code, or throws when anonymous. For code behind an authorization policy.</summary>
     string RequireCode();
+
+    /// <summary>MSCB an admin is viewing as (view-as, see PLAN D14a); null when not acting as anyone.</summary>
+    string? ActingAsCode { get; }
+
+    /// <summary>True while an admin is viewing as another employee. Mutations must be rejected in this state.</summary>
+    bool IsActingAs { get; }
+
+    /// <summary>
+    /// The employee whose own data a "me"-style read should return: <see cref="ActingAsCode"/> when acting as
+    /// someone, otherwise <see cref="Code"/>. Use this (not <see cref="Code"/>) for every self-service read.
+    /// </summary>
+    string? EffectiveCode { get; }
+
+    /// <summary><see cref="EffectiveCode"/>, or throws when anonymous.</summary>
+    string RequireEffectiveCode();
 }
 
 public class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
@@ -40,4 +55,12 @@ public class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
     public bool IsAdmin => User is not null && IsAuthenticated && Policies.HasAdminAccess(User);
 
     public string RequireCode() => Code ?? throw new InvalidOperationException("No signed-in employee.");
+
+    public string? ActingAsCode => IsAuthenticated ? User?.FindFirst(IdentityClaims.ActingAs)?.Value : null;
+
+    public bool IsActingAs => ActingAsCode is not null;
+
+    public string? EffectiveCode => ActingAsCode ?? Code;
+
+    public string RequireEffectiveCode() => EffectiveCode ?? throw new InvalidOperationException("No signed-in employee.");
 }
