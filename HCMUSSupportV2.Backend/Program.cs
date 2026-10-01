@@ -1,4 +1,5 @@
 using HCMUSSupportV2.Backend.Infrastructure;
+using HCMUSSupportV2.Backend.Modules.Hrm;
 using HCMUSSupportV2.Backend.Modules.Identity;
 using HCMUSSupportV2.Backend.Modules.Admin;
 using HCMUSSupportV2.Backend.Modules.Platform;
@@ -25,6 +26,7 @@ public class Program
         builder.Services.AddPlatformModule(builder.Configuration);
         builder.Services.AddIdentityModule(builder.Configuration);
         builder.Services.AddAdminModule(builder.Configuration);
+        builder.Services.AddHrmModule(builder.Configuration);
 
         var app = builder.Build();
 

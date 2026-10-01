@@ -12,6 +12,7 @@ HCMUSSupportV2.Backend/
   Modules/Platform/             system info, jobs, files, audit (D01)
   Modules/Identity/             people, roles, groups schema, sign-in, policies (D03)
   Modules/Admin/                roles, view-as, employee status, audit query, dashboard (D14a)
+  Modules/Hrm/                  HRM tables, ingest API, me/* reads, Excel datasets, sync visibility (D04)
 HCMUSSupportV2.Backend.Tests/   xUnit + WebApplicationFactory against a throw-away PostgreSQL database
 ```
 
@@ -41,6 +42,7 @@ Key settings (defaults in `appsettings.json`):
 | `Auth:DevLogin:Enabled` | enables `POST /api/auth/dev-login`; honoured only when the environment is `Development` |
 | `Auth:RevalidateSeconds` | how often the session is re-checked against the database (default 300; 0 = every request) |
 | `Admin:BootstrapEmails` | array of emails that become `admin` while no active admin exists (see Bootstrap) |
+| `Hrm:DevApiClient:Token` | Development only: creates the API client `dev` (scope `hrm.ingest`) for this token (24+ chars) at startup |
 | `Dev:SeedEmployees` | Development only: seed the synthetic roster `T0001`..`T0010` at startup (default true in Development) |
 | `OpenTelemetry:Endpoint` | OTLP collector URL; traces and metrics are exported only when set (`OpenTelemetry:Protocol`: `grpc` or `http/protobuf`) |
 | `Logging:File:*` | rolling file sink (`logs/hcmus-support-.log`, git-ignored); log levels live under `Serilog:MinimumLevel` |
@@ -316,6 +318,42 @@ after a sync and it queues one `groups.recompute` (deduplicated while one is wai
 
 **Schema (migration `D06_Groups`)**: unique partial index `ux_groups_org_unit` (one auto group per org unit) and
 `ck_groups_shape` (org-unit groups have `org_unit_id`, rule groups have `rule`). `ClosedXML` reads the xlsx imports.
+## HRM module (D04, `Modules/Hrm`)
+
+Folders: `Domain/` (entities and configurations), `Integration/` (ApiKey auth, ingest DTOs, `IngestService`, `MergeEngine`,
+`IntegrationController`), `Me/` (`MeController`, `MeService`, DTOs), `Datasets/` (Excel imports), `Sync/` (admin sync runs
+and issues). The ingest contract with examples is in [INGEST.md](INGEST.md).
+
+**Tables (migration `D04_Hrm`).** `employee_profiles`, `employee_sensitive`, `salary_history`, `position_history`,
+`commendations`, `academic_degrees`, `trainings`, `business_trips`, `innovations` (child tables have `hrm_id` unique and an
+`(employee_code, date desc)` index), `teaching_loads`, `research_projects`, `research_project_members`, `publications`,
+`publication_authors`, `api_clients`, `sync_runs`, `sync_issues`, `dataset_imports` (the Excel dataset imports; D07 has its
+own table for notification recipient imports). Partial dates are a `date` plus `*_precision` (`day|month|year`) on date of
+birth, commendation date, degree dates and training dates. `sync_runs.received` stores the posted row count for the
+truncation guard.
+
+**ApiKey scheme.** `Authorization: ApiKey <token>`; `ApiKeyAuthenticationHandler` hashes the token (SHA-256) and looks it up
+in `api_clients` (revoked clients are rejected), then issues `scope` claims. Policy `IngestHrm` requires `hrm.ingest`.
+`ApiClientService.CreateAsync/RevokeAsync` manages clients (admin UI is D14b); in Development `Hrm:DevApiClient:Token` seeds one.
+
+**Writing a new snapshot dataset.** Add a `Col[]`, a row DTO and an `IngestChildAsync(new ChildSpec<...>(...))` method in
+`IngestService`; `MergeEngine` does the COPY + MERGE and counts. Quarantine and issue rules are in INGEST.md.
+
+**`me/*` and view-as.** `MeController` reads only through `ICurrentUser.RequireEffectiveCode()` (the viewed employee while an
+admin is acting as someone, otherwise the signed-in employee) and never takes a code from the request. Every DTO is shaped for
+its page (see `MeDtos.cs`). Sensitive values are masked (`•••• 1234`). `POST me/profile/sensitive/reveal {field}` audits
+`profile.sensitive_reveal` and then returns the full value; it is **403 during a view-as session for everyone, admins
+included** (view-as is read-only and must not expose secrets), and the audit never stores the value. Lists with `q`/`cursor`
+(innovations, research projects, publications) page by descending id (`nextCursor` = id of the last item) and take `limit`
+(default 30, max 100).
+
+**Admin.** `GET/POST /api/admin/datasets/...` (policy `ManageDatasets`, admin only) and `GET /api/admin/sync-runs`,
+`GET /api/admin/sync-issues?resolved=`, `PUT /api/admin/sync-issues/{id}/resolve` (policy `Admin`).
+
+**Testing.** `Tests/Hrm/HrmTestSupport` clears the HRM tables and run history (`ResetAsync`, needed because the truncation
+guard compares with earlier runs), creates API clients (`CreateIngestClientAsync`) and posts snapshots (`PostOkAsync`).
+`HrmTestSignInController` (`POST /api/test/hrm/sign-in/{code}?actingAs=`) simulates the `acting_as` claim; use a factory with
+`Auth:RevalidateSeconds=3600` so the session keeps it.
 
 ## Background jobs
 
@@ -361,6 +399,5 @@ becomes `SystemClient`).
 - Data-protection keys are stored in `data_protection_keys` unencrypted (ASP.NET Core logs a warning). Protect them
   with a certificate or an OS-level mechanism as part of the deployment kit (D16).
 - The `auth` rate-limit policy is applied to `AuthController` (except `me`); `/api/auth/callback` is served by the OIDC
-  middleware and is not rate limited. The `integration` policy is still unused until the ingest controllers exist (D04):
-  apply it with `[EnableRateLimiting("integration")]`.
+  middleware and is not rate limited. The `integration` policy is applied to `IntegrationController` (D04).
 - The generated TypeScript client does not add `X-XSRF-TOKEN` by itself; the frontend must wrap `fetch` (see the contract above).
