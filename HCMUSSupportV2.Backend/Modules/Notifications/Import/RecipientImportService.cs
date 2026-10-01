@@ -79,7 +79,7 @@ public partial class RecipientImportService(
         Sheet sheet;
         try { sheet = ext == ".xlsx" ? ReadXlsx(buffer) : ReadCsv(buffer); }
         catch (ApiException) { throw; }
-        catch (Exception ex) when (ex is InvalidDataException or IOException or CsvHelperException or ArgumentException or NotSupportedException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw ApiException.Invalid("file", "Không đọc được tệp. Hãy kiểm tra định dạng.");
         }
