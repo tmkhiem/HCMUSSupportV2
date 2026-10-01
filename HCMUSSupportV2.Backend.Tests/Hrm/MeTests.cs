@@ -26,7 +26,8 @@ public class HrmTestSignInController : ControllerBase
     {
         var principal = await principals.CreateAsync(code);
         if (principal is null) return NotFound();
-        if (actingAs is not null) ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim(IdentityClaims.ActingAs, actingAs));
+        // D14a: a view-as claim without an unexpired acting_as_until is dropped by the cookie revalidator.
+        if (actingAs is not null) principal = PrincipalFactory.WithActingAs(principal, actingAs, DateTimeOffset.UtcNow.AddHours(1));
         await HttpContext.SignInAsync(AuthSchemes.Cookie, principal);
         return NoContent();
     }
