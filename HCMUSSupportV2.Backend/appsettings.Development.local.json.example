@@ -15,6 +15,9 @@
   "Dev": {
     "SeedEmployees": true
   },
+  "Hrm": {
+    "DevApiClient": { "Token": "<random-string-of-24-or-more-characters>" }
+  },
   "Storage": {
     "LocalRoot": "App_Data/files"
   }

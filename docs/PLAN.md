@@ -401,17 +401,17 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** tests cover a valid sign-in, wrong audience, unverified email, unknown email, inactive employee, and dev-login rejected in Production. A real Google sign-in works on localhost.
 
 ### D04 · HRM domain schema & ingest API
-- [ ] The §3.2 tables, with the EF mappings and migration `D04_Hrm`.
-- [ ] `POST integration/v1/{dataset}` takes full-snapshot batches (gzip JSON, ≤ 20 MB). The service:
+- [x] The §3.2 tables, with the EF mappings and migration `D04_Hrm`.
+- [x] `POST integration/v1/{dataset}` takes full-snapshot batches (gzip JSON, ≤ 20 MB). The service:
   1. Binary-COPYs the batch into a temp table.
   2. `MERGE … WHEN NOT MATCHED BY SOURCE THEN DELETE` (PG 17+) on `hrm_id`.
   3. Writes `sync_runs`.
   4. Writes `sync_issues` for duplicate MSCBs, unknown units and unparseable dates.
   - It refuses a run whose row count falls more than 20 % below the last good run unless `?force=true`.
-  - It enqueues `groups.recompute` after an `employees` or `org-units` run.
-- [ ] A minimal `api_clients` table (hashed tokens, scopes) and an ApiKey auth handler. Admin UI is in D14b.
-- [ ] `me/*` read endpoints (§5) for all HRM datasets. They honour `actingAs`, mask `employee_sensitive`, and expose reveal-with-audit.
-- [ ] Admin dataset import endpoints for teaching, research and publications (xlsx), using the dry-run report → apply flow through `imports`. Publish the template formats as downloadable `.xlsx`.
+  - After an `employees` or `org-units` run it calls the `IRosterSyncObserver`s (the groups engine enqueues `groups.recompute`), and `IEmployeeActivationObserver` with newly active codes.
+- [x] A minimal `api_clients` table (hashed tokens, scopes) and an ApiKey auth handler. Admin UI is in D14b.
+- [x] `me/*` read endpoints (§5) for all HRM datasets. They honour `actingAs`, mask `employee_sensitive`, and expose reveal-with-audit.
+- [x] Admin dataset import endpoints for teaching, research and publications (xlsx), using the dry-run report → apply flow through `imports`. Publish the template formats as downloadable `.xlsx`.
 - **Done when:** ingesting synthetic fixtures for every dataset round-trips, the truncation guard and duplicate-MSCB issue are tested, and nobody can read another employee's rows unless view-as is active.
 
 ### D05 · Sync tool (`HCMUSSupportV2.Sync`)
