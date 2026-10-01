@@ -11,6 +11,7 @@ HCMUSSupportV2.Backend/
   Modules/<Module>/<Feature>/   controller, service, DTO records, entity + <Entity>Configuration.cs
   Modules/Platform/             system info, jobs, files, audit (D01)
   Modules/Identity/             people, roles, groups schema, sign-in, policies (D03)
+  Modules/Admin/                roles, view-as, employee status, audit query, dashboard (D14a)
 HCMUSSupportV2.Backend.Tests/   xUnit + WebApplicationFactory against a throw-away PostgreSQL database
 ```
 
@@ -148,7 +149,7 @@ signed-in user lacking the role gets **403**. The cookie principal is re-checked
 `roles` always contains `employee`, plus `editor` and/or `admin` when assigned (for example `["employee","editor"]`).
 An admin has every editor right (the server policies treat admin as a superset), so the frontend should treat
 `roles.includes('editor') || roles.includes('admin')` as "can edit". `unit` is the employee org unit name (or null).
-`emails` lists the primary address first. `actingAs` is always null until view-as lands (D14a).
+`emails` lists the primary address first. `actingAs` is `{code, fullName, expiresAt}` while an admin is in view-as (see the Admin module), otherwise null.
 
 ### Antiforgery contract (for the frontend)
 
@@ -196,7 +197,7 @@ controllers; modules add their own policies in their `AddXxxModule`. Inject `ICu
 (`IsEditor` is true for editors **and** admins, `IsAdmin` only for admins).
 
 **Last admin guard.** `LastAdminGuard.EnsureNotLastAdminAsync(code)` throws `LastAdminException` when `code` is the only
-active admin. Call it before revoking the admin role or deactivating an employee (D14a).
+active admin. The Admin module calls it before revoking the admin role (and refuses self-deactivation and deactivating the last admin).
 
 **Bootstrap.** `Admin:BootstrapEmails` (array) grants `admin` to the employees behind those emails while the database has
 no active admin: at startup, and again when one of those emails signs in (so it also works when the roster is synced
@@ -218,6 +219,72 @@ gives `CreateSessionClient()` (https base address, cookies kept, no redirects). 
 off, fakes the Google client id and secret and revalidates the session on every request. `TestControllers.Add` registers
 test-only endpoints (`/api/test/employee|editor|admin|write`, `/api/test/sign-in/{code}`) for policy and antiforgery tests.
 A Development test host also reads `appsettings.Development.local.json`; settings passed to the factory win.
+
+## Admin module (D14a, `Modules/Admin`)
+
+Everything under `/api/admin/*` needs the admin role (named policies `GrantRoles`, `ViewAs`, `ManageEmployees`,
+`ViewAuditLog`, `Admin`). Lists use `{items, nextCursor}` (opaque keyset cursor, `limit` 1..200, default 50).
+Guard-rail violations answer **409** with Vietnamese `detail`.
+
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/admin/roles?q&role&cursor&limit` | employees ordered by code with `roles` (assigned roles only, `employee` is implicit). `q` matches code, name (accent-insensitive) or email; `role` is `editor`, `admin` or `employee` (= none assigned) |
+| `GET /api/admin/roles/{code}` | `{code, fullName, unit, status, emails[], roles[], grants[{role, grantedBy, grantedByName, grantedAt}]}`; 404 unknown |
+| `PUT /api/admin/roles/{code}` `{roles:["editor","admin"]}` | sets the complete assigned set (`employee` ignored). 400 unknown role, 404 unknown employee, **409** when it would remove the last active admin. Audited per role as `roles.granted` / `roles.revoked` (target = employee, details `{role}`) |
+| `POST /api/admin/view-as` `{employeeCode}` | see View-as. 400 yourself/blank, 404 unknown |
+| `DELETE /api/admin/view-as` | stop; 204 (no-op when not acting) |
+| `PUT /api/admin/employees/{code}/status` `{status}` | `active|inactive|retired`; audited `employee.status_changed {from,to}`; 409 for deactivating yourself or the last admin; becoming active calls every registered `IEmployeeActivationObserver` |
+| `POST /api/admin/employees` `{code, fullName, orgUnitId?}` | manual employee (`source=manual`, active); 201, 400 invalid, **409** code exists (case-insensitive). Audited `employee.created`. No activation observer call: it has no email yet |
+| `GET /api/admin/audit?actor&action&targetType&targetId&from&to&cursor&limit` | newest first, keyset on `(at, id)`; `action` exact or prefix with a trailing `*`; `from` inclusive, `to` exclusive; rows carry `actorName`/`actingAsName` joined from employees and `details` as JSON |
+| `GET /api/admin/audit/actions` | distinct action names |
+| `GET /api/admin/dashboard` | `{tiles[{key, label, value, hint, severity, unit}], recentActivity[last 20 audit rows]}` |
+
+**Role changes take effect immediately.** `SessionInvalidator` (Identity, in-memory singleton) remembers when an employee's
+roles or status were changed by an admin; the cookie revalidator re-checks any principal whose last check is not newer
+than that, ahead of `Auth:RevalidateSeconds`. It is exact on a single backend instance; with several instances the others
+catch up at the normal interval. No schema is involved. Role and status changes run under a PostgreSQL advisory
+transaction lock so two admins cannot remove each other concurrently.
+
+### View-as contract
+
+- `POST /api/admin/view-as` re-issues the session cookie. Top-level claims stay the admin's (`code`, name, `role`s);
+  two claims are added: `acting_as` (the viewed MSCB) and `acting_as_until` (unix seconds, now + `Admin:ViewAs:Minutes`,
+  default 60). The viewed employee may have any status but must exist; you cannot view as yourself. The response is
+  `{code, fullName, expiresAt}`; the SPA then calls `GET /api/auth/me`, whose top-level `code/fullName/roles` are the
+  **admin** and `actingAs` is `{code, fullName, expiresAt}`. The antiforgery token stays valid (same name identifier).
+- `ICurrentUser.EffectiveCode` / `RequireEffectiveCode()` is the viewed employee while acting. **Every self-service read
+  (`/api/me/*`, `/api/notifications*`) must use it instead of `Code`.** `Code` is always the real signed-in admin, so
+  authorization, `GrantedBy`, audit actors etc. stay the admin.
+- `ViewAsReadOnlyMiddleware` (after authentication and antiforgery) answers **403** ProblemDetails
+  "Đang ở chế độ xem thử — không thể thay đổi dữ liệu" to every `POST/PUT/PATCH/DELETE` under `/api/*` while acting,
+  except `DELETE /api/admin/view-as` and `POST /api/auth/logout`. Starting a second view-as therefore needs a stop first.
+- Audit: `viewas.started` (actor = admin, target = viewed employee, details `{expiresAt}`), `viewas.stopped` (carries
+  `acting_as`), and `viewas.read` for each `GET` under `/api/me/*` and `/api/notifications*` (details `{path, query}`,
+  never bodies). Every audit row written while acting carries `acting_as_code`. To audit more areas add a prefix to
+  `ViewAsReadOnlyMiddleware.AuditedReadPrefixes`.
+- Expiry: the cookie revalidator drops `acting_as` once `acting_as_until` passes (checked on every request, whatever
+  `Auth:RevalidateSeconds` is) and re-issues the cookie, so the session silently becomes the plain admin session again.
+  Revalidation keeps an unexpired view-as session (and drops it if the viewed employee no longer exists).
+
+### Dashboard contributors
+
+`IDashboardContributor.GetTilesAsync(ct)` returns `DashboardTile(Key, Label, Value, Hint, Severity, Unit)` (`Label` and
+`Hint` in Vietnamese; `Severity` is one of `TileSeverity.Info|Success|Warning|Danger`; `Unit` e.g. `"%"`). A module adds
+its tiles by implementing the interface (inject whatever it needs, it is scoped) and calling
+`services.AddDashboardContributor<MyContributor>()` from its `AddXxxModule`. Tiles keep registration order; a contributor
+that throws is logged and skipped. Use a `module.thing` key (`identity.employees.active`, `hrm.sync.failed`,
+`notifications.read_rate`). Identity ships five tiles: active employees, employees with an email, editors, admins and
+distinct `auth.login` sign-ins in the last 7 days.
+
+### Schema (migration `D14a_Admin`)
+
+Only indexes on `audit_log`: `ix_audit_log_at_id (at DESC, id DESC)` for keyset paging and `ix_audit_log_action_at`.
+
+### Notes for other modules
+
+- The roster sync (D04) may overwrite `employees.status` for `source=hrm` rows; an admin's manual status change on such a
+  row is not protected from the next sync.
+- Not in D14a: `sync_runs` / `sync_issues` endpoints (D04 owns them), dataset imports and API clients.
 
 ## Background jobs
 

@@ -222,6 +222,530 @@ export class AuthClient {
     }
 }
 
+export class ViewAsClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    start(request: StartViewAsRequest): Promise<ViewAsDto> {
+        let url_ = this.baseUrl + "/api/admin/view-as";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processStart(_response);
+        });
+    }
+
+    protected processStart(response: Response): Promise<ViewAsDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ViewAsDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ViewAsDto>(null as any);
+    }
+
+    stop(): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/view-as";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processStop(_response);
+        });
+    }
+
+    protected processStop(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class RolesClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    list(q: string | null | undefined, role: string | null | undefined, cursor: string | null | undefined, limit: number | null | undefined): Promise<AdminPageOfRoleRowDto> {
+        let url_ = this.baseUrl + "/api/admin/roles?";
+        if (q !== undefined && q !== null)
+            url_ += "q=" + encodeURIComponent("" + q) + "&";
+        if (role !== undefined && role !== null)
+            url_ += "role=" + encodeURIComponent("" + role) + "&";
+        if (cursor !== undefined && cursor !== null)
+            url_ += "cursor=" + encodeURIComponent("" + cursor) + "&";
+        if (limit !== undefined && limit !== null)
+            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processList(_response);
+        });
+    }
+
+    protected processList(response: Response): Promise<AdminPageOfRoleRowDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AdminPageOfRoleRowDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AdminPageOfRoleRowDto>(null as any);
+    }
+
+    get(code: string): Promise<RoleDetailDto> {
+        let url_ = this.baseUrl + "/api/admin/roles/{code}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGet(_response);
+        });
+    }
+
+    protected processGet(response: Response): Promise<RoleDetailDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RoleDetailDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RoleDetailDto>(null as any);
+    }
+
+    put(code: string, request: SetRolesRequest): Promise<RoleDetailDto> {
+        let url_ = this.baseUrl + "/api/admin/roles/{code}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPut(_response);
+        });
+    }
+
+    protected processPut(response: Response): Promise<RoleDetailDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RoleDetailDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RoleDetailDto>(null as any);
+    }
+}
+
+export class AdminEmployeesClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    setStatus(code: string, request: SetStatusRequest): Promise<AdminEmployeeDto> {
+        let url_ = this.baseUrl + "/api/admin/employees/{code}/status";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSetStatus(_response);
+        });
+    }
+
+    protected processSetStatus(response: Response): Promise<AdminEmployeeDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AdminEmployeeDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AdminEmployeeDto>(null as any);
+    }
+
+    create(request: CreateEmployeeRequest): Promise<AdminEmployeeDto> {
+        let url_ = this.baseUrl + "/api/admin/employees";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: Response): Promise<AdminEmployeeDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = AdminEmployeeDto.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AdminEmployeeDto>(null as any);
+    }
+}
+
+export class DashboardClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    get(): Promise<DashboardDto> {
+        let url_ = this.baseUrl + "/api/admin/dashboard";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGet(_response);
+        });
+    }
+
+    protected processGet(response: Response): Promise<DashboardDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DashboardDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DashboardDto>(null as any);
+    }
+}
+
+export class AuditClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    query(actor: string | null | undefined, action: string | null | undefined, targetType: string | null | undefined, targetId: string | null | undefined, from: Date | null | undefined, to: Date | null | undefined, cursor: string | null | undefined, limit: number | null | undefined): Promise<AdminPageOfAuditEntryDto> {
+        let url_ = this.baseUrl + "/api/admin/audit?";
+        if (actor !== undefined && actor !== null)
+            url_ += "actor=" + encodeURIComponent("" + actor) + "&";
+        if (action !== undefined && action !== null)
+            url_ += "action=" + encodeURIComponent("" + action) + "&";
+        if (targetType !== undefined && targetType !== null)
+            url_ += "targetType=" + encodeURIComponent("" + targetType) + "&";
+        if (targetId !== undefined && targetId !== null)
+            url_ += "targetId=" + encodeURIComponent("" + targetId) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (cursor !== undefined && cursor !== null)
+            url_ += "cursor=" + encodeURIComponent("" + cursor) + "&";
+        if (limit !== undefined && limit !== null)
+            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQuery(_response);
+        });
+    }
+
+    protected processQuery(response: Response): Promise<AdminPageOfAuditEntryDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AdminPageOfAuditEntryDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AdminPageOfAuditEntryDto>(null as any);
+    }
+
+    actions(): Promise<string[]> {
+        let url_ = this.baseUrl + "/api/admin/audit/actions";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processActions(_response);
+        });
+    }
+
+    protected processActions(response: Response): Promise<string[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(item);
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<string[]>(null as any);
+    }
+}
+
 export class SystemInfoDto implements ISystemInfoDto {
     version?: string;
     environment?: string;
@@ -341,6 +865,7 @@ export interface IMeDto {
 export class ActingAsDto implements IActingAsDto {
     code?: string;
     fullName?: string;
+    expiresAt?: Date | undefined;
 
     constructor(data?: IActingAsDto) {
         if (data) {
@@ -355,6 +880,7 @@ export class ActingAsDto implements IActingAsDto {
         if (_data) {
             this.code = _data["code"];
             this.fullName = _data["fullName"];
+            this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
         }
     }
 
@@ -369,6 +895,7 @@ export class ActingAsDto implements IActingAsDto {
         data = typeof data === 'object' ? data : {};
         data["code"] = this.code;
         data["fullName"] = this.fullName;
+        data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
         return data;
     }
 }
@@ -376,6 +903,7 @@ export class ActingAsDto implements IActingAsDto {
 export interface IActingAsDto {
     code?: string;
     fullName?: string;
+    expiresAt?: Date | undefined;
 }
 
 export class ProblemDetails implements IProblemDetails {
@@ -476,6 +1004,746 @@ export class DevLoginRequest implements IDevLoginRequest {
 
 export interface IDevLoginRequest {
     employeeCode?: string;
+}
+
+export class ViewAsDto implements IViewAsDto {
+    code?: string;
+    fullName?: string;
+    expiresAt?: Date;
+
+    constructor(data?: IViewAsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): ViewAsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ViewAsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IViewAsDto {
+    code?: string;
+    fullName?: string;
+    expiresAt?: Date;
+}
+
+export class StartViewAsRequest implements IStartViewAsRequest {
+    employeeCode?: string;
+
+    constructor(data?: IStartViewAsRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.employeeCode = _data["employeeCode"];
+        }
+    }
+
+    static fromJS(data: any): StartViewAsRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new StartViewAsRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["employeeCode"] = this.employeeCode;
+        return data;
+    }
+}
+
+export interface IStartViewAsRequest {
+    employeeCode?: string;
+}
+
+export class AdminPageOfRoleRowDto implements IAdminPageOfRoleRowDto {
+    items?: RoleRowDto[];
+    nextCursor?: string | undefined;
+
+    constructor(data?: IAdminPageOfRoleRowDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(RoleRowDto.fromJS(item));
+            }
+            this.nextCursor = _data["nextCursor"];
+        }
+    }
+
+    static fromJS(data: any): AdminPageOfRoleRowDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminPageOfRoleRowDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["nextCursor"] = this.nextCursor;
+        return data;
+    }
+}
+
+export interface IAdminPageOfRoleRowDto {
+    items?: RoleRowDto[];
+    nextCursor?: string | undefined;
+}
+
+export class RoleRowDto implements IRoleRowDto {
+    code?: string;
+    fullName?: string;
+    unit?: string | undefined;
+    status?: string;
+    primaryEmail?: string | undefined;
+    roles?: string[];
+
+    constructor(data?: IRoleRowDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.unit = _data["unit"];
+            this.status = _data["status"];
+            this.primaryEmail = _data["primaryEmail"];
+            if (Array.isArray(_data["roles"])) {
+                this.roles = [] as any;
+                for (let item of _data["roles"])
+                    this.roles!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): RoleRowDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RoleRowDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["unit"] = this.unit;
+        data["status"] = this.status;
+        data["primaryEmail"] = this.primaryEmail;
+        if (Array.isArray(this.roles)) {
+            data["roles"] = [];
+            for (let item of this.roles)
+                data["roles"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IRoleRowDto {
+    code?: string;
+    fullName?: string;
+    unit?: string | undefined;
+    status?: string;
+    primaryEmail?: string | undefined;
+    roles?: string[];
+}
+
+export class RoleDetailDto implements IRoleDetailDto {
+    code?: string;
+    fullName?: string;
+    unit?: string | undefined;
+    status?: string;
+    emails?: string[];
+    roles?: string[];
+    grants?: RoleGrantDto[];
+
+    constructor(data?: IRoleDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.unit = _data["unit"];
+            this.status = _data["status"];
+            if (Array.isArray(_data["emails"])) {
+                this.emails = [] as any;
+                for (let item of _data["emails"])
+                    this.emails!.push(item);
+            }
+            if (Array.isArray(_data["roles"])) {
+                this.roles = [] as any;
+                for (let item of _data["roles"])
+                    this.roles!.push(item);
+            }
+            if (Array.isArray(_data["grants"])) {
+                this.grants = [] as any;
+                for (let item of _data["grants"])
+                    this.grants!.push(RoleGrantDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): RoleDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RoleDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["unit"] = this.unit;
+        data["status"] = this.status;
+        if (Array.isArray(this.emails)) {
+            data["emails"] = [];
+            for (let item of this.emails)
+                data["emails"].push(item);
+        }
+        if (Array.isArray(this.roles)) {
+            data["roles"] = [];
+            for (let item of this.roles)
+                data["roles"].push(item);
+        }
+        if (Array.isArray(this.grants)) {
+            data["grants"] = [];
+            for (let item of this.grants)
+                data["grants"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IRoleDetailDto {
+    code?: string;
+    fullName?: string;
+    unit?: string | undefined;
+    status?: string;
+    emails?: string[];
+    roles?: string[];
+    grants?: RoleGrantDto[];
+}
+
+export class RoleGrantDto implements IRoleGrantDto {
+    role?: string;
+    grantedBy?: string | undefined;
+    grantedByName?: string | undefined;
+    grantedAt?: Date;
+
+    constructor(data?: IRoleGrantDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.role = _data["role"];
+            this.grantedBy = _data["grantedBy"];
+            this.grantedByName = _data["grantedByName"];
+            this.grantedAt = _data["grantedAt"] ? new Date(_data["grantedAt"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): RoleGrantDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RoleGrantDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["role"] = this.role;
+        data["grantedBy"] = this.grantedBy;
+        data["grantedByName"] = this.grantedByName;
+        data["grantedAt"] = this.grantedAt ? this.grantedAt.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IRoleGrantDto {
+    role?: string;
+    grantedBy?: string | undefined;
+    grantedByName?: string | undefined;
+    grantedAt?: Date;
+}
+
+export class SetRolesRequest implements ISetRolesRequest {
+    roles?: string[];
+
+    constructor(data?: ISetRolesRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["roles"])) {
+                this.roles = [] as any;
+                for (let item of _data["roles"])
+                    this.roles!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): SetRolesRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetRolesRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.roles)) {
+            data["roles"] = [];
+            for (let item of this.roles)
+                data["roles"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ISetRolesRequest {
+    roles?: string[];
+}
+
+export class AdminEmployeeDto implements IAdminEmployeeDto {
+    code?: string;
+    fullName?: string;
+    status?: string;
+    source?: string;
+    orgUnitId?: number | undefined;
+
+    constructor(data?: IAdminEmployeeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.status = _data["status"];
+            this.source = _data["source"];
+            this.orgUnitId = _data["orgUnitId"];
+        }
+    }
+
+    static fromJS(data: any): AdminEmployeeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminEmployeeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["status"] = this.status;
+        data["source"] = this.source;
+        data["orgUnitId"] = this.orgUnitId;
+        return data;
+    }
+}
+
+export interface IAdminEmployeeDto {
+    code?: string;
+    fullName?: string;
+    status?: string;
+    source?: string;
+    orgUnitId?: number | undefined;
+}
+
+export class SetStatusRequest implements ISetStatusRequest {
+    status?: string;
+
+    constructor(data?: ISetStatusRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.status = _data["status"];
+        }
+    }
+
+    static fromJS(data: any): SetStatusRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetStatusRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["status"] = this.status;
+        return data;
+    }
+}
+
+export interface ISetStatusRequest {
+    status?: string;
+}
+
+export class CreateEmployeeRequest implements ICreateEmployeeRequest {
+    code?: string;
+    fullName?: string;
+    orgUnitId?: number | undefined;
+
+    constructor(data?: ICreateEmployeeRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.orgUnitId = _data["orgUnitId"];
+        }
+    }
+
+    static fromJS(data: any): CreateEmployeeRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateEmployeeRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["orgUnitId"] = this.orgUnitId;
+        return data;
+    }
+}
+
+export interface ICreateEmployeeRequest {
+    code?: string;
+    fullName?: string;
+    orgUnitId?: number | undefined;
+}
+
+export class DashboardDto implements IDashboardDto {
+    tiles?: DashboardTile[];
+    recentActivity?: AuditEntryDto[];
+
+    constructor(data?: IDashboardDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["tiles"])) {
+                this.tiles = [] as any;
+                for (let item of _data["tiles"])
+                    this.tiles!.push(DashboardTile.fromJS(item));
+            }
+            if (Array.isArray(_data["recentActivity"])) {
+                this.recentActivity = [] as any;
+                for (let item of _data["recentActivity"])
+                    this.recentActivity!.push(AuditEntryDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): DashboardDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new DashboardDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.tiles)) {
+            data["tiles"] = [];
+            for (let item of this.tiles)
+                data["tiles"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.recentActivity)) {
+            data["recentActivity"] = [];
+            for (let item of this.recentActivity)
+                data["recentActivity"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IDashboardDto {
+    tiles?: DashboardTile[];
+    recentActivity?: AuditEntryDto[];
+}
+
+export class DashboardTile implements IDashboardTile {
+    key?: string;
+    label?: string;
+    value?: number;
+    hint?: string | undefined;
+    severity?: string;
+    unit?: string | undefined;
+
+    constructor(data?: IDashboardTile) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.label = _data["label"];
+            this.value = _data["value"];
+            this.hint = _data["hint"];
+            this.severity = _data["severity"];
+            this.unit = _data["unit"];
+        }
+    }
+
+    static fromJS(data: any): DashboardTile {
+        data = typeof data === 'object' ? data : {};
+        let result = new DashboardTile();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["label"] = this.label;
+        data["value"] = this.value;
+        data["hint"] = this.hint;
+        data["severity"] = this.severity;
+        data["unit"] = this.unit;
+        return data;
+    }
+}
+
+export interface IDashboardTile {
+    key?: string;
+    label?: string;
+    value?: number;
+    hint?: string | undefined;
+    severity?: string;
+    unit?: string | undefined;
+}
+
+export class AuditEntryDto implements IAuditEntryDto {
+    id?: number;
+    at?: Date;
+    actorCode?: string | undefined;
+    actorName?: string | undefined;
+    actingAsCode?: string | undefined;
+    actingAsName?: string | undefined;
+    action?: string;
+    targetType?: string | undefined;
+    targetId?: string | undefined;
+    details?: any | undefined;
+    ip?: string | undefined;
+    userAgent?: string | undefined;
+
+    constructor(data?: IAuditEntryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.at = _data["at"] ? new Date(_data["at"].toString()) : undefined as any;
+            this.actorCode = _data["actorCode"];
+            this.actorName = _data["actorName"];
+            this.actingAsCode = _data["actingAsCode"];
+            this.actingAsName = _data["actingAsName"];
+            this.action = _data["action"];
+            this.targetType = _data["targetType"];
+            this.targetId = _data["targetId"];
+            this.details = _data["details"];
+            this.ip = _data["ip"];
+            this.userAgent = _data["userAgent"];
+        }
+    }
+
+    static fromJS(data: any): AuditEntryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AuditEntryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["at"] = this.at ? this.at.toISOString() : undefined as any;
+        data["actorCode"] = this.actorCode;
+        data["actorName"] = this.actorName;
+        data["actingAsCode"] = this.actingAsCode;
+        data["actingAsName"] = this.actingAsName;
+        data["action"] = this.action;
+        data["targetType"] = this.targetType;
+        data["targetId"] = this.targetId;
+        data["details"] = this.details;
+        data["ip"] = this.ip;
+        data["userAgent"] = this.userAgent;
+        return data;
+    }
+}
+
+export interface IAuditEntryDto {
+    id?: number;
+    at?: Date;
+    actorCode?: string | undefined;
+    actorName?: string | undefined;
+    actingAsCode?: string | undefined;
+    actingAsName?: string | undefined;
+    action?: string;
+    targetType?: string | undefined;
+    targetId?: string | undefined;
+    details?: any | undefined;
+    ip?: string | undefined;
+    userAgent?: string | undefined;
+}
+
+export class AdminPageOfAuditEntryDto implements IAdminPageOfAuditEntryDto {
+    items?: AuditEntryDto[];
+    nextCursor?: string | undefined;
+
+    constructor(data?: IAdminPageOfAuditEntryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(AuditEntryDto.fromJS(item));
+            }
+            this.nextCursor = _data["nextCursor"];
+        }
+    }
+
+    static fromJS(data: any): AdminPageOfAuditEntryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminPageOfAuditEntryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["nextCursor"] = this.nextCursor;
+        return data;
+    }
+}
+
+export interface IAdminPageOfAuditEntryDto {
+    items?: AuditEntryDto[];
+    nextCursor?: string | undefined;
 }
 
 export class ApiException extends Error {

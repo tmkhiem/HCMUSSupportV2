@@ -462,7 +462,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [ ] The three bespoke sections in §7.3, including the NCKH skewed switcher. Use proper responsive labels; the build relied on a Tailwind `xs` breakpoint that doesn't exist.
 
 ### D14a · Admin core (backend)
-- [ ] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. Sync runs and issues endpoints.
+- [x] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. (Sync runs and issues endpoints are owned by D04.)
 
 ### D14b · Admin & editor management pages
 - [ ] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet.
