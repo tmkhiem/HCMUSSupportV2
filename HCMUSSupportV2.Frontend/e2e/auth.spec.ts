@@ -38,6 +38,21 @@ test.describe('login', () => {
     await expect(page.getByRole('alert')).toContainText('chưa được liên kết')
   })
 
+  test('maps every backend error code and the /login redirect keeps the query', async ({ page }) => {
+    const expected: Record<string, string> = {
+      not_registered: 'chưa được liên kết',
+      inactive: 'không còn hoạt động',
+      unverified_email: 'chưa được xác minh',
+      oauth_failed: 'không hoàn tất',
+      access_denied: 'từ chối',
+    }
+    for (const [code, text] of Object.entries(expected)) {
+      await page.goto(`/login?error=${code}`)
+      await expect(page).toHaveURL(`/dang-nhap?error=${code}`)
+      await expect(page.getByRole('alert')).toContainText(text)
+    }
+  })
+
   test('mobile layout has no horizontal scroll', async ({ page }) => {
     await page.setViewportSize(MOBILE)
     await page.goto('/dang-nhap')
@@ -66,7 +81,7 @@ test.describe('roles', () => {
   })
 
   test('an editor sees the manage entry but not the admin one', async ({ page }) => {
-    await page.route('**/api/auth/me', (route) => route.fulfill({ json: { ...ME.employee, roles: ['editor'] } }))
+    await page.route('**/api/auth/me', (route) => route.fulfill({ json: { ...ME.employee, roles: ['employee', 'editor'] } }))
     await page.goto('/quan-ly/thong-bao')
     await expect(page.getByRole('heading', { level: 1, name: 'Quản lý thông báo' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Quản trị' })).toHaveCount(0)

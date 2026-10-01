@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { ApiError, http } from '../api/http'
+import { authClient } from '../api/clients'
+import { ApiError } from '../api/http'
+import { toMe } from './types'
 import type { Me } from './types'
 
 export const meQueryKey = ['auth', 'me'] as const
@@ -10,13 +12,17 @@ export const meQueryKey = ['auth', 'me'] as const
  */
 export const MOCK_AUTH = import.meta.env.DEV && import.meta.env.VITE_MOCK_AUTH === '1'
 
+/**
+ * `GET /api/auth/me`. As a side effect the response (re)issues the `XSRF-TOKEN` cookie that unsafe requests
+ * need, so this must run again after every sign-in or user switch.
+ */
 export async function fetchMe(): Promise<Me | null> {
   if (MOCK_AUTH) {
     const { createMockMe } = await import('./mockMe')
     return createMockMe(window.location.search)
   }
   try {
-    return await http.get<Me>('/api/auth/me', { skipUnauthorizedHandler: true })
+    return toMe(await authClient.me())
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) return null
     throw e
