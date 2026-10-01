@@ -366,20 +366,20 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ```
 
 ### D01 · Backend foundation
-- [ ] Stay on **net8.0** (§10 Q1). Swap `Microsoft.EntityFrameworkCore.SqlServer` for `Npgsql.EntityFrameworkCore.PostgreSQL` 9 and `EFCore.NamingConventions` 9.
-- [ ] snake_case naming, and `UUIDNext` for v7 ids. The baseline migration creates the extensions (`citext`, `unaccent`, `pg_trgm`), `vn_unaccent` and `f_unaccent()`. Dev PG is 17.11, and `sa` is a superuser.
-- [ ] Configuration: `appsettings.{Env}.local.json` loading, `ConnectionStrings:Default`, `Storage:*`, `Auth:*`, plus the `.example` files.
-- [ ] Platform pieces:
-  - [ ] Serilog
-  - [ ] OpenTelemetry (OTLP optional)
-  - [ ] ProblemDetails
-  - [ ] `/healthz`
-  - [ ] `GET /api/system/info`
-  - [ ] rate limiter (`auth/*`, `integration/*`)
-  - [ ] forwarded headers
-- [ ] The `Modules/` pattern and the `jobs` queue: entity, `IJobQueue.Enqueue`, a hosted worker with SKIP LOCKED, retry and backoff, and a test job.
-- [ ] `IFileStore` (local disk), the `files` table, `audit_log` with `IAuditLogger`, and `data_protection_keys`. Migration `D01_Platform`.
-- [ ] `HCMUSSupportV2.Backend.Tests` with a PG fixture.
+- [x] Stay on **net8.0** (§10 Q1). Swap `Microsoft.EntityFrameworkCore.SqlServer` for `Npgsql.EntityFrameworkCore.PostgreSQL` 9 and `EFCore.NamingConventions` 9.
+- [x] snake_case naming, and `UUIDNext` for v7 ids. The baseline migration creates the extensions (`citext`, `unaccent`, `pg_trgm`), `vn_unaccent` and `f_unaccent()`. Dev PG is 17.11, and `sa` is a superuser.
+- [x] Configuration: `appsettings.{Env}.local.json` loading, `ConnectionStrings:Default`, `Storage:*`, `Auth:*`, plus the `.example` files.
+- [x] Platform pieces:
+  - [x] Serilog
+  - [x] OpenTelemetry (OTLP optional)
+  - [x] ProblemDetails
+  - [x] `/healthz`
+  - [x] `GET /api/system/info`
+  - [x] rate limiter (`auth/*`, `integration/*`)
+  - [x] forwarded headers
+- [x] The `Modules/` pattern and the `jobs` queue: entity, `IJobQueue.Enqueue`, a hosted worker with SKIP LOCKED, retry and backoff, and a test job.
+- [x] `IFileStore` (local disk), the `files` table, `audit_log` with `IAuditLogger`, and `data_protection_keys`. Migration `D01_Platform`.
+- [x] `HCMUSSupportV2.Backend.Tests` with a PG fixture.
 - **Done when:** `dotnet test` is green, `/healthz` is Healthy, a queued test job runs, and `generate-api.cmd` emits `SystemClient`.
 
 ### D02 · Frontend foundation & shell (§7.1–7.2)
