@@ -498,14 +498,14 @@ nothing is installed, changed or deployed there; read-only inspection is the mos
 - **Done when:** the kit is reviewed and dry-run validated (`nginx -t` and `systemd-analyze verify` run in a local container or VM, not on the live server).
 
 ### D17 · Security cleanup (independent, `[haiku]` for the checklist work)
-- [ ] User-run rotation checklist:
-  - [ ] the v1 Google OAuth client secrets (hard-coded in HRBackend)
-  - [ ] the GitHub PAT in `GitIntegrationTest`
-  - [ ] the HRM `sa` password (exposed in 3 files)
-  - [ ] the v1 `apps.json` tokens
-  - [ ] the plaintext password in prod `/root/.gitconfig`
-  - [ ] fix or retire `scripts/sheets.py`, which prints the service account to CI logs
-- [ ] A least-privilege, read-only HRM SQL login for the Sync tool, limited to the `NS_*` and `DM_*` tables it reads.
+- [x] User-run rotation checklist (checklist in docs/SECURITY-CHECKLIST.md):
+  - the v1 Google OAuth client secrets (hard-coded in HRBackend)
+  - the GitHub PAT in `GitIntegrationTest`
+  - the HRM `sa` password (exposed in 3 files)
+  - the v1 `apps.json` tokens
+  - the plaintext password in prod `/root/.gitconfig`
+  - fix or retire `scripts/sheets.py`, which prints the service account to CI logs
+- [x] A least-privilege, read-only HRM SQL login for the Sync tool (template in deploy/sql/hrm-readonly-login.sql), limited to the `NS_*` and `DM_*` tables it reads. 26 tables total: NS_NHANSU, NS_QuaTrinhLuong, NS_QuaTrinhChucVu, NS_QuaTrinhKhenThuong, NS_QuaTrinhDaoTao, NS_QuaTrinhSangKien, NS_QuaTrinhBoiDuong, NS_QuaTrinhCongTac, DM_DONVI, DM_PHONGBAN, DM_CHUYENNGANH, DM_PhuongXa, DM_QuanHuyen, DM_TinhThanhPho, DM_DanToc, DM_QUOCTICH, DM_TONGIAO, DM_HOCHAM, DM_HOCVI, DM_ChucVu, DM_TrinhDoHocVan, DM_ChinhTri, DM_NganHang, DM_LoaiBangCap, DM_HinhThucDaoTao, DM_LoaiSangKien.
 - [ ] After cutover, a decision on the PII-laden SupportHCMUSData history: archive it read-only, or purge it.
 
 ### D18 · Parity & cutover
