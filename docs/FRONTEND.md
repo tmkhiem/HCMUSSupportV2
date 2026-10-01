@@ -174,6 +174,27 @@ Code lives in `src/features/notifications/`: `body/` (`NotificationBody`, `remar
 `NotificationMarkdownEditor`, `MarkdownPreviewPane`, `contractPlugin`) and `dev/DevMarkdownPage` (route `/dev/markdown`, registered
 only when `import.meta.env.DEV`, so production builds have neither the page nor the editor chunk).
 
+## Hồ sơ: Lương, Chức vụ, Khen thưởng (D11)
+
+Code in `src/features/profile/`: `salary/` (`SalaryPage`, `SalaryChart`, `SalaryTimeline`), `positions/` (`PositionsPage`,
+`PositionTimeline`), `commendations/` (`CommendationsPage`, `CommendationGroups`), plus `careerApi.ts` (types and the
+TanStack Query hooks `useSalary`, `usePositions`, `useCommendations`; hand-written over `http.get('/api/me/...')` because the
+NSwag client has no Hrm endpoints yet), `careerFormat.ts` (`formatTenure` "3 năm 2 tháng", `formatMonthsToRaise` "còn N tháng",
+`coefficientPoints` for the chart, partial dates, năm học labels; tested in `careerFormat.test.ts`), `careerMock.ts`
+(synthetic data) and `CareerBreadcrumb` ("Hồ sơ cá nhân / page", links to `/ho-so`).
+
+- `/ho-so/luong`: five `StatCard`s (ngạch, bậc, hệ số, vượt khung %, next raise as a countdown; the card turns warm at 3 months
+  or less), a MUI X `LineChart` with `curve: 'stepAfter'` of hệ số by effective date (a text summary doubles as its `aria-label`),
+  and a vertical timeline of decisions (số QĐ, ngày ký, ngày hưởng, ghi chú; the newest one has the accent border).
+- `/ho-so/chuc-vu`: vertical timeline; the `isCurrent` entry has a filled larger node, tinted card, "Hiện tại" chip and "Đã đảm nhiệm".
+- `/ho-so/khen-thuong`: two count `StatCard`s, scrollable tabs "Khen thưởng" / "Danh hiệu", cards grouped by năm học (the null
+  group is "Chưa rõ năm học", last) with a trophy / medal icon, name, `QĐ <số> · <date>` (dates honour partial precision).
+- States follow UI-STYLE-GUIDE §7 through `PageState` with page-specific messages.
+- Mock mode (`VITE_MOCK_AUTH=1`): the hooks return `careerMock.ts` data without a network call; append `?career=empty` or
+  `?career=error` to a page URL to see the empty and error states.
+- Playwright: `e2e/career.spec.ts` (project `career`, port 5383, mock auth) covers each page at 1440 and 375 px, the tab switch,
+  and the empty / error states; screenshots go to `docs/screenshots/d11/`.
+
 ## Tests
 
 - `npm test`: vitest + Testing Library (jsdom). `format.test.ts`, `http.test.ts`, `nav.test.ts`, `returnUrl.test.ts` and
