@@ -1,6 +1,8 @@
+import type { MeDto } from '../api/generated-client'
+
 export type Role = 'editor' | 'admin'
 
-/** `employee` is implicit: every signed-in person has it. */
+/** `employee` is held by every signed-in person; the backend always includes it in `roles`. */
 export type RoleName = 'employee' | Role
 
 export const ROLE_LABELS: Record<RoleName, string> = {
@@ -16,7 +18,7 @@ export interface ActingAs {
 
 /**
  * `GET /api/auth/me`. The top-level fields describe the signed-in person (what the nav and `RequireRole`
- * gate on). While an admin is using view-as, `actingAs` names the employee being viewed.
+ * gate on). While an admin is using view-as (D14a), `actingAs` names the employee being viewed.
  */
 export interface Me {
   code: string
@@ -24,7 +26,8 @@ export interface Me {
   unit: string | null
   photoUrl: string | null
   emails: string[]
-  roles: Role[]
+  /** Always contains `employee`; plus `editor` and/or `admin` when assigned. */
+  roles: RoleName[]
   actingAs: ActingAs | null
 }
 
@@ -33,4 +36,20 @@ export function hasRole(me: Pick<Me, 'roles'> | null | undefined, role: Role | u
   if (!role) return true
   if (!me) return false
   return me.roles.includes('admin') || me.roles.includes(role)
+}
+
+/** The generated DTO has every field optional; normalise it to the shape the app relies on. */
+export function toMe(dto: MeDto): Me {
+  const known = (r: string): r is RoleName => r === 'employee' || r === 'editor' || r === 'admin'
+  const roles = (dto.roles ?? []).filter(known)
+  if (!roles.includes('employee')) roles.unshift('employee')
+  return {
+    code: dto.code ?? '',
+    fullName: dto.fullName ?? '',
+    unit: dto.unit ?? null,
+    photoUrl: dto.photoUrl ?? null,
+    emails: dto.emails ?? [],
+    roles,
+    actingAs: dto.actingAs ? { code: dto.actingAs.code ?? '', fullName: dto.actingAs.fullName ?? '' } : null,
+  }
 }

@@ -3,6 +3,6 @@ export function safeReturnUrl(raw: string | null | undefined, fallback = '/'): s
   if (!raw || !raw.startsWith('/')) return fallback
   // `//host` and `/\host` are protocol-relative / browser-normalised to another origin.
   if (raw.startsWith('//') || raw.startsWith('/\\')) return fallback
-  if (raw === '/dang-nhap' || raw.startsWith('/dang-nhap?') || raw.startsWith('/dang-nhap#')) return fallback
+  if (/^\/(dang-nhap|login)([?#]|$)/.test(raw)) return fallback
   return raw
 }

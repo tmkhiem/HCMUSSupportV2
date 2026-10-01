@@ -32,7 +32,7 @@ export default function AccountMenu({ size = 44 }: { size?: number }) {
   const menuId = useId()
   const open = Boolean(anchor)
 
-  const roles: RoleName[] = ['employee', ...me.roles]
+  const roles: RoleName[] = me.roles
 
   return (
     <>

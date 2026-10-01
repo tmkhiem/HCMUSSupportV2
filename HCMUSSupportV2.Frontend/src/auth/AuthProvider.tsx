@@ -1,9 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { authClient } from '../api/clients'
 import { http, setUnauthorizedHandler } from '../api/http'
 import { AuthContext } from './authContext'
 import type { AuthContextValue, AuthStatus } from './authContext'
+import { clearUserData, refreshSession } from './session'
 import { MOCK_AUTH, meQueryKey, useMe } from './useMe'
 import { hasRole } from './types'
 import type { Me } from './types'
@@ -31,12 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? 'authenticated'
         : 'unauthenticated'
 
-  const signedOut = () => {
-    // Keep the (now null) auth entry, forget everything user-specific.
-    qc.removeQueries({ predicate: (q) => q.queryKey[0] !== meQueryKey[0] })
-    qc.setQueryData<Me | null>(meQueryKey, null)
-  }
-
   const value: AuthContextValue = {
     status,
     me,
@@ -46,23 +42,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout: async () => {
       if (!MOCK_AUTH) {
         try {
-          await http.post('/api/auth/logout', undefined, { skipUnauthorizedHandler: true })
+          // Sends X-XSRF-TOKEN (clientFetch). A 400/401 means the session is already gone; either way sign out locally.
+          await authClient.logout()
         } catch {
-          // The cookie may already be gone; either way the user is signed out locally.
+          // ignored on purpose
         }
       }
-      signedOut()
+      // Signed out now: RequireAuth redirects to the login page (with the page we came from as returnUrl).
+      clearUserData(qc)
+      qc.setQueryData<Me | null>(meQueryKey, null)
+      // Confirm with the server (401 -> null) so the cached state matches the cleared cookie.
+      if (!MOCK_AUTH) await qc.invalidateQueries({ queryKey: meQueryKey })
     },
     exitViewAs: async () => {
       if (!MOCK_AUTH) await http.delete('/api/admin/view-as')
-      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== meQueryKey[0] })
       if (MOCK_AUTH) {
         // The mock reads ?mock-view-as from the URL; drop it so the bar goes away.
         const url = new URL(window.location.href)
         url.searchParams.delete('mock-view-as')
         window.history.replaceState(null, '', url)
       }
-      await qc.invalidateQueries({ queryKey: meQueryKey })
+      await refreshSession(qc)
     },
   }
 

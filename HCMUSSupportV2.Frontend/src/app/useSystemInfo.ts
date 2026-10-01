@@ -1,16 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { http } from '../api/http'
+import { systemClient } from '../api/clients'
 import { MOCK_AUTH } from '../auth/useMe'
 
-export interface SystemInfo {
-  version?: string
-}
-
-/** `GET /api/system/info` (D01). Failure is silent: the account menu just shows no version. */
+/** `GET /api/system/info` (D01) through the generated client. Failure is silent: the account menu just shows no version. */
 export function useSystemInfo() {
   return useQuery({
     queryKey: ['system', 'info'],
-    queryFn: () => http.get<SystemInfo>('/api/system/info', { skipUnauthorizedHandler: true }),
+    queryFn: () => systemClient.info(),
     enabled: !MOCK_AUTH,
     staleTime: Infinity,
     retry: false,

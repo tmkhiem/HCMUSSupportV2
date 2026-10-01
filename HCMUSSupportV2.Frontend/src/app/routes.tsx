@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
+import LoginAlias from '../auth/LoginAlias'
 import RequireAuth, { FullScreenLoading } from '../auth/RequireAuth'
 import RequireRole from '../auth/RequireRole'
 import AppLayout from './AppLayout'
@@ -20,6 +21,7 @@ const page = (path: string, title: string, lazy: RouteObject['lazy'] = placehold
 const redirect = (path: string, to: string): RouteObject => ({ path, element: <Navigate to={to} replace /> })
 
 export const routes: RouteObject[] = [
+  { path: '/login', element: <LoginAlias /> },
   {
     path: '/dang-nhap',
     lazy: () => import('../auth/LoginPage'),

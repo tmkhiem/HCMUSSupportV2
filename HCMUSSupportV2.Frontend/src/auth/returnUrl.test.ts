@@ -16,6 +16,8 @@ describe('safeReturnUrl', () => {
   })
 
   it('never returns to the login page itself', () => {
+    expect(safeReturnUrl('/login?error=inactive')).toBe('/')
+    expect(safeReturnUrl('/login')).toBe('/')
     expect(safeReturnUrl('/dang-nhap?returnUrl=%2F')).toBe('/')
   })
 })

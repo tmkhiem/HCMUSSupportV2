@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, http, setUnauthorizedHandler } from './http'
+import { ApiError, clientFetch, http, readXsrfToken, setUnauthorizedHandler } from './http'
 
 function respond(status: number, body?: unknown, contentType = 'application/json'): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -10,6 +10,7 @@ function respond(status: number, body?: unknown, contentType = 'application/json
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  document.cookie = 'XSRF-TOKEN=; Max-Age=0; path=/'
   setUnauthorizedHandler(null)
 })
 
@@ -75,5 +76,62 @@ describe('http', () => {
 
     await expect(http.get('/api/auth/me', { skipUnauthorizedHandler: true })).rejects.toMatchObject({ status: 401 })
     expect(handler).not.toHaveBeenCalled()
+  })
+})
+
+describe('antiforgery', () => {
+  const headerOf = (fetchMock: ReturnType<typeof vi.fn>) => (fetchMock.mock.calls[0][1] as RequestInit).headers as Headers
+
+  it('reads and decodes the XSRF-TOKEN cookie', () => {
+    expect(readXsrfToken('a=1; XSRF-TOKEN=ab%2Bc%3D; b=2')).toBe('ab+c=')
+    expect(readXsrfToken('a=1')).toBeUndefined()
+    expect(readXsrfToken('NOT-XSRF-TOKEN=x')).toBeUndefined()
+  })
+
+  it('adds X-XSRF-TOKEN on unsafe methods only', async () => {
+    document.cookie = 'XSRF-TOKEN=tok%2F1; path=/'
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(respond(200, {})))
+    vi.stubGlobal('fetch', fetchMock)
+
+    for (const method of ['post', 'put', 'delete'] as const) {
+      fetchMock.mockClear()
+      await http[method]('/api/x')
+      expect(headerOf(fetchMock).get('X-XSRF-TOKEN')).toBe('tok/1')
+    }
+    fetchMock.mockClear()
+    await http.get('/api/x')
+    expect(headerOf(fetchMock).has('X-XSRF-TOKEN')).toBe(false)
+  })
+
+  it('sends no header when there is no cookie yet', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(respond(200, {}))
+    vi.stubGlobal('fetch', fetchMock)
+    await http.post('/api/x', {})
+    expect(headerOf(fetchMock).has('X-XSRF-TOKEN')).toBe(false)
+  })
+})
+
+describe('clientFetch (NSwag)', () => {
+  it('adds credentials and the XSRF header, and returns the Response', async () => {
+    document.cookie = 'XSRF-TOKEN=abc; path=/'
+    const fetchMock = vi.fn().mockResolvedValue(respond(200, { ok: 1 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await clientFetch.fetch('/api/auth/logout', { method: 'POST', headers: {} })
+    expect(res.status).toBe(200)
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(init.credentials).toBe('include')
+    expect((init.headers as Headers).get('X-XSRF-TOKEN')).toBe('abc')
+  })
+
+  it('rejects with ApiError and fires the 401 handler, except for /api/auth/me', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(respond(401))))
+
+    await expect(clientFetch.fetch('/api/auth/me')).rejects.toMatchObject({ status: 401 })
+    expect(handler).not.toHaveBeenCalled()
+    await expect(clientFetch.fetch('/api/other?x=1')).rejects.toBeInstanceOf(ApiError)
+    expect(handler).toHaveBeenCalledTimes(1)
   })
 })

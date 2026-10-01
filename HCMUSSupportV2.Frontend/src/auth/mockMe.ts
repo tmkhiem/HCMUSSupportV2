@@ -12,7 +12,7 @@ export function createMockMe(search = ''): Me {
     unit: 'Khoa Công nghệ thông tin',
     photoUrl: null,
     emails: ['t0001@example.test'],
-    roles: ['editor', 'admin'],
+    roles: ['employee', 'editor', 'admin'],
     actingAs: viewAs ? { code: 'T0002', fullName: 'Trần Mẫu Thử' } : null,
   }
 }

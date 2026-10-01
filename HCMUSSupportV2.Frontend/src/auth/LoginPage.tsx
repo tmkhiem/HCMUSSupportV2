@@ -4,6 +4,7 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import { lazy, Suspense } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import Watermark from '../app/Watermark'
 import AcrylicCard from '../ui/AcrylicCard'
@@ -16,13 +17,24 @@ import { safeReturnUrl } from './returnUrl'
 
 const UNIVERSITY = 'Ho Chi Minh City University of Science'
 
-/** Messages for `/dang-nhap?error=<code>` (the OIDC callback redirects here on failure). */
+/**
+ * Messages for `/login?error=<code>` (the backend redirects here when the Google sign-in is refused; `/login` is
+ * redirected to `/dang-nhap` with the query kept). `unknown_email` is the D02 name for `not_registered`.
+ */
+const NOT_REGISTERED =
+  'Email này chưa được liên kết với mã số cán bộ. Vui lòng liên hệ đơn vị quản lý để được cấp quyền.'
 const ERROR_MESSAGES: Record<string, string> = {
-  unknown_email: 'Email này chưa được liên kết với mã số cán bộ. Vui lòng liên hệ đơn vị quản lý để được cấp quyền.',
+  not_registered: NOT_REGISTERED,
+  unknown_email: NOT_REGISTERED,
   inactive: 'Tài khoản của quý Thầy Cô hiện không còn hoạt động trong hệ thống.',
   unverified_email: 'Email Google chưa được xác minh. Vui lòng dùng email chính thức của Trường.',
+  oauth_failed: 'Đăng nhập với Google không hoàn tất. Vui lòng thử lại.',
+  access_denied: 'Quý Thầy Cô đã từ chối cấp quyền đăng nhập với Google. Vui lòng thử lại nếu đó là nhầm lẫn.',
 }
 const DEFAULT_ERROR = 'Đăng nhập không thành công. Vui lòng thử lại.'
+
+/** Only exists in `vite` dev: `import.meta.env.DEV` is false in a build, so the module is never bundled. */
+const DevLoginPanel = import.meta.env.DEV ? lazy(() => import('./DevLoginPanel')) : null
 
 export function Component() {
   const { status } = useAuth()
@@ -98,6 +110,11 @@ export function Component() {
               />
               <LoginTile index={1} title="Đăng nhập với VNeID" icon={<VerifiedUserOutlined />} disabled />
             </Stack>
+            {DevLoginPanel && (
+              <Suspense fallback={null}>
+                <DevLoginPanel />
+              </Suspense>
+            )}
             <SectionLabel sx={{ display: { lg: 'none' }, mt: 6, fontSize: 10, letterSpacing: '0.2em', opacity: 0.4, textAlign: 'center' }}>
               {UNIVERSITY}
             </SectionLabel>

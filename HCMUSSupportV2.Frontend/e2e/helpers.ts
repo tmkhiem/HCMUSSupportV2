@@ -28,7 +28,7 @@ export const ME = {
     unit: 'Khoa Công nghệ thông tin',
     photoUrl: null,
     emails: ['t0001@example.test'],
-    roles: ['editor', 'admin'],
+    roles: ['employee', 'editor', 'admin'],
     actingAs: null,
   },
   employee: {
@@ -37,7 +37,7 @@ export const ME = {
     unit: 'Khoa Vật lý',
     photoUrl: null,
     emails: ['t0003@example.test'],
-    roles: [],
+    roles: ['employee'],
     actingAs: null,
   },
 }

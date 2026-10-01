@@ -396,7 +396,8 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] `GET auth/me` returns `{code, fullName, unit, photoUrl, emails, roles, actingAs}`, `POST auth/logout`, and `POST auth/dev-login`, which is enabled only in the Development environment with a config flag.
 - [x] Authorization policies from §4, and a "last admin" guard. Audit `auth.login`, `auth.denied` and `auth.logout`.
 - [x] Bootstrap: `Admin:BootstrapEmails` config seeds the first admin when the database has no admin yet.
-- [ ] Still open: frontend wiring of login/`me`/`X-XSRF-TOKEN` (after D02 merges), the owner registering `http://localhost:5161/api/auth/callback` on the Google client, and a real sign-in check on localhost.
+- [x] Frontend wiring (D03b): `me`, login error mapping, `X-XSRF-TOKEN`, logout, dev-login panel, `e2e-real` (see FRONTEND.md "Auth").
+- [ ] Still open: the owner registering `http://localhost:5161/api/auth/callback` on the Google client, and a real sign-in check on localhost.
 - **Done when:** tests cover a valid sign-in, wrong audience, unverified email, unknown email, inactive employee, and dev-login rejected in Production. A real Google sign-in works on localhost.
 
 ### D04 · HRM domain schema & ingest API

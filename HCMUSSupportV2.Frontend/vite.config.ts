@@ -16,7 +16,7 @@ export default defineConfig({
   server: {
     // The API runs on the backend's launch-settings port. Cookies stay same-origin through this proxy.
     proxy: {
-      '/api': { target: 'http://localhost:5161' },
+      '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:5161' },
     },
   },
   test: {
