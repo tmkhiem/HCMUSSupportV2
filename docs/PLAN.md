@@ -472,7 +472,6 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [ ] Roles: the repo owner becomes `admin`. `privileged.users.json` (ViewAs/Lookup) is **listed for the user to decide** rather than auto-granted, because v2 has only editor and admin.
 - [ ] News: `tools/legacy-news` (Node and TypeScript, using `turndown` + `turndown-plugin-gfm`) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns the baked HTML (Word/Outlook inline styles, entities) into GFM Markdown, `{col}` placeholders into `:var[col]`, and `values` rows into `vars`. It reports any post whose layout didn't survive the conversion, such as merged-cell tables. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
 - [ ] The HRM categories come from `sync legacy-git` (D05) or a live `sync hrm`.
-- [ ] Seed `employee_emails` from `D:gitSupportHCMUSDatanfigSers.json` (see §10 Q4).
 - [ ] Datasets: teaching-stats (parse the `{rows}` HTML tables into `teaching_loads`), research-stats → `research_projects` and members, paper-details → `publications`.
 - [ ] The request-update-info banner and the v1 Google Form links become a pinned `audience_all` notification. `apps.json` is not migrated.
 - **Done when:** a re-run is a no-op, and for 5 sampled real employees the v2 inbox and pages carry the same facts as v1 (checked in D18).
