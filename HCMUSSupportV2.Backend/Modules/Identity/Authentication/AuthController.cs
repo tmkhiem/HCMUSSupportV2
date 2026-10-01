@@ -13,8 +13,8 @@ using Microsoft.Extensions.Options;
 
 namespace HCMUSSupportV2.Backend.Modules.Identity.Authentication;
 
-/// <summary>Employee the admin is viewing the portal as (view-as, D14a). Always null until that lands.</summary>
-public record ActingAsDto(string Code, string FullName);
+/// <summary>Employee the admin is viewing the portal as (view-as, D14a); <c>ExpiresAt</c> is when the session ends on its own.</summary>
+public record ActingAsDto(string Code, string FullName, DateTimeOffset? ExpiresAt = null);
 
 /// <summary>The signed-in employee. <c>Roles</c> always contains <c>employee</c>; an admin also has every editor right.</summary>
 public record MeDto(
@@ -139,7 +139,19 @@ public class AuthController(
         var roles = User.FindAll(IdentityClaims.Role).Select(c => c.Value).Distinct()
             .OrderBy(r => r == Roles.Employee ? 0 : r == Roles.Editor ? 1 : 2).ToList();
 
-        return new MeDto(employee.Code, employee.FullName, employee.Unit, employee.PhotoUrl, emails, roles, ActingAs: null);
+        // View-as (D14a): top-level fields stay the admin's; actingAs is the viewed employee.
+        ActingAsDto? actingAs = null;
+        if (User.FindFirst(IdentityClaims.ActingAs)?.Value is { } viewed)
+        {
+            var viewedName = await db.Set<Employee>().AsNoTracking()
+                .Where(e => e.Code == viewed).Select(e => e.FullName).FirstOrDefaultAsync(ct);
+            if (viewedName is not null)
+                actingAs = new ActingAsDto(viewed, viewedName,
+                    long.TryParse(User.FindFirst(IdentityClaims.ActingAsUntil)?.Value, out var until)
+                        ? DateTimeOffset.FromUnixTimeSeconds(until) : null);
+        }
+
+        return new MeDto(employee.Code, employee.FullName, employee.Unit, employee.PhotoUrl, emails, roles, actingAs);
     }
 
     /// <summary>Only same-site paths are allowed: "/x" is fine; "//host", "/\host" and absolute URLs are not.</summary>

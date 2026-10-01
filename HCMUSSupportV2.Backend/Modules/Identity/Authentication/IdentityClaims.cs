@@ -15,6 +15,9 @@ public static class IdentityClaims
     /// <summary>MSCB of the employee an admin is viewing as (view-as, read-only). Absent when not acting as anyone.</summary>
     public const string ActingAs = "acting_as";
 
+    /// <summary>Unix seconds at which the view-as session ends (D14a). Present whenever <see cref="ActingAs"/> is.</summary>
+    public const string ActingAsUntil = "acting_as_until";
+
     /// <summary>Unix seconds of the last time the principal was checked against the database.</summary>
     public const string CheckedAt = "chk";
 

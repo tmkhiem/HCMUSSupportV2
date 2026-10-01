@@ -28,6 +28,7 @@ public static class IdentityModule
 
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<PrincipalFactory>();
+        services.AddSingleton<SessionInvalidator>();
         services.AddScoped<GoogleSignInService>();
         services.AddScoped<LastAdminGuard>();
         services.AddScoped<AdminBootstrapper>();
