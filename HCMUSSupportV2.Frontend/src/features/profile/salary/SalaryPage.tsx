@@ -52,7 +52,7 @@ export function Component() {
                   label="Ngạch"
                   value={
                     cur?.gradeName ? (
-                      <Typography variant="h6" component="span" sx={{ overflowWrap: 'anywhere' }}>
+                      <Typography variant="h6" component="span" sx={{ overflowWrap: 'anywhere', lineHeight: 1.3, display: 'block' }}>
                         {cur.gradeName}
                       </Typography>
                     ) : null
@@ -76,7 +76,7 @@ export function Component() {
                 <StatCard
                   index={5}
                   icon={<EventRepeatOutlined color="warning" />}
-                  label="Nâng lương kế tiếp"
+                  label="Kỳ nâng lương"
                   value={cur?.monthsToNextRaise == null ? null : formatMonthsToRaise(cur.monthsToNextRaise)}
                   hint={cur?.nextRaiseOn ? `Dự kiến ${formatDate(cur.nextRaiseOn)}` : undefined}
                   emphasis={cur?.monthsToNextRaise != null && cur.monthsToNextRaise <= SOON_MONTHS}

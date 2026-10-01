@@ -33,7 +33,8 @@ export default function SalaryChart({ history, index }: { history: SalaryEntry[]
             {
               scaleType: 'time',
               data: points.map((p) => p.date),
-              valueFormatter: (v: Date) => formatDate(v),
+              valueFormatter: (v: Date, ctx: { location: string }) =>
+                ctx.location === 'tick' ? formatDate(v, 'year') : formatDate(v),
               tickLabelStyle: { fontSize: 11 },
             },
           ]}

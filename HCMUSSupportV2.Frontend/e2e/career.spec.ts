@@ -11,10 +11,25 @@ import { DESKTOP, MOBILE, expectNoHorizontalScroll } from './helpers.ts'
 
 const SHOT_DIR = fileURLToPath(new URL('../../docs/screenshots/d11/', import.meta.url))
 
+/** Pages scroll inside <main>, so grow the viewport to the content height for a full-page shot. */
 async function shot(page: Page, name: string) {
   await page.evaluate(() => document.fonts.ready)
-  await page.screenshot({ path: `${SHOT_DIR}${name}.png`, animations: 'disabled', fullPage: true })
+  const vp = page.viewportSize()!
+  const height = await page.evaluate(() => {
+    // The scroll container is whichever element overflows most (a <main> or one of its wrappers).
+    let extra = 0
+    for (const el of document.querySelectorAll<HTMLElement>('main, main *, #root, #root > *')) {
+      extra = Math.max(extra, el.scrollHeight - el.clientHeight)
+    }
+    return window.innerHeight + extra
+  })
+  await page.setViewportSize({ width: vp.width, height: Math.min(Math.max(height, vp.height), 4000) })
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: `${SHOT_DIR}${name}.png`, animations: 'disabled' })
+  await page.setViewportSize(vp)
 }
+
+test.describe.configure({ timeout: 60_000 })
 
 const h1 = (page: Page, name: string) => page.getByRole('heading', { level: 1, name })
 
