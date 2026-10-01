@@ -1,0 +1,10 @@
+{
+  "ConnectionString": "Server=localhost;Database=HRM;Integrated Security=SSPI",
+  "SqlQuery": "WITH cte AS (\r\n    SELECT  sk.QuaTrinhSangKien,\r\n        ns.ma,\r\n        sk.SoQuyetDinh,\r\n        sk.lydo,\r\n        CASE\r\n            WHEN PATINDEX('%' + CHAR(10) + '%', sk.lydo) > 0 THEN TRIM(SUBSTRING(sk.lydo, 1, PATINDEX('%' + CHAR(10) + '%', sk.lydo) - 1))\r\n            WHEN PATINDEX('% - %', sk.lydo) > 0 THEN TRIM(SUBSTRING(sk.lydo, 1, PATINDEX('% - %', sk.lydo) - 1))\r\n            ELSE sk.lydo\r\n        END AS ma_sk,\r\n        CASE\r\n            WHEN PATINDEX('%' + CHAR(10) + '%', sk.lydo) > 0 THEN TRIM(SUBSTRING(sk.lydo, PATINDEX('%' + CHAR(10) + '%', sk.lydo) + 1, LEN(sk.lydo)))\r\n            WHEN PATINDEX('% - %', sk.lydo) > 0 THEN TRIM(SUBSTRING(sk.lydo, PATINDEX('% - %', sk.lydo) + 3, LEN(sk.lydo)))\r\n            ELSE ''\r\n        END AS mo_ta,\r\n        lsk.TenLoaiSangKien,\r\n        CONVERT(VARCHAR(20), sk.ngay, 103) AS ngay\r\n    FROM NS_QuaTrinhSangKien sk\r\n    JOIN NS_NHANSU ns ON sk.NhanSu = ns.NHANSU\r\n    JOIN DM_LoaiSangKien lsk ON sk.MaLoaiSangKien = lsk.MaLoaiSangKien\r\n\r\n)\r\nSELECT QuaTrinhSangKien,\r\n    ma,\r\n    SoQuyetDinh,\r\n    lydo,\r\n    LEFT(ma_sk, LEN(ma_sk) - PATINDEX('%[a-zA-Z0-9]%', REVERSE(ma_sk)) + 1) AS ma_sk,\r\n    mo_ta,\r\n    TenLoaiSangKien,\r\n    ngay\r\nFROM cte\r\nORDER BY ngay",
+  "IdColumnName": "ma",
+  "Header": "{ma_sk}",
+  "Template": "<ul>\r\n<li>\r\nTên sáng kiến: {mo_ta}\r\n</li>\r\n<li>\r\nLoại sáng kiến: {TenLoaiSangKien}\r\n</li>\r\n<li>\r\nSố quyết định: {SoQuyetDinh}\r\n</li>\r\n<li>\r\nNgày: {ngay}\r\n</li>\r\n</ul>",
+  "Category": "innovation",
+  "Schedule": "",
+  "LastExecutedDate": "2026-09-30 22-20-01-557"
+}

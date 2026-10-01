@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------
+# Secrets / local config: never commit
+# ---------------------------------------------------------------
+docs/hrm-query.cmd
+*.local.json
+appsettings.*.local.json
+.env
+.env.*
+!.env.example
+*.pfx
+*.pem
+*.key
+
+# ---------------------------------------------------------------
+# .NET
+# ---------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+*.rsuser
+.vs/
+TestResults/
+*.trx
+coverage/
+*.coverage
+*.coveragexml
+project.lock.json
+artifacts/
+publish/
+*.nupkg
+
+# Frontend build output lands in the backend's wwwroot (vite.config.ts outDir)
+HCMUSSupportV2.Backend/wwwroot/
+
+# NSwag intermediate document (generated-client.ts IS committed)
+openapi.json
+
+# ---------------------------------------------------------------
+# Node / Vite
+# ---------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# ---------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sw?
+*.ntvs*
+*.njsproj
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/worktrees/

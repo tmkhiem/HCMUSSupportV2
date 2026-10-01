@@ -1,0 +1,10 @@
+{
+  "ConnectionString": "Server=localhost;Database=HRM;Integrated Security=SSPI",
+  "SqlQuery": "SELECT NS_NHANSU.MA, qtcv.QuaTrinhChucVu,\r\nDM_ChucVu.TenChucVu, qtcv.*\r\nFROM [HRM].[dbo].[NS_QuaTrinhChucVu] qtcv join ns_nhansu on NS_NHANSU.nhansu = qtcv.NhanSu join DM_ChucVu on qtcv.MaChucVu = DM_ChucVu.MaChucVu\r\norder by qtcv.QuaTrinhChucVu desc",
+  "IdColumnName": "MA",
+  "Header": "{TenChucVu}, {MoTa}",
+  "Template": "<ul>\r\n<li>Chức vụ: {TenChucVu}</li>\r\n<li>Đơn vị: {MoTa}</li>\r\n<li>Hệ số chức vụ: {HSCV}</li>\r\n<li>Ngày bổ nhiệm: {NgayBoNhiem}</li>\r\n<li>Quyết định bổ nhiệm số {QuyetDinhBoNhiem} ký ngày {NgayKy}</li>\r\n</li>",
+  "Category": "position",
+  "Schedule": null,
+  "LastExecutedDate": "2026-09-30 22-10-00-812"
+}

@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.Build.NoTargets/3.7.134">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <NpmBuildInputs Include="src\**\*.*;public\**\*.*;index.html;package.json;package-lock.json;vite.config.ts;tsconfig*.json" />
+  </ItemGroup>
+
+  <Target Name="NpmInstall" BeforeTargets="Build" Condition="!Exists('$(MSBuildProjectDirectory)\node_modules')">
+    <Exec Command="npm install" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <!-- Inputs/Outputs makes this an incremental MSBuild target: if none of the frontend's
+       source files are newer than the built wwwroot\index.html, npm run build is skipped
+       entirely (exits early) instead of running on every single backend build. -->
+  <Target Name="NpmBuild" BeforeTargets="Build" DependsOnTargets="NpmInstall"
+          Inputs="@(NpmBuildInputs)"
+          Outputs="$(MSBuildProjectDirectory)\..\HCMUSSupportV2.Backend\wwwroot\index.html">
+    <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <Target Name="NpmClean" BeforeTargets="Clean">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\..\HCMUSSupportV2.Backend\wwwroot" Condition="Exists('$(MSBuildProjectDirectory)\..\HCMUSSupportV2.Backend\wwwroot')" />
+  </Target>
+
+</Project>

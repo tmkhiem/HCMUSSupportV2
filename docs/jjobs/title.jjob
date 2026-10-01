@@ -1,0 +1,10 @@
+{
+  "ConnectionString": "Server=localhost;Database=HRM;Integrated Security=SSPI",
+  "SqlQuery": "/****** Script for SelectTopNRows command from SSMS  ******/\r\nSELECT /* TOP (1000) [QuaTrinhKhenThuong]\r\n,[NhanSu]\r\n,[Ngay]\r\n,[SoQuyetDinh]\r\n,[NguoiKy]\r\n,[ChucVu]\r\n,[LyDo]\r\n,[HinhThucKhenThuong]\r\n,[DanhHieu]\r\n,[GhiChu]\r\n,[NGUOIDUNG1]\r\n,[NGAY1]\r\n,[MAY1]\r\n,[clsRun]\r\n,[IsDanhHieu]\r\n,[NGUOIDUNG2]\r\n,[NGAY2]\r\n,[MAY2]*/\r\nqtkt.*\r\n,ns.MA as MaNhanSu\r\n,ns.hodem, ns.ten\r\nFROM [HRM].[dbo].[NS_QuaTrinhKhenThuong] qtkt join ns_nhansu ns on qtkt.NhanSu = ns.NHANSU\r\nwhere IsDanhHieu = 1\r\norder by  QuaTrinhKhenThuong desc",
+  "IdColumnName": "MaNhanSu",
+  "Header": "{LyDo}",
+  "Template": "Danh hiệu: {LyDo} theo Quyết định số {SoQuyetDinh} ngày {Ngay}",
+  "Category": "title",
+  "Schedule": null,
+  "LastExecutedDate": "2026-09-30 22-18-01-421"
+}

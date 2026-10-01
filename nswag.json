@@ -1,0 +1,18 @@
+﻿{
+    "runtime":  "Net80",
+    "documentGenerator":  {
+                              "aspNetCoreToOpenApi":  {
+                                                          "project":  "HCMUSSupportV2.Backend/HCMUSSupportV2.Backend.csproj",
+                                                          "configuration":  "Debug",
+                                                          "noBuild":  false,
+                                                          "output":  "openapi.json"
+                                                      }
+                          },
+    "codeGenerators":  {
+                           "openApiToTypeScriptClient":  {
+                                                             "className":  "{controller}Client",
+                                                             "template":  "Fetch",
+                                                             "output":  "HCMUSSupportV2.Frontend/src/api/generated-client.ts"
+                                                         }
+                       }
+}

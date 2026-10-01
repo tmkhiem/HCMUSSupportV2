@@ -1,0 +1,10 @@
+{
+  "ConnectionString": "Server=localhost;Database=HRM;Integrated Security=SSPI",
+  "SqlQuery": "select ma from ns_nhansu",
+  "IdColumnName": "MA",
+  "Header": "",
+  "Template": "<p>Nếu quý Thầy Cô có nhu cầu cập nhật thông tin, vui lòng điền thông tin vào <a href=\"https://forms.gle/zFBtGZxHGd6rBWqS8\">Phiếu đề nghị cập nhật thông tin</a></p>\r\n<p>Do đặc thù của từng nghiệp vụ quản lý nên thông tin mà quý Thầy Cô đề nghị cập nhật sẽ không được tự động xử lý trên hệ thống Support mà sẽ được tự động chuyển đến Phòng chức năng phụ trách:<p>\r\n<ul>\r\n<li>Thông tin về nhân sự: Phòng Tổ chức Hành chính</li>\r\n<li>Thông tin về giảng dạy Đại học: Phòng Đào tạo</li>\r\n<li>Thông tin về giảng dạy Sau Đại học: Phòng Đào tạo Sau Đại học</li>\r\n<li>Thông tin về nghiên cứu khoa học: Phòng Khoa học Công nghệ</li>\r\n</ul>\r\n<p>\r\nSau khi Phòng chức năng xử lý, thông tin cập nhật sẽ được đưa lên hệ thống Support.\r\n</p>\r\n",
+  "Category": "request-update-info",
+  "Schedule": "",
+  "LastExecutedDate": "2026-09-30 22-12-01-429"
+}

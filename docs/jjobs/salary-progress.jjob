@@ -1,0 +1,10 @@
+{
+  "ConnectionString": "Server=localhost;Database=HRM;Integrated Security=SSPI",
+  "SqlQuery": "SELECT [QuaTrinhLuong] as QuaTrinhLuongID\r\n\t  ,ns.MA as MaNhanSu\r\n      ,ns.hodem, ns.ten\r\n      ,ns.Ngach_CongChuc as Ngach_CongChucHienTai\r\n      ,ns.BacCongChuc as BacCongChucHienTai\r\n      ,ns.HeSoLuong as HeSoLuongHienTai\r\n\t  ,qtl.*\r\n  FROM [HRM].[dbo].[NS_QuaTrinhLuong] qtl join ns_nhansu ns on qtl.NhanSu = ns.NHANSU\r\n  order by QuaTrinhLuongID desc",
+  "IdColumnName": "MaNhanSu",
+  "Header": "Điều chỉnh lương {NgayKy}",
+  "Template": "<ul>\r\n<li>Ngạch viên chức: {Ngach_CongChuc}</li>\r\n<li>Bậc: {BacCongChuc}</li>\r\n<li>Hệ số lương: {HeSoLuong}</li>\r\n<li>Quyết định số: {SoQuyetDinh} ký ngày {NgayKy}</li>\r\n<li>Ngày bắt đầu hưởng lương: {NgayHuong}</li>\r\n<li>Mốc nâng lương tiếp theo: {MocNangLuongTT}</li>\r\n<li>Ghi chú: {GhiChu}</li>\r\n<li>Hệ số vượt khung: {HeSoVuotKhung}</li>\r\n</ul>",
+  "Category": "salary-progress",
+  "Schedule": null,
+  "LastExecutedDate": "2026-09-30 22-14-01-846"
+}

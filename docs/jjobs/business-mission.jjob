@@ -1,0 +1,10 @@
+{
+  "ConnectionString": "Server=localhost;Database=HRM;Integrated Security=SSPI",
+  "SqlQuery": "SELECT TOP (1000) [QuaTrinhCongTac]\r\n,ns.MA as MaNhanSu\r\n,ns.hodem, ns.ten\r\n,qtct.*\r\nFROM [HRM].[dbo].[NS_QuaTrinhCongTac] qtct join ns_nhansu ns on qtct.NhanSu = ns.NHANSU\r\nwhere ns.MA = '0300'\r\norder by qtct.[QuaTrinhCongTac] desc",
+  "IdColumnName": "MaNhanSu",
+  "Header": "Đi công tác ngày {TuNgay} tại {NoiLamViec}",
+  "Template": "<li>Thời gian: từ ngày {TuNgay} đến ngày {DenNgay}</li>\r\n<li>Tại: {NoiLamViec}</li>\r\n<li>Ghi chú: {GhiChu}</li>\r\n<li>Mục đích: {DiCongTacTheo} ngày {Ngay} của {Cua}</li>\r\n<li>Phương tiện đi lại: {PhuongTienDiLai} theo Quyết định số: {SoQuyetDinh1} ngày {NgayQuyetDinh1}</li>",
+  "Category": "business-mission",
+  "Schedule": null,
+  "LastExecutedDate": "2026-09-30 22-04-01-398"
+}
