@@ -10,6 +10,7 @@ HCMUSSupportV2.Backend/
   Migrations/                   EF migrations, one per delivery: D<NN>_<Name>
   Modules/<Module>/<Feature>/   controller, service, DTO records, entity + <Entity>Configuration.cs
   Modules/Platform/             system info, jobs, files, audit (D01)
+  Modules/Identity/             people, roles, groups schema, sign-in, policies (D03)
 HCMUSSupportV2.Backend.Tests/   xUnit + WebApplicationFactory against a throw-away PostgreSQL database
 ```
 
@@ -35,6 +36,11 @@ Key settings (defaults in `appsettings.json`):
 | `Storage:LocalRoot` / `MaxBytes` / `AllowedContentTypes` | local file store root (default `App_Data/files`, git-ignored), size limit, MIME allowlist (`type/*` allowed) |
 | `Jobs:Enabled` / `WorkerCount` / `PollIntervalMs` / `LeaseSeconds` / `BackoffBaseSeconds` / `BackoffMaxSeconds` | job worker |
 | `RateLimiting:Auth` / `RateLimiting:Integration` | `PermitLimit` and `WindowSeconds` per client IP for the `auth` and `integration` policies |
+| `Auth:Google:ClientId` / `ClientSecret` | Google OAuth web client (local file or env only; never committed). Without them `GET /api/auth/login` answers 503 |
+| `Auth:DevLogin:Enabled` | enables `POST /api/auth/dev-login`; honoured only when the environment is `Development` |
+| `Auth:RevalidateSeconds` | how often the session is re-checked against the database (default 300; 0 = every request) |
+| `Admin:BootstrapEmails` | array of emails that become `admin` while no active admin exists (see Bootstrap) |
+| `Dev:SeedEmployees` | Development only: seed the synthetic roster `T0001`..`T0010` at startup (default true in Development) |
 | `OpenTelemetry:Endpoint` | OTLP collector URL; traces and metrics are exported only when set (`OpenTelemetry:Protocol`: `grpc` or `http/protobuf`) |
 | `Logging:File:*` | rolling file sink (`logs/hcmus-support-.log`, git-ignored); log levels live under `Serilog:MinimumLevel` |
 | `ReverseProxy:KnownProxies` / `KnownNetworks` | forwarded-headers trust |
@@ -99,6 +105,120 @@ would use the singular class name. Column names are snake_cased automatically. Q
 Generate ids with `UUIDNext` (`Uuid.NewDatabaseFriendly(Database.PostgreSql)` gives a v7 uuid), not `Guid.CreateVersion7`
 (.NET 9+).
 
+## Authentication and authorization (D03, `Modules/Identity`)
+
+### Sign-in flow
+
+1. The SPA sends the browser to `GET /api/auth/login?returnUrl=/some/local/path` (only local paths are honoured, the
+   default is `/`). The backend redirects to Google (authorization-code flow with PKCE, scopes `openid email profile`,
+   always the account chooser) and Google returns to **`/api/auth/callback`**.
+2. The OIDC handler validates the id token (signature, issuer `https://accounts.google.com`, audience = our client id,
+   nonce, lifetime). `OnTokenValidated` then applies the application rules in `GoogleSignInService`:
+   `email_verified` must be true, the email must exist in `employee_emails` (case-insensitive) and its employee must be
+   `active`. The Google tokens are discarded (`SaveTokens=false`); only an application principal goes into the cookie
+   (claims `code`, `name`, `picture`, `role`). A changed Google picture is stored in `employees.photo_url`.
+3. Success: the browser lands on `returnUrl`. Failure: it lands on
+   `/login?error=not_registered | inactive | unverified_email | oauth_failed | access_denied` (the SPA login page shows
+   a Vietnamese message). Every outcome is audited: `auth.login`, `auth.denied` (with `reason` and the email, never a
+   token), `auth.logout`, `auth.dev_login`.
+4. `GET /api/auth/me` returns the signed-in employee, `POST /api/auth/logout` ends the session.
+
+**Required Google redirect URIs.** The owner must register `http://localhost:5161/api/auth/callback` on the v1 web client
+in Google Cloud Console (and the production URL later). Until then a real sign-in cannot complete; everything else is
+covered by tests and by dev-login.
+
+### Session cookie
+
+`__Host-hcmus`: HttpOnly, Secure, SameSite=Lax, Path=/, no Domain, sliding 12 h. In the **Development** environment the
+cookie is named `hcmus` and Secure is only required over https (the `__Host-` prefix would be rejected on plain
+`http://localhost`). API calls never get a redirect to Google or to a login page: anonymous requests answer **401**, and a
+signed-in user lacking the role gets **403**. The cookie principal is re-checked against the database every
+`Auth:RevalidateSeconds`, so deactivating an employee or changing a role takes effect without a new sign-in.
+
+### `/api/auth` endpoints
+
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/auth/login?returnUrl=` | redirect to Google; 503 when `Auth:Google` is not configured; rate limited (`auth`) |
+| `GET /api/auth/callback` | handled by the OIDC middleware, not a controller; exempt from antiforgery |
+| `POST /api/auth/logout` | 204; audited; needs the antiforgery header when a session exists; rate limited (`auth`) |
+| `GET /api/auth/me` | `{code, fullName, unit, photoUrl, emails[], roles[], actingAs}`; 401 anonymous. Not rate limited (the SPA calls it on every load and campus users share NAT addresses). Also (re)issues `XSRF-TOKEN` |
+| `POST /api/auth/dev-login {employeeCode}` | see below; 404 unless Development **and** `Auth:DevLogin:Enabled=true`; rate limited (`auth`) |
+
+`roles` always contains `employee`, plus `editor` and/or `admin` when assigned (for example `["employee","editor"]`).
+An admin has every editor right (the server policies treat admin as a superset), so the frontend should treat
+`roles.includes('editor') || roles.includes('admin')` as "can edit". `unit` is the employee org unit name (or null).
+`emails` lists the primary address first. `actingAs` is always null until view-as lands (D14a).
+
+### Antiforgery contract (for the frontend)
+
+Double-submit with ASP.NET antiforgery:
+
+- After sign-in, call `GET /api/auth/me`. Its response sets the JS-readable cookie **`XSRF-TOKEN`** (Secure outside
+  Development, SameSite=Lax) next to the HttpOnly antiforgery cookie (`__Host-hcmus-af`, `hcmus-af` in Development).
+  `me` always refreshes the token, so call it again after any sign-in or user switch.
+- Every **unsafe** request (`POST`, `PUT`, `PATCH`, `DELETE`) to `/api/*` made with the session cookie must send the
+  cookie value in the header **`X-XSRF-TOKEN`**. Otherwise the backend answers **400**
+  (`title: "Antiforgery token missing or invalid"`). The generated NSwag client takes a custom `http: { fetch }` object:
+  pass a wrapper that adds the header on unsafe methods.
+- The token is bound to the signed-in user: after logout or a login as someone else, fetch a fresh one via `me`.
+- Exempt: `GET`/`HEAD`/`OPTIONS`/`TRACE`, `/api/integration/*` (ApiKey, no cookie), `/api/auth/callback`,
+  `/api/auth/dev-login`, and requests with no session (they simply get 401 from authorization).
+
+```ts
+const token = () => document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/)?.[1];
+const apiFetch = (url: RequestInfo, init: RequestInit = {}) => {
+  const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes((init.method ?? 'GET').toUpperCase());
+  const t = token();
+  return fetch(url, { ...init, credentials: 'same-origin',
+    headers: { ...init.headers, ...(unsafe && t ? { 'X-XSRF-TOKEN': decodeURIComponent(t) } : {}) } });
+};
+// new AuthClient(undefined, { fetch: apiFetch })
+```
+
+### Dev-login
+
+`POST /api/auth/dev-login {"employeeCode":"T0001"}` signs the cookie in directly as an existing **active** employee (400
+for unknown or inactive codes) and returns the same body as `me`. It exists only when `ASPNETCORE_ENVIRONMENT=Development`
+and `Auth:DevLogin:Enabled=true` (put it in `appsettings.Development.local.json`); anywhere else it is a plain 404. In
+Development the synthetic roster is seeded at startup (`DevDataSeeder`, idempotent): `T0001`..`T0010` with emails
+`t0001@dev.hcmus.local`.., `T0001` is **admin**, `T0002` **editor**, the rest plain employees, all in the unit
+"Đơn vị thử nghiệm". Turn the seeding off with `Dev:SeedEmployees=false`. Never enable dev-login outside a developer machine.
+
+### Roles and policies
+
+`Modules/Identity/Authorization/Policies.cs` holds the named policies (PLAN §4): the three base levels `Policies.Employee`
+(any signed-in employee), `Policies.Editor` (editor or admin) and `Policies.Admin`, plus one named policy per capability
+of the §4 table (`ManageNotifications`, `ManageGroups`, `ManageEmployeeEmails`, `ViewEmployeeDirectory` are editor
+level; `GrantRoles`, `ViewAs`, `ManageEmployees`, `ManageDatasets`, `ManageApiClients`, `ViewAuditLog` are admin only).
+Use `[Authorize(Policy = Policies.ManageNotifications)]` so a capability can move between roles without touching
+controllers; modules add their own policies in their `AddXxxModule`. Inject `ICurrentUser` for the code and roles
+(`IsEditor` is true for editors **and** admins, `IsAdmin` only for admins).
+
+**Last admin guard.** `LastAdminGuard.EnsureNotLastAdminAsync(code)` throws `LastAdminException` when `code` is the only
+active admin. Call it before revoking the admin role or deactivating an employee (D14a).
+
+**Bootstrap.** `Admin:BootstrapEmails` (array) grants `admin` to the employees behind those emails while the database has
+no active admin: at startup, and again when one of those emails signs in (so it also works when the roster is synced
+after the first start). The grant is audited as `roles.bootstrap_admin`.
+
+### Tables (migration `D03_Identity`)
+
+`org_units`, `employees` (PK `code` = MSCB; `full_name_unaccent` is a stored generated column `f_unaccent(full_name)`
+with a trigram GIN index), `employee_emails` (`email citext` PK), `role_assignments` (role CHECK `editor|admin`),
+`groups` and `group_members` (schema only, the engine is D06). `org_units.hrm_id` is required; the Development roster uses
+`-1` for its synthetic unit. Query them with `db.Set<Employee>()` etc. (namespaces `Identity.Directory`,
+`Identity.Authorization`, `Identity.Groups`).
+
+### Testing auth
+
+`IdentityTestSupport` creates synthetic employees (`CreateEmployeeAsync`), builds fake Google id-token principals and
+gives `CreateSessionClient()` (https base address, cookies kept, no redirects). `TestApiFactory` takes an `environment`
+(default `Testing`, which behaves like production: `__Host-` cookie, no dev-login) and by default turns the roster seed
+off, fakes the Google client id and secret and revalidates the session on every request. `TestControllers.Add` registers
+test-only endpoints (`/api/test/employee|editor|admin|write`, `/api/test/sign-in/{code}`) for policy and antiforgery tests.
+A Development test host also reads `appsettings.Development.local.json`; settings passed to the factory win.
+
 ## Background jobs
 
 ```csharp
@@ -142,5 +262,7 @@ becomes `SystemClient`).
 
 - Data-protection keys are stored in `data_protection_keys` unencrypted (ASP.NET Core logs a warning). Protect them
   with a certificate or an OS-level mechanism as part of the deployment kit (D16).
-- Rate-limit policies `auth` and `integration` are registered but not applied to any endpoint yet; apply them with
-  `[EnableRateLimiting("auth")]` on the auth and integration controllers.
+- The `auth` rate-limit policy is applied to `AuthController` (except `me`); `/api/auth/callback` is served by the OIDC
+  middleware and is not rate limited. The `integration` policy is still unused until the ingest controllers exist (D04):
+  apply it with `[EnableRateLimiting("integration")]`.
+- The generated TypeScript client does not add `X-XSRF-TOKEN` by itself; the frontend must wrap `fetch` (see the contract above).
