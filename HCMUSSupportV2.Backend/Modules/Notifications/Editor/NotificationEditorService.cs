@@ -24,7 +24,6 @@ public class NotificationEditorService(
     IJobQueue jobs,
     IFileStore files)
 {
-    public const int MaxBodyChars = 200_000;
     public const int MaxAttachments = 20;
     public const long MaxAttachmentBytes = 20L * 1024 * 1024;
     private static readonly string[] VariableTypes = ["text", "date", "number", "money"];
@@ -539,13 +538,9 @@ public class NotificationEditorService(
         }
 
         var body = req.BodyMd ?? "";
-        MarkdownAnalysis analysis = NotificationMarkdown.Analyze("", null);
-        if (body.Length > MaxBodyChars) Err("bodyMd", $"Nội dung vượt quá {MaxBodyChars} ký tự.");
-        else
-        {
-            analysis = NotificationMarkdown.Analyze(body, variables.Select(v => v.Key).ToList());
-            foreach (var issue in analysis.Issues) Err("bodyMd", FormatIssue(issue));
-        }
+        MarkdownAnalysis analysis;
+        analysis = NotificationMarkdown.Analyze(body, variables.Select(v => v.Key).ToList());
+        foreach (var issue in analysis.Issues) Err("bodyMd", FormatIssue(issue));
 
         var tagIds = (req.TagIds ?? []).Distinct().ToList();
         if (tagIds.Count > 0)
@@ -630,7 +625,7 @@ public class NotificationEditorService(
     internal static IReadOnlyList<VariableDto> ParseVariables(string json) =>
         JsonSerializer.Deserialize<List<VariableDto>>(json, NotificationJson.Options) ?? [];
 
-    internal static string FormatIssue(MarkdownIssue i) => i.Line > 0 ? $"Dòng {i.Line}, cột {i.Column}: {i.Message}" : i.Message;
+    internal static string FormatIssue(MarkdownIssue i) => i.Line > 0 ? $"[{i.Code}] Dòng {i.Line}, cột {i.Column}: {i.Message}" : $"[{i.Code}] {i.Message}";
 
     private static double Percent(int part, int total) => total == 0 ? 0 : Math.Round(part * 100.0 / total, 1);
 }

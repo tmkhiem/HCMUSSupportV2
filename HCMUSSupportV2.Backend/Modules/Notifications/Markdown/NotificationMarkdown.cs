@@ -19,7 +19,7 @@ public sealed record MarkdownIssue(string Code, string Message, int Line, int Co
 /// <summary>Result of <see cref="NotificationMarkdown.Analyze"/>.</summary>
 /// <param name="Issues">Contract violations; the body must not be saved when this is not empty.</param>
 /// <param name="Placeholders">Distinct <c>:var[Key]</c> keys in order of first use.</param>
-/// <param name="ContentText">Plain text of the body (placeholders appear as their key).</param>
+/// <param name="ContentText">Plain text of the body (placeholders contribute no text).</param>
 /// <param name="Summary">First paragraph as one line, at most <see cref="NotificationMarkdown.SummaryMaxLength"/> characters.</param>
 public sealed record MarkdownAnalysis(
     IReadOnlyList<MarkdownIssue> Issues,
@@ -30,15 +30,17 @@ public sealed record MarkdownAnalysis(
     public bool IsValid => Issues.Count == 0;
 }
 
+/// <summary>Error codes of the contract (docs/notification-markdown.md section 3).</summary>
 public static class IssueCodes
 {
-    public const string RawHtml = "raw_html";
-    public const string ImageUrl = "image_url";
-    public const string LinkUrl = "link_url";
-    public const string UnsupportedDirective = "unsupported_directive";
-    public const string VarKeyInvalid = "var_key_invalid";
-    public const string VarUndeclared = "var_undeclared";
-    public const string ControlCharacter = "control_character";
+    public const string RawHtml = "RAW_HTML";
+    public const string CodeBlock = "CODE_BLOCK";
+    public const string UnknownDirective = "UNKNOWN_DIRECTIVE";
+    public const string UnsupportedSyntax = "UNSUPPORTED_SYNTAX";
+    public const string ForbiddenUrl = "FORBIDDEN_URL";
+    public const string UndeclaredPlaceholder = "UNDECLARED_PLACEHOLDER";
+    public const string TooLong = "TOO_LONG";
+    public const string InvalidCharacter = "INVALID_CHARACTER";
 }
 
 /// <summary>
@@ -49,6 +51,9 @@ public static partial class NotificationMarkdown
 {
     public const int SummaryMaxLength = 300;
 
+    /// <summary>Maximum body length in characters (contract section 3.7).</summary>
+    public const int MaxLength = 100_000;
+
     /// <summary>First character is a letter (a leading underscore would turn the key into emphasis); 1-64 characters.</summary>
     [GeneratedRegex("^[A-Za-z][A-Za-z0-9_]{0,63}$")]
     public static partial Regex VarKeyPattern();
@@ -58,6 +63,19 @@ public static partial class NotificationMarkdown
 
     [GeneratedRegex(@"^([A-Za-z][A-Za-z0-9+.\-]*):")]
     private static partial Regex SchemePattern();
+
+    [GeneratedRegex(@"(?<![=\\])==(?=\S)[^=\n]+?(?<=\S)==(?!=)")]
+    private static partial Regex HighlightPattern();
+
+    [GeneratedRegex(@"^ {0,3}\[(\^?)[^\]\n]+\]:[ \t]*\S")]
+    private static partial Regex DefinitionLine();
+
+    private static bool InsideImage(Inline inline)
+    {
+        for (var p = inline.Parent; p is not null; p = p.Parent)
+            if (p is LinkInline { IsImage: true }) return true;
+        return false;
+    }
 
     private static readonly HashSet<string> LinkSchemes = new(StringComparer.OrdinalIgnoreCase) { "http", "https", "mailto", "tel" };
 
@@ -90,8 +108,13 @@ public static partial class NotificationMarkdown
         markdown ??= "";
         var issues = new List<MarkdownIssue>();
 
+        if (markdown.Length > MaxLength)
+        {
+            issues.Add(new MarkdownIssue(IssueCodes.TooLong, $"Nội dung vượt quá {MaxLength} ký tự.", 0, 0));
+            return new MarkdownAnalysis(issues, [], "", "");
+        }
         if (markdown.Any(c => c == '\0' || (char.IsControl(c) && c != '\n' && c != '\r' && c != '\t')))
-            issues.Add(new MarkdownIssue(IssueCodes.ControlCharacter, "Nội dung chứa ký tự điều khiển không hợp lệ.", 0, 0));
+            issues.Add(new MarkdownIssue(IssueCodes.InvalidCharacter, "Nội dung chứa ký tự điều khiển không hợp lệ.", 0, 0));
 
         var doc = Markdig.Markdown.Parse(markdown, Pipeline);
         var placeholders = new List<string>();
@@ -106,38 +129,58 @@ public static partial class NotificationMarkdown
                 case HtmlInline:
                     issues.Add(new MarkdownIssue(IssueCodes.RawHtml, "Không cho phép mã HTML trong nội dung.", line, col));
                     break;
+                case CodeBlock:
+                    issues.Add(new MarkdownIssue(IssueCodes.CodeBlock, "Không cho phép khối mã (chỉ dùng mã trong dòng).", line, col));
+                    break;
                 case LinkInline { IsImage: true } image:
                     if (!IsAllowedImageUrl(image.Url))
-                        issues.Add(new MarkdownIssue(IssueCodes.ImageUrl, "Ảnh chỉ được lấy từ /api/files/{mã}.", line, col));
+                        issues.Add(new MarkdownIssue(IssueCodes.ForbiddenUrl, "Ảnh chỉ được lấy từ /api/files/{mã}.", line, col));
                     break;
+                case LinkInline { IsAutoLink: true }:
+                    break; // a bare URL in text: the renderer links http(s) and www and leaves anything else as text
                 case LinkInline link:
                     if (!IsSafeLinkUrl(link.Url))
-                        issues.Add(new MarkdownIssue(IssueCodes.LinkUrl, "Liên kết không hợp lệ (chỉ http, https, mailto, tel hoặc đường dẫn nội bộ).", line, col));
+                        issues.Add(new MarkdownIssue(IssueCodes.ForbiddenUrl, "Liên kết không hợp lệ (chỉ http, https, mailto, tel, đường dẫn nội bộ hoặc #mục).", line, col));
                     break;
                 case AutolinkInline auto:
                     if (!IsSafeLinkUrl(auto.IsEmail ? "mailto:" + auto.Url : auto.Url))
-                        issues.Add(new MarkdownIssue(IssueCodes.LinkUrl, "Liên kết không hợp lệ.", line, col));
+                        issues.Add(new MarkdownIssue(IssueCodes.ForbiddenUrl, "Liên kết không hợp lệ.", line, col));
                     break;
                 case LinkReferenceDefinition def:
-                    if (!IsSafeLinkUrl(def.Url) && !IsAllowedImageUrl(def.Url))
-                        issues.Add(new MarkdownIssue(IssueCodes.LinkUrl, "Liên kết không hợp lệ.", line, col));
+                    break; // handled below: definitions are not part of the tree
+                    // Footnote definitions ("[^1]: note") look like link definitions to the parser.
+                    if (def.Label?.StartsWith('^') == true)
+                        issues.Add(new MarkdownIssue(IssueCodes.UnsupportedSyntax, "Không hỗ trợ chú thích cuối trang.", line, col));
+                    else
+                        issues.Add(new MarkdownIssue(IssueCodes.ForbiddenUrl, "Không cho phép liên kết kiểu tham chiếu ([a]: url); hãy dùng [chữ](url).", line, col));
+                    break;
+                case LiteralInline lit:
+                    if (HighlightPattern().IsMatch(lit.Content.ToString()))
+                        issues.Add(new MarkdownIssue(IssueCodes.UnsupportedSyntax, "Không hỗ trợ ==đánh dấu==.", line, col));
                     break;
                 case VarInline v:
-                    if (!IsValidVarKey(v.Key))
-                        issues.Add(new MarkdownIssue(IssueCodes.VarKeyInvalid,
-                            $"Tên biến \"{v.Key}\" không hợp lệ (chữ cái đầu, chỉ gồm A-Z, a-z, 0-9, _; tối đa 64 ký tự).", line, col));
-                    else
-                    {
-                        if (!placeholders.Contains(v.Key)) placeholders.Add(v.Key);
-                        if (declared is not null && !declared.Contains(v.Key))
-                            issues.Add(new MarkdownIssue(IssueCodes.VarUndeclared, $"Biến \"{v.Key}\" chưa được khai báo.", line, col));
-                    }
+                    if (InsideImage(v)) break; // placeholders are not recognised in image alt text
+                    if (!placeholders.Contains(v.Key)) placeholders.Add(v.Key);
+                    if (declared is not null && !declared.Contains(v.Key))
+                        issues.Add(new MarkdownIssue(IssueCodes.UndeclaredPlaceholder, $"Biến \"{v.Key}\" chưa được khai báo.", line, col));
                     break;
                 case UnsupportedDirectiveInline u:
-                    issues.Add(new MarkdownIssue(IssueCodes.UnsupportedDirective,
-                        $"Không hỗ trợ cú pháp \"{u.Raw}\"; chỉ có :var[Tên] (viết \\: để hiển thị dấu hai chấm).", line, col));
+                    issues.Add(new MarkdownIssue(IssueCodes.UnknownDirective,
+                        $"Không hỗ trợ cú pháp \"{u.Raw}\": chỉ có :var[Tên] (Tên: chữ cái đầu, gồm A-Z, a-z, 0-9, _, tối đa 64 ký tự).", line, col));
                     break;
             }
+        }
+
+        // "[a]: url" and "[^1]: note" lines. A definition cannot interrupt a paragraph, so the parser may not see them as
+        // definitions; the contract forbids the syntax either way, so look at the lines.
+        var lines = markdown.Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var m = DefinitionLine().Match(lines[i]);
+            if (!m.Success) continue;
+            issues.Add(m.Groups[1].Value == "^"
+                ? new MarkdownIssue(IssueCodes.UnsupportedSyntax, "Không hỗ trợ chú thích cuối trang.", i + 1, 1)
+                : new MarkdownIssue(IssueCodes.ForbiddenUrl, "Không cho phép liên kết kiểu tham chiếu ([a]: url); hãy dùng [chữ](url).", i + 1, 1));
         }
 
         var text = ExtractText(doc);
@@ -193,11 +236,14 @@ public static partial class NotificationMarkdown
                 case CodeInline code: sb.Append(code.Content); break;
                 case LineBreakInline: sb.Append(' '); break;
                 case HtmlEntityInline entity: sb.Append(entity.Transcoded.ToString()); break;
-                case VarInline v: sb.Append(v.Key); break;
+                case VarInline: break; // a placeholder contributes no text (contract section 4)
                 case UnsupportedDirectiveInline u: sb.Append(u.Raw); break;
                 case AutolinkInline auto: sb.Append(auto.Url); break;
                 case TaskList: break;
                 case HtmlInline: break;
+                case LinkInline { IsAutoLink: true } bare when bare.Url?.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) == true:
+                    sb.Append(bare.Url); // the parser shows only the address; the author typed mailto:address
+                    break;
                 case ContainerInline nested: AppendInlines(nested, sb); break;
             }
         }
@@ -237,7 +283,7 @@ public static partial class NotificationMarkdown
 
     // ---- :var[Key] directive ----
 
-    /// <summary>A valid-looking <c>:var[Key]</c>; the key is checked against the key pattern by the analyser.</summary>
+    /// <summary>A valid <c>:var[Key]</c> (the key matches <see cref="NotificationMarkdown.VarKeyPattern"/>).</summary>
     public sealed class VarInline : LeafInline
     {
         public string Key { get; init; } = "";
@@ -308,8 +354,11 @@ public static partial class NotificationMarkdown
                 if (close > 0) { hasAttributes = true; end = close + 1; }
             }
 
+            // A bare ":name" (a:b, Ghi chú:abc, mailto:x) is ordinary text; only a label or attributes make a directive.
+            if (label is null && !hasAttributes) return false;
+
             var name = slice.Text.Substring(pos, nameEnd - pos);
-            if (name == "var" && label is not null && !hasAttributes)
+            if (name == "var" && label is not null && !hasAttributes && IsValidVarKey(label))
             {
                 Position(processor, slice, start, out var line, out var column);
                 processor.Inline = new VarInline { Key = label, Line = line, Column = column };

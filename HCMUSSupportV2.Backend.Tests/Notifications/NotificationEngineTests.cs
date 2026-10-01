@@ -62,7 +62,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(1, (int?)created["version"]);
         Assert.Equal("Đoạn đầu đậm.", (string?)created["summary"]);
         Assert.False((bool?)created["summaryIsCustom"]);
-        Assert.Contains("HoTen", (string?)created["contentText"]);
+        Assert.Equal("Đoạn đầu đậm.\nĐoạn hai", (string?)created["contentText"]); // the placeholder adds no text
         Assert.Equal(editor.Code, (string?)created["createdBy"]!["code"]);
 
         var updated = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Put, $"{Manage}/{id}",
@@ -135,6 +135,21 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Adding_a_recipient_to_a_published_notification_delivers_to_them_and_never_recalls()
+    {
+        var first = await _host.EmployeeAsync();
+        var second = await _host.EmployeeAsync();
+        var editor = await _host.EditorApiAsync();
+        var id = await _host.PublishAsync(editor, Draft("Bổ sung người nhận", employees: [first]));
+
+        // Replace the audience: the new person is delivered, the removed one keeps what they already received.
+        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Put, $"{Manage}/{id}", Draft("Bổ sung người nhận", employees: [second], version: 1));
+
+        Assert.True(await Wait.UntilAsync(async () => (await _host.RecipientsAsync(id)).Contains(second), TimeSpan.FromSeconds(20)));
+        Assert.Contains(first, await _host.RecipientsAsync(id));
+    }
+
+    [Fact]
     public async Task Only_drafts_can_be_deleted()
     {
         var editor = await _host.EditorApiAsync();
@@ -195,7 +210,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
 
         var id = await _host.PublishAsync(editor, Draft("Cho nhóm", groups: [group]));
 
-        Assert.Equal([a, b], (await _host.RecipientsAsync(id)).Order().ToArray());
+        Assert.Equal(new[] { a, b }.Order().ToArray(), (await _host.RecipientsAsync(id)).Order().ToArray());
         Assert.NotEqual(group, otherGroup);
     }
 
