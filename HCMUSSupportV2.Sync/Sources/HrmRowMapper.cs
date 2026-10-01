@@ -14,6 +14,7 @@ public sealed class HrmRowMapper(MappingReport report)
 {
     public OrgUnitRow? OrgUnit(IDataRecord r)
     {
+        Require(r, "hrm_id", "name");
         var id = Int(r, "hrm_id");
         var name = Str(r, "name");
         if (id is null || name is null) { report.Add("org_unit_bad_row"); return null; }
@@ -22,6 +23,7 @@ public sealed class HrmRowMapper(MappingReport report)
 
     public EmployeeRow? Employee(IDataRecord r)
     {
+        Require(r, "code", "full_name");
         var code = Str(r, "code");
         if (code is null) { report.Add("employee_empty_mscb"); return null; }
         var name = Str(r, "full_name");
@@ -32,6 +34,7 @@ public sealed class HrmRowMapper(MappingReport report)
 
     public ProfileRow? Profile(IDataRecord r)
     {
+        Require(r, "employee_code");
         var code = Str(r, "employee_code");
         if (code is null) { report.Add("profile_empty_mscb"); return null; }
 
@@ -122,6 +125,7 @@ public sealed class HrmRowMapper(MappingReport report)
     private bool Key(IDataRecord r, string what, out int id, out string code)
     {
         id = 0; code = "";
+        Require(r, "hrm_id", "employee_code");
         var i = Int(r, "hrm_id");
         var c = Str(r, "employee_code");
         if (i is null) { report.Add(what + "_no_hrm_id"); return false; }
@@ -130,16 +134,25 @@ public sealed class HrmRowMapper(MappingReport report)
         return true;
     }
 
+    /// <summary>Column index, or -1 when the result has no such column (optional columns read as null).</summary>
     private static int Ordinal(IDataRecord r, string name)
     {
-        try { return r.GetOrdinal(name); }
-        catch (IndexOutOfRangeException) { throw new InvalidOperationException($"Query result has no column '{name}'."); }
+        for (var i = 0; i < r.FieldCount; i++)
+            if (string.Equals(r.GetName(i), name, StringComparison.OrdinalIgnoreCase)) return i;
+        return -1;
+    }
+
+    /// <summary>The key columns of a query must exist; a typo in a .sql file then fails loudly instead of syncing nulls.</summary>
+    private static void Require(IDataRecord r, params string[] names)
+    {
+        foreach (var n in names)
+            if (Ordinal(r, n) < 0) throw new InvalidOperationException($"Query result has no column '{n}'.");
     }
 
     private static object? Raw(IDataRecord r, string name)
     {
         var o = Ordinal(r, name);
-        return r.IsDBNull(o) ? null : r.GetValue(o);
+        return o < 0 || r.IsDBNull(o) ? null : r.GetValue(o);
     }
 
     public static string? Str(IDataRecord r, string name)

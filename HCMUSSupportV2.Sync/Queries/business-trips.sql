@@ -1,5 +1,5 @@
 -- business-trips: NS_QuaTrinhCongTac (business mission) -> BusinessTripRow. hrm_id = QuaTrinhCongTac.
--- FIX vs docs/jjobs/business-mission.jjob: that job still carried a debug filter (WHERE ns.MA = '<one MSCB>') and TOP (1000),
+-- FIX vs docs/jjobs/business-mission.jjob: that job still carried a debug filter (a WHERE on one hard-coded MSCB) and a 1000-row cap,
 -- so only one employee's rows were ever published. Both are gone: this is the full table.
 -- purpose composes the v1 template line "{DiCongTacTheo} ngay {Ngay} cua {Cua}".
 SELECT CAST(qtct.QuaTrinhCongTac AS int) AS hrm_id,
