@@ -285,6 +285,7 @@ Only indexes on `audit_log`: `ix_audit_log_at_id (at DESC, id DESC)` for keyset 
 - The roster sync (D04) may overwrite `employees.status` for `source=hrm` rows; an admin's manual status change on such a
   row is not protected from the next sync.
 - Not in D14a: `sync_runs` / `sync_issues` endpoints (D04 owns them), dataset imports and API clients.
+
 ## Groups engine (D06, `Modules/Identity/Groups`)
 
 Lives inside the Identity module (next to the `groups` entities) and is registered by one line in `AddIdentityModule`
