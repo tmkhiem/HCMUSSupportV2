@@ -6,7 +6,8 @@ import PageState from '../../../ui/PageState'
 import SectionLabel from '../../../ui/SectionLabel'
 import { useGeneralProfile } from '../api'
 import type { Address } from '../api'
-import { BackToProfile, FieldList, FieldRow, NO_PROFILE_MESSAGE, SectionCard, isNotFound } from '../ProfileFields'
+import { BackToProfile, FieldList, FieldRow, SectionCard } from '../ProfileFields'
+import { NO_PROFILE_MESSAGE, isNotFound } from '../profileStates'
 import CopyButton from './CopyButton'
 
 function AddressBlock({ title, address }: { title: string; address: Address }) {

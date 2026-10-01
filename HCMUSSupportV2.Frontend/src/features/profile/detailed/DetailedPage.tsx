@@ -6,7 +6,8 @@ import PageHeader from '../../../ui/PageHeader'
 import PageState from '../../../ui/PageState'
 import { useDetailedProfile } from '../api'
 import type { MaskedField, Membership } from '../api'
-import { BackToProfile, FieldList, FieldRow, NO_PROFILE_MESSAGE, SectionCard, isNotFound } from '../ProfileFields'
+import { BackToProfile, FieldList, FieldRow, SectionCard } from '../ProfileFields'
+import { NO_PROFILE_MESSAGE, isNotFound } from '../profileStates'
 import { maskTail, useReveal } from './useReveal'
 
 /** "Đã tham gia · ngày 19/05/2012 · Số hồ sơ …" for a member, "Chưa tham gia" otherwise. */

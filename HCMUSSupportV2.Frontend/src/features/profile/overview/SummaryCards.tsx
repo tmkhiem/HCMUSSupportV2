@@ -11,7 +11,7 @@ import { formatDate, formatDecimal, joinParts } from '../../../lib/format'
 import { formatPartialDate } from '../../../lib/partialDate'
 import { useDetailedProfile, useGeneralProfile } from '../api'
 import type { ProfileOverview } from '../api'
-import { isNotFound } from '../ProfileFields'
+import { isNotFound } from '../profileStates'
 import SummaryCardFrame, { CardEmpty, CardFact, CardFigure } from './SummaryCardFrame'
 
 /** The eight cards of `/ho-so`, one component each. Indices continue after the hero (0). */

@@ -3,7 +3,7 @@ import Stack from '@mui/material/Stack'
 import PageHeader from '../../../ui/PageHeader'
 import PageState from '../../../ui/PageState'
 import { useProfileOverview } from '../api'
-import { NO_PROFILE_MESSAGE, isNotFound } from '../ProfileFields'
+import { NO_PROFILE_MESSAGE, isNotFound } from '../profileStates'
 import HeroCard from './HeroCard'
 import {
   BusinessTripsCard,
