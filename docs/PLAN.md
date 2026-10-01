@@ -424,9 +424,9 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** the dry run against HRM (or the local data repo) gives per-dataset counts that match INVENTORY §4, and a full run into dev passes D04's validations.
 
 ### D06 · Groups engine
-- [ ] Group CRUD and member management: manual edits, csv/xlsx import, auto-generated org-unit groups.
-- [ ] The rule language (§3.1) as a validated JSON schema, compiled to SQL with no string concatenation. `preview-rule` returns the count and a sample.
-- [ ] `groups.recompute` job (after sync and on rule change) that diffs `group_members` with `source=computed`. Emits `group.members_added` → the late-joiner backfill job (D07).
+- [x] Group CRUD and member management: manual edits, csv/xlsx import, auto-generated org-unit groups.
+- [x] The rule language (§3.1) as a validated JSON schema, compiled to SQL with no string concatenation. `preview-rule` returns the count and a sample.
+- [x] `groups.recompute` job (after sync and on rule change) that diffs `group_members` with `source=computed`. Emits `group.members_added` → the late-joiner backfill job (D07).
 - **Done when:** rule, org-unit-with-descendants and static groups are tested, and so is the recompute diff.
 
 ### D07 · Notifications engine (backend)

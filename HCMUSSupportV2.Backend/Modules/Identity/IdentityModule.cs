@@ -1,5 +1,6 @@
 using HCMUSSupportV2.Backend.Modules.Identity.Authentication;
 using HCMUSSupportV2.Backend.Modules.Identity.Authorization;
+using HCMUSSupportV2.Backend.Modules.Identity.Groups;
 using HCMUSSupportV2.Backend.Modules.Identity.Seed;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -34,6 +35,7 @@ public static class IdentityModule
         services.AddScoped<AdminBootstrapper>();
         services.AddScoped<DevDataSeeder>();
         services.AddHostedService<IdentityStartupService>();
+        services.AddGroupsEngine();   // D06: groups engine (Modules/Identity/Groups)
 
         services.AddAuthentication(o =>
             {

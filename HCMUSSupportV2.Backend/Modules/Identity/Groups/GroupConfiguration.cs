@@ -8,7 +8,12 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
 {
     public void Configure(EntityTypeBuilder<Group> b)
     {
-        b.ToTable("groups", t => t.HasCheckConstraint("ck_groups_kind", "kind IN ('static','org_unit','rule')"));
+        b.ToTable("groups", t =>
+        {
+            t.HasCheckConstraint("ck_groups_kind", "kind IN ('static','org_unit','rule')");
+            // D06: an org-unit group names its unit, a rule group has a rule.
+            t.HasCheckConstraint("ck_groups_shape", "(kind <> 'org_unit' OR org_unit_id IS NOT NULL) AND (kind <> 'rule' OR rule IS NOT NULL)");
+        });
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).UseIdentityAlwaysColumn();
         b.Property(x => x.Name).IsRequired().HasMaxLength(300);
@@ -20,6 +25,8 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
         b.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
 
         b.HasIndex(x => x.Name).IsUnique();
+        // D06: at most one auto-generated group per org unit (concurrent recomputes cannot duplicate it).
+        b.HasIndex(x => x.OrgUnitId).IsUnique().HasFilter("kind = 'org_unit'").HasDatabaseName("ux_groups_org_unit");
         b.HasOne<OrgUnit>().WithMany().HasForeignKey(x => x.OrgUnitId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Employee>().WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.SetNull);
     }

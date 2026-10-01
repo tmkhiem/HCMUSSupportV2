@@ -4,6 +4,7 @@ using System.Net;
 using HCMUSSupportV2.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HCMUSSupportV2.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001201000_D06_Groups")]
+    partial class D06_Groups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -475,13 +478,6 @@ namespace HCMUSSupportV2.Backend.Migrations
                         .HasDatabaseName("ix_audit_log_at");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("At"), "brin");
-
-                    b.HasIndex("Action", "At")
-                        .HasDatabaseName("ix_audit_log_action_at");
-
-                    b.HasIndex("At", "Id")
-                        .IsDescending()
-                        .HasDatabaseName("ix_audit_log_at_id");
 
                     b.ToTable("audit_log", (string)null);
                 });
