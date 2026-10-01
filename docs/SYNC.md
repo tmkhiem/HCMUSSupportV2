@@ -172,3 +172,8 @@ The DTOs in `HCMUSSupportV2.Sync/Contracts/IngestDtos.cs` are a **copy** of `Mod
 reference the web project). When the backend records change, update the copy; a drift shows as ignored or missing properties.
 To test against a local backend: set `Hrm:DevApiClient:Token` (24+ characters) in the backend's git-ignored
 `appsettings.Development.local.json`, start it, and point `Sync__ApiBaseUrl` / `Sync__ApiToken` at it.
+
+**Verified end to end (D05):** a full `sync legacy-git` of the real data repo into a fresh local dev database finished with every
+dataset `status=success`; a second run reported `inserted=0 updated=0 deleted=0` everywhere. The only issues were the expected ones:
+`duplicate_mscb` (7 on employees and on profiles), `bad_date` (lone digits or impossible dates in the source) and `unknown_employee`
+(commendation or degree rows of an MSCB that is not in the roster).
