@@ -23,6 +23,11 @@ export default defineConfig({
       use: { baseURL: `http://localhost:${MOCK_PORT}` },
     },
     {
+      name: 'profile',
+      testMatch: /profile\.spec\.ts/,
+      use: { baseURL: `http://localhost:${MOCK_PORT}` },
+    },
+    {
       name: 'plain',
       testMatch: /auth\.spec\.ts/,
       use: { baseURL: `http://localhost:${PLAIN_PORT}` },

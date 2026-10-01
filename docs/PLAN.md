@@ -456,7 +456,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** Playwright checks that an editor can make "Nâng lương thường xuyên 2026" by cloning the 2025 post and uploading a synthetic xlsx, preview it as a recipient and publish it, and that the recipient sees it with the substituted values.
 
 ### D10 · Hồ sơ: overview, Thông tin chung, Thông tin chi tiết
-- [ ] The hero, the 8 summary cards (real data, linked) and the two pages in §7.3. The sensitive-field reveal is audited.
+- [x] The hero, the 8 summary cards (real data, linked) and the two pages in §7.3. The sensitive-field reveal is audited.
 - **Done when:** the pages render synthetic data, handle empty data and errors, show masked values revealed one at a time, and the PR includes screenshots.
 
 ### D11 · Hồ sơ: Quá trình lương, Chức vụ, Khen thưởng
