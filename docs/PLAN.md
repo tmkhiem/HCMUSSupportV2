@@ -383,11 +383,11 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** `dotnet test` is green, `/healthz` is Healthy, a queued test job runs, and `generate-api.cmd` emits `SystemClient`.
 
 ### D02 · Frontend foundation & shell (§7.1–7.2)
-- [ ] Install MUI v9, Emotion, icons, react-router 7, TanStack Query, react-hook-form + zod, and MUI X pickers and charts. Add Inter and `theme.ts` with every §7.1 token as theme variants and overrides.
-- [ ] `src/ui/` primitives: `AcrylicCard`, `StatCard`, `PageHeader`, `FlyIn` (stagger helper), `PageState` (error, loading and empty), `MaskedValue`, `EmptyDash`, and the formatting helpers, with vitest tests.
-- [ ] Shell: sliding-indicator sidebar, mobile drawer, floating avatar menu, view-as bar, bg-logo watermark. Driven by `nav.ts` with role gating.
-- [ ] Login page (build design) and the auth/loading/error screens. `AuthProvider` around `GET /api/auth/me`, `RequireRole`, and a 401 handler that redirects to the login page.
-- [ ] Vite dev proxy `/api` → backend. `index.html`: `lang="vi"`, title "Support HCMUS". Placeholder routes for every §6 page.
+- [x] Install MUI v9, Emotion, icons, react-router 7, TanStack Query, react-hook-form + zod, and MUI X pickers and charts. Add Inter and `theme.ts` with every §7.1 token as theme variants and overrides.
+- [x] `src/ui/` primitives: `AcrylicCard`, `StatCard`, `PageHeader`, `FlyIn` (stagger helper), `PageState` (error, loading and empty), `MaskedValue`, `EmptyDash`, and the formatting helpers, with vitest tests.
+- [x] Shell: sliding-indicator sidebar, mobile drawer, floating avatar menu, view-as bar, bg-logo watermark. Driven by `nav.ts` with role gating.
+- [x] Login page (build design) and the auth/loading/error screens. `AuthProvider` around `GET /api/auth/me`, `RequireRole`, and a 401 handler that redirects to the login page.
+- [x] Vite dev proxy `/api` → backend. `index.html`: `lang="vi"`, title "Support HCMUS". Placeholder routes for every §6 page.
 - **Done when:** build, lint and vitest are green, and the PR has screenshots at 1440 px and 375 px that match the build's look.
 
 ### D03 · Auth, employees, emails, roles (backend + wiring)
