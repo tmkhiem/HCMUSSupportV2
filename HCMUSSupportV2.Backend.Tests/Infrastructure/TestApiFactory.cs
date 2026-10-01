@@ -14,13 +14,14 @@ namespace HCMUSSupportV2.Backend.Tests.Infrastructure;
 public sealed class TestApiFactory(
     PostgresFixture database,
     Dictionary<string, string?>? settings = null,
-    Action<IServiceCollection>? configureServices = null) : WebApplicationFactory<Program>
+    Action<IServiceCollection>? configureServices = null,
+    string environment = "Testing") : WebApplicationFactory<Program>
 {
     public string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), "hcmus-support-tests", Guid.NewGuid().ToString("N"));
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
+        builder.UseEnvironment(environment);
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
@@ -32,6 +33,12 @@ public sealed class TestApiFactory(
                 ["Jobs:PollIntervalMs"] = "50",
                 ["Jobs:BackoffBaseSeconds"] = "0",
                 ["Storage:LocalRoot"] = StorageRoot,
+                // Identity: no synthetic roster in tests (they create their own rows), fake Google client, re-check the
+                // session against the database on every request so role/status changes are visible immediately.
+                ["Dev:SeedEmployees"] = "false",
+                ["Auth:Google:ClientId"] = "test-client-id.apps.googleusercontent.com",
+                ["Auth:Google:ClientSecret"] = "test-client-secret",
+                ["Auth:RevalidateSeconds"] = "0",
             };
             foreach (var (key, value) in settings ?? []) values[key] = value;
             config.AddInMemoryCollection(values);

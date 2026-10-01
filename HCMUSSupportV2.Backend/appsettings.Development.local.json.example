@@ -6,7 +6,14 @@
     "Google": {
       "ClientId": "<google-oauth-client-id>",
       "ClientSecret": "<google-oauth-client-secret>"
-    }
+    },
+    "DevLogin": { "Enabled": true }
+  },
+  "Admin": {
+    "BootstrapEmails": [ "<your-hcmus-email>" ]
+  },
+  "Dev": {
+    "SeedEmployees": true
   },
   "Storage": {
     "LocalRoot": "App_Data/files"

@@ -1,4 +1,5 @@
 using HCMUSSupportV2.Backend.Infrastructure;
+using HCMUSSupportV2.Backend.Modules.Identity;
 using HCMUSSupportV2.Backend.Modules.Platform;
 
 namespace HCMUSSupportV2.Backend;
@@ -21,11 +22,13 @@ public class Program
 
         // Modules: exactly one line per module.
         builder.Services.AddPlatformModule(builder.Configuration);
+        builder.Services.AddIdentityModule(builder.Configuration);
 
         var app = builder.Build();
 
         await app.MigrateDatabaseIfConfiguredAsync();
         app.UsePlatformPipeline();
+        app.UseIdentityPipeline();   // authentication + antiforgery
         app.UseAuthorization();
         app.MapPlatformEndpoints();
 
