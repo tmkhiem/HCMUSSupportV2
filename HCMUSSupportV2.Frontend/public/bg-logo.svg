@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="none" stroke="#303F9F" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Placeholder watermark (self-hosted, no CDN). Replace with the official HCMUS mark when available. -->
+  <circle cx="320" cy="320" r="296" stroke-width="10"/>
+  <circle cx="320" cy="320" r="268" stroke-width="3"/>
+  <g stroke-width="6">
+    <path d="M320 24v40M320 576v40M24 320h40M576 320h40"/>
+    <path d="M110 110l28 28M502 502l28 28M530 110l-28 28M138 502l-28 28"/>
+  </g>
+  <!-- open book -->
+  <g stroke-width="10">
+    <path d="M320 392C276 360 214 354 150 372v118c64-18 126-12 170 20 44-32 106-38 170-20V372c-64-18-126-12-170 20Z"/>
+    <path d="M320 392v118"/>
+  </g>
+  <g stroke-width="5" opacity=".8">
+    <path d="M182 412c34-8 68-5 100 10M182 440c34-8 68-5 100 10M458 412c-34-8-68-5-100 10M458 440c-34-8-68-5-100 10"/>
+  </g>
+  <!-- rising star -->
+  <path d="m320 150 22 44 49 7-35 34 8 49-44-23-44 23 8-49-35-34 49-7Z" stroke-width="8"/>
+</svg>
