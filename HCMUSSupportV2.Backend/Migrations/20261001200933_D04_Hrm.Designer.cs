@@ -4,6 +4,7 @@ using System.Net;
 using HCMUSSupportV2.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HCMUSSupportV2.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001200933_D04_Hrm")]
+    partial class D04_Hrm
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1714,15 +1717,11 @@ namespace HCMUSSupportV2.Backend.Migrations
                         .HasDatabaseName("ix_groups_name");
 
                     b.HasIndex("OrgUnitId")
-                        .IsUnique()
-                        .HasDatabaseName("ux_groups_org_unit")
-                        .HasFilter("kind = 'org_unit'");
+                        .HasDatabaseName("ix_groups_org_unit_id");
 
                     b.ToTable("groups", null, t =>
                         {
                             t.HasCheckConstraint("ck_groups_kind", "kind IN ('static','org_unit','rule')");
-
-                            t.HasCheckConstraint("ck_groups_shape", "(kind <> 'org_unit' OR org_unit_id IS NOT NULL) AND (kind <> 'rule' OR rule IS NOT NULL)");
                         });
                 });
 
@@ -1830,13 +1829,6 @@ namespace HCMUSSupportV2.Backend.Migrations
                         .HasDatabaseName("ix_audit_log_at");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("At"), "brin");
-
-                    b.HasIndex("Action", "At")
-                        .HasDatabaseName("ix_audit_log_action_at");
-
-                    b.HasIndex("At", "Id")
-                        .IsDescending()
-                        .HasDatabaseName("ix_audit_log_at_id");
 
                     b.ToTable("audit_log", (string)null);
                 });
