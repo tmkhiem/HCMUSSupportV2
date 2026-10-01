@@ -4,8 +4,9 @@ Based on [INVENTORY.md](INVENTORY.md). The UI follows [UI-STYLE-GUIDE.md](UI-STY
 
 **Product:** an internal portal for HCMUS employees, keyed by MSCB. It starts by delivering personal HR records and targeted
 notifications, and lets HR and editors manage users, groups, roles and notifications themselves. It is built to
-grow into the wider employee portal: more data sources, more sections, and S2S integrations. The student portal is
-out of scope.
+grow into the wider employee portal: more data sources and more sections. **Documents** and **KHCN** will later be rebuilt as
+modules of this portal rather than kept as external consumers. The student portal is out of scope. **No v1 API compatibility**:
+v1 data is migrated, but none of v1's routes, response shapes or tokens are kept.
 
 **Agents:** launch implementation agents on **Sonnet 5.5** (`model: "sonnet"`). Use **Haiku** (`model: "haiku"`) only for
 items tagged `[haiku]`. Each delivery below is sized for one agent, one branch and one PR.
@@ -22,11 +23,12 @@ items tagged `[haiku]`. Each delivery below is sized for one agent, one branch a
 - HR manages employees' login emails in the app instead of the Google Sheet and `users.json`, with bulk import and duplicate detection.
 - RBAC: roles grant permissions. **Lookup** and **view-as** become permissions, and every use is audited.
 - Postgres replaces git-as-database. HRM data arrives through an authenticated ingest pipeline with a run log.
-- The S2S consumers (KHCN, Documents) keep working.
+- A module structure (backend feature folders, frontend nav groups, permissions per module) that Documents, KHCN and later
+  sections can plug into, all sharing one employee identity, RBAC, groups and audit log.
 - Modern UI per the style guide. Vietnamese UI text, English code.
 
 **Non-goals (v2.0)**: student portal; email or push delivery of notifications (§9 Q6); typed per-table HRM schema (records stay
-JSON rows for now, §2 ADR-4); OIDC provider for other apps (later portal work).
+JSON rows for now, §2 ADR-4); Documents and KHCN modules (later; see §10); OIDC provider for other apps (later portal work).
 
 ---
 
@@ -137,8 +139,6 @@ GET    admin/audit?…  · GET admin/sync-runs · CRUD admin/record-categories �
 # integrations (Authorization: ApiKey <token>, scoped)
 POST   integration/v1/records/{category}            (scope records.ingest)  gzip JSON, replaces category
 POST   integration/v1/employees                     (scope employees.ingest) upsert HRM roster
-GET    integration/v1/employees                     (scope employees.read)  roster for KHCN/Documents
-GET    7fbcb6d6…af3                                 legacy alias, v1 headers + v1 shape [{Name,Emails,Id}] (deprecate)
 GET    /healthz (no /api)
 ```
 
@@ -195,7 +195,7 @@ D01 Backend foundation ─┬─► D03 Auth & session ─┬─► D04 People &
 D02 Frontend shell ─────┘                       ├─► D05 Records ──────────┼─► D09 Sync tool (git, hrm)
                                                 ├─► D06 Notifications API ┴─► D10 Legacy migration
                                                 │        └─► D07 Notifications UI
-                                                └─► D11 Integration API (S2S)
+                                                └─► D11 API clients & module seams
 D12 Infra & deploy (independent, start anytime) · D13 Security cleanup (independent) · D14 Parity & cutover (last)
 ```
 
@@ -303,14 +303,15 @@ Parallel lanes:
         recipient rows from `values`, entity-decoded titles, sanitized bodies). Files that list about 1,800 ids become `audience_all` where that matches the active roster.
   - [ ] teaching-stats (4 years), research-stats and paper-details → manual record categories.
   - [ ] request-update-info → a pinned `audience_all` notification. Google Form URLs → `quick_links`.
-  - [ ] `apps.json` → `api_clients` with **new** tokens. The plain tokens are not imported; send the new ones to the consumers.
+  - `apps.json` is **not** migrated. The v1 S2S endpoint and its tokens are retired.
 - **Done when:** a re-run is a no-op, and a spot check of 5 real users shows the same news items and records as v1 (§D14 script).
 
-### D11: Integration API (needs D03)
-- [ ] API-client management UI and API (create → show the token once, revoke, scopes, last used).
-- [ ] `GET integration/v1/employees` (paged, `{id, name, emails[], unit}`) and the legacy alias route with v1 headers and the v1 PascalCase shape, logged as deprecated.
+### D11: API clients & module seams (needs D03)
+- [ ] API-client management UI and API: create (the token is shown once), revoke, scopes, last used. The first client is the Sync tool (D09).
 - [ ] Rate limiting (`AddRateLimiter`) on `auth/*` and `integration/*`.
-- **Done when:** a fake client with v1 headers gets the v1 shape, a revoked token gets 401, and both are tested.
+- [ ] Write down the module contract in `docs/MODULES.md` (§10), and prove it with the existing features: each feature declares its permissions,
+      nav entries and DI registration in one place. A new module must not need edits to shared core files beyond one registration line each.
+- **Done when:** a revoked token gets 401 (tested), and `docs/MODULES.md` walks through adding a dummy module end to end.
 
 ### D12: Infra & deploy (independent)
 - [ ] Provision a new droplet (recommended: Debian 13, 2 vCPU / 4 GB) with PostgreSQL 17 (local, listening on localhost only), .NET 8 runtime and nginx.
@@ -323,7 +324,7 @@ Parallel lanes:
 - **Done when:** the staging hostname serves the D01 build over TLS, a reboot brings it back, and a restore drill is documented.
 
 ### D13: Security cleanup (independent, `[haiku]` for the inventory parts)
-- [ ] Rotate: the Google OAuth client secret (v1 hard-coded), the GitHub PAT in `GitIntegrationTest`, the HRM `sa` password (exposed in 3 files), and the S2S app tokens.
+- [ ] Rotate: the Google OAuth client secret (v1 hard-coded), the GitHub PAT in `GitIntegrationTest`, the HRM `sa` password (exposed in 3 files), and the v1 S2S app tokens (revoke them at cutover).
       Remove the plaintext password from `/root/.gitconfig` on prod. Fix `scripts/sheets.py`, which prints the service account. Each item is a checklist entry for the user, because rotations need a human.
 - [ ] Create a least-privilege, **read-only** HRM SQL login for the Sync tool, limited to the `NS_*` and `DM_*` tables in §INVENTORY.
 - [ ] Decide what to do with PII in the SupportHCMUSData git history after cutover: archive it as a private repo, or purge it.
@@ -334,8 +335,8 @@ Parallel lanes:
 - [ ] Run v2 on staging, with a daily `sync --source git` after 22:30, for one week. Then switch to `--source hrm` on the HRM box and stop the git push.
 - [ ] Update the Google OAuth client: authorized origins and redirect URIs for the new host (dev `http://localhost:5173` as well).
 - [ ] Cutover: lower the DNS TTL, then switch DNS (or nginx). Keep v1 running read-only on the old droplet for 30 days, then decommission it (the droplet and the `/tchc` remnants).
-- [ ] Tell the KHCN and Documents owners about the new tokens and endpoint.
-- **Done when:** the parity report is clean, real staff can sign in on the production host, and the S2S consumers are confirmed working.
+- [ ] Tell the KHCN and Documents owners that the v1 user-dump endpoint goes away at cutover. They are not migrated; they are rebuilt as modules later.
+- **Done when:** the parity report is clean and real staff can sign in on the production host.
 
 ---
 
@@ -350,3 +351,19 @@ Parallel lanes:
 | Q5 | Can editors target everyone, or only their own unit? | Everyone (global). The schema supports scoping later. |
 | Q6 | Email notifications on publish? | Not in v2.0. Design the `notifications` table so an outbox can be added. |
 | Q7 | Google OAuth client: reuse v1's client (add origins) or create a new one in a new GCP project? | Reuse it, add the localhost and staging origins, rotate the secret. |
+
+---
+
+## 10. Future modules (Documents, KHCN, …)
+
+These are not part of v2.0, but v2.0 must not block them:
+
+- **Shared core:** employees, emails, groups, RBAC, audit log, notifications and records. A module gets these by dependency, never by copying them.
+  For example, Documents can notify a group through the notifications service, and KHCN can publish research data as record categories (research-stats and
+  research-papers already sit there).
+- **Module shape:** backend `Features/<Module>/…` with its own `AddXxxFeature()`, permission constants prefixed with the module
+  (`documents.*`, `khcn.*`), and its own migrations (`D<NN>_<Module>_…`). Frontend `src/features/<module>/` with its own nav group
+  and routes, gated by those permissions.
+- **Data from other systems** arrives through `integration/v1/*` with a scoped API client, the same way the HRM sync does.
+- **Integration targets** (BSC/HRM, EMIS, KHCN DB, …) are separate adapters in the Sync tool. They are not in the web app.
+

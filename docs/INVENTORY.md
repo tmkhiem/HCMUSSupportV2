@@ -58,7 +58,7 @@ data are reproduced here. The plan built on this inventory is in [PLAN.md](PLAN.
 | GET | `/api/news?category=` | id_token | Returns the caller's rendered items `[{Header, Content}]` (PascalCase). `research-papers` is a special case that reads `paper-details.json`. |
 | any | `/api/viewas?id=&category=` | `ViewAs` | Same output as `/api/news`, but for another MSCB. No audit trail. |
 | any | `/api/lookup?query=` | `Lookup` | Matches on id, on the name with diacritics stripped, or on email. Returns at most about 26 `User` rows. |
-| GET | `/api/7fbcb6…af3` | `User-Agent` + `token` header vs `apps.json` | Server-to-server dump of all users. **Consumers: KHCN and Documents.** |
+| GET | `/api/7fbcb6…af3` | `User-Agent` + `token` header vs `apps.json` | Server-to-server dump of all users. **Consumers: KHCN and Documents.** Retired in v2; both become portal modules. |
 
 Auth gaps:
 - The id_token is validated with **no audience check**, and there is no `email_verified` or `hd` check.
