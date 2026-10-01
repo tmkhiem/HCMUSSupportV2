@@ -530,6 +530,7 @@ nothing is installed, changed or deployed there; read-only inspection is the mos
 | Q4 | Who can sign in | **Decided:** only mapped emails in `employee_emails`, seeded once from `D:\git\SupportHCMUSData\config\users.json` (1,925 people) and maintained by editors from then on. HRM emails are not auto-mapped. |
 | Q5 | What happens to the 8 v1 ViewAs/Lookup holders? | Not auto-granted. D15 lists them and the user picks editors and admins. |
 | Q6 | Email or Web Push on publish? | Not in v2.0. Deliveries and jobs make it an additive outbox later. |
+| Q7 | Google OAuth client | **Decided:** reuse the existing v1 web client. Client id and secret go only in `appsettings.*.local.json` or env (never committed); the v1 values are in `D:\git\hcmus-portal-fe\.env` (id) and `D:\git\SupportHCMUS\HRBackend\Helper\Oauth.cs` (secret). The owner adds the v2 redirect URIs (`http://localhost:5161/api/auth/callback`, later the production one) in Google Cloud Console, and rotates the secret at cutover (D17). |
 
 ---
 
