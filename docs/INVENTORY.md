@@ -128,3 +128,41 @@ Values are deliberately not shown.
 - The PII-heavy profile JSON is kept in git history going back to 2022.
 - `/root/.gitconfig` on prod has a plaintext `password`.
 - `BscHrmBackend` `/api/data/{tableName}` is SQL-injectable. This isn't part of v2, but it lives on the same network.
+
+## 7. Desired UI build (`D:\git\SupportHcmusV2PromptingFEBuild`)
+
+This is the owner's target look. It is not a git repo; its files date from 2026-01-07 to 2026-01-13, and it is about 4.6k LOC.
+
+**Stack.** Vite 7, React 19 and **Tailwind 3**, plus a hand-written `styles.css`. No MUI. Icons are Icons8 PNGs from
+`static-assets.selab.edu.vn` and the Material Icons Two-Tone font. There is no router: tabs live in `useState`. API calls are
+hand-written `fetch` POSTs with a cookie session, and the backend is hard-coded to `support-staging.selab.edu.vn`.
+
+**Look.** The V2 plan rebuilds this look on MUI v9 (PLAN §7):
+- Primary `#303F9F`, text `#263238` / `#546E7A`, background `#F5F7F9` with a watermark logo.
+- **5 px radius.**
+- "Acrylic" surfaces: translucent white, `blur(8px) saturate(125%)`, and a soft "blocky" shadow with a 1 px hover lift.
+- Labels in 11 px uppercase, `font-black`, with wide tracking.
+- A fly-in entrance animation (300 ms, 50 ms stagger), with zoom and fade on modals.
+
+**Shell.** A 288 px sidebar with a radial gradient background and a flat list of 6 items: Hồ sơ cá nhân, Sáng kiến, Tin tức (the default), Giảng dạy, Nghiên cứu khoa học and Quản trị.
+- **Active item:** a sliding sunken indicator with a 4 px primary left border.
+- **Mobile:** a 90 vw drawer.
+- **Avatar:** floats at the top right and opens a menu with the name, MSCB, version and Đăng xuất. There is no desktop AppBar.
+- **Login:** a two-column acrylic card with a Google tile and a disabled VNeID tile.
+
+**Pages.**
+- **Tin tức:** a sticky acrylic filter bar (search, tag chips, date range), list rows, and a modal viewer.
+- **Hồ sơ:** a hero card plus 8 summary cards (general, detailed, salary, awards, position, academic, training, business trips). Each card opens a markdown modal.
+- **Sáng kiến, Giảng dạy, NCKH:** a searchable list and a modal. NCKH has a skewed pill switcher between Đề tài and Bài báo.
+- **Admin:**
+  - A quick-action tile landing page; its stats are hard-coded.
+  - Xem thử (view-as).
+  - A notification composer (Markdown textarea and preview; the recipient upload is stubbed).
+  - Users and groups master-detail with group member editing.
+
+**Do not copy.**
+- The generic `BaseHeaderCard`/`BaseViewerCard` used for every category, and the backend-rendered Markdown with `rehype-raw`.
+- Hard-coded demo values: the training card and the admin stats.
+- The missing routing.
+- The use of a non-existent Tailwind `xs` breakpoint.
+- The race conditions from fetches that are never cancelled.

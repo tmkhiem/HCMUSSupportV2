@@ -1,369 +1,529 @@
 # HCMUS Support V2: implementation plan
 
-Based on [INVENTORY.md](INVENTORY.md). The UI follows [UI-STYLE-GUIDE.md](UI-STYLE-GUIDE.md).
+Inputs: [INVENTORY.md](INVENTORY.md) (the legacy system and the desired UI build) and [UI-STYLE-GUIDE.md](UI-STYLE-GUIDE.md).
 
-**Product:** an internal portal for HCMUS employees, keyed by MSCB. It starts by delivering personal HR records and targeted
-notifications, and lets HR and editors manage users, groups, roles and notifications themselves. It is built to
-grow into the wider employee portal: more data sources and more sections. **Documents** and **KHCN** will later be rebuilt as
-modules of this portal rather than kept as external consumers. The student portal is out of scope. **No v1 API compatibility**:
-v1 data is migrated, but none of v1's routes, response shapes or tokens are kept.
+**Product.** An internal portal for HCMUS employees. It starts with targeted notifications and each employee's own HRM
+records, and grows into the wider employee portal. Documents and KHCN will later be rebuilt as modules of it (§11). The
+student portal is out of scope.
 
-**Agents:** launch implementation agents on **Sonnet 5.5** (`model: "sonnet"`). Use **Haiku** (`model: "haiku"`) only for
-items tagged `[haiku]`. Each delivery below is sized for one agent, one branch and one PR.
+**Ground rules**
+- **No v1 compatibility.** v1 data is migrated once; v1's routes, payload shapes, tokens and storage format are all dropped.
+- **Modern-first.** Postgres is designed for this app, around notifications. Every HRM category is typed and gets its own page.
+- **Doc precedence for UI:** this plan's §7 (the look of `D:\git\SupportHcmusV2PromptingFEBuild`, rebuilt on MUI v9) beats
+  UI-STYLE-GUIDE.md. The style guide still governs the MUI mechanics: per-path imports, page states, tables, formatting, a11y and helpers.
+- **Agents:** run implementation agents on **Sonnet 5.5** (`model: "sonnet"`). Use **Haiku** only for items tagged `[haiku]`.
+  Each delivery is one agent, one branch, one PR.
 
 ---
 
 ## 1. Goals / non-goals
 
 **Goals (v2.0)**
-- Employees sign in with Google and see their own HRM records (profile, salary, awards, ...) and their notifications, with read/unread state.
-- Editors create, edit, schedule, publish and archive notifications. A notification can target everyone, groups,
-  individual employees, or recipients from an Excel upload with per-recipient variables (this covers the yearly
-  "Thâm niên nhà giáo", "Nâng lương thường xuyên" and "Vượt khung" posts). A post can be cloned to make next year's.
-- HR manages employees' login emails in the app instead of the Google Sheet and `users.json`, with bulk import and duplicate detection.
-- RBAC: roles grant permissions. **Lookup** and **view-as** become permissions, and every use is audited.
-- Postgres replaces git-as-database. HRM data arrives through an authenticated ingest pipeline with a run log.
-- A module structure (backend feature folders, frontend nav groups, permissions per module) that Documents, KHCN and later
-  sections can plug into, all sharing one employee identity, RBAC, groups and audit log.
-- Modern UI per the style guide. Vietnamese UI text, English code.
+1. Employees sign in with Google using any of their HCMUS emails. Each email maps to one MSCB, and an employee can have
+   several emails across HCMUS subdomains.
+2. **Tin tức**, a personal, searchable notification inbox:
+   - unread state and optional "xác nhận đã đọc" (acknowledge)
+   - attachments
+   - live unread badge
+3. **Editors**:
+   - Write rich notifications with per-recipient variables.
+   - Target them at everyone, groups (static, org-unit or rule-based), individual employees, or an uploaded recipient sheet.
+   - Schedule, publish and archive them, and clone last year's post in a series. This covers the yearly "Thâm niên nhà giáo",
+     "Nâng lương thường xuyên" and "Vượt khung" posts.
+   - **Maintain the MSCB ↔ email mapping**, which replaces the Google Sheet and `users.json`.
+4. Bespoke **Hồ sơ** pages per category: general, detailed, salary, positions, commendations, degrees, training and
+   business trips. Also **Sáng kiến**, **Giảng dạy** and **Nghiên cứu khoa học**.
+5. Three roles: **employee** (implicit), **editor** and **admin**. Admins have full rights, including granting any role to any
+   employee. View-as is admin-only and audited.
+6. Typed HRM data arrives through an authenticated ingest pipeline. Every run is logged, with a guard against truncated data.
+   Git-as-database is retired.
 
-**Non-goals (v2.0)**: student portal; email or push delivery of notifications (§9 Q6); typed per-table HRM schema (records stay
-JSON rows for now, §2 ADR-4); Documents and KHCN modules (later; see §10); OIDC provider for other apps (later portal work).
-
----
-
-## 2. Architecture decisions
-
-| # | Decision | Why |
-|---|---|---|
-| ADR-1 | **One ASP.NET Core 8 app** serves the API and the Vite SPA (the existing scaffold). Controllers sit in **feature folders**, and each feature registers itself with `services.AddXxxFeature()`. | Simple deploy. Feature folders let new portal modules plug in without touching shared files. |
-| ADR-2 | **EF Core 9 + Npgsql** with snake_case naming (`EFCore.NamingConventions`) and code-first migrations. Extensions: `citext`, `unaccent`, `pg_trgm`. | Proper relational store, case-insensitive emails, Vietnamese-insensitive search. |
-| ADR-3 | **Auth:** Google auth-code popup → `POST /api/auth/google` → backend validates the id_token (audience = our client id, `email_verified`) → maps email to employee → issues **our own HttpOnly cookie session** (sliding 12 h). Data-protection keys are stored in Postgres. Antiforgery header on mutations. A **dev-only** `POST /api/auth/dev-login` signs in by MSCB; it is enabled only when `Environment=Development` and `Auth:DevLogin=true`. | Fixes v1's missing audience check, the stale-localStorage relogin and the 1 h expiry. The dev login lets agents test without Google. |
-| ADR-4 | **Records** (HRM-derived personal data) are stored as `employee_records(category, employee_id, ordinal, data jsonb)`. A `record_categories` row defines the Vietnamese title, nav group, display mode (`profile` key-value, or `table`/`list`) and field definitions (`key, label, kind`). Each sync replaces a whole category in one transaction. | Feature parity with the 11 jjobs plus 3 manual datasets without hand-modelling about 200 columns now. Typed tables can come later per category. |
-| ADR-5 | **Ingest over HTTPS, not DB access:** a separate `HCMUSSupportV2.Sync` console tool reads a source and POSTs to `/api/integration/v1/records/{category}` with an API-client token. Sources: `git` (reads the existing SupportHCMUSData JSON, used during the transition) and `hrm` (runs the `.jjob` SQL directly against HRM, which replaces DatabaseJobService and the git push). | The HRM box lives inside the HCMUS network and prod is on DigitalOcean, so Postgres is never exposed. One ingest path serves both sources, and the git repo can be retired later. |
-| ADR-6 | **Notifications** are authored HTML (rich-text editor) with legacy `{Placeholder}` syntax. Values are **HTML-escaped** on substitution, and the result is sanitized server-side (`HtmlSanitizer`) on save and on render, plus DOMPurify on the client. Targets are all / groups / employees / recipient rows (Excel). Visibility is resolved **at read time** for group targets, so new members see posts that are still live. | Keeps the 56 legacy news files importable and closes v1's XSS hole. |
-| ADR-7 | **RBAC:** permissions are code constants. Roles are DB rows (seeded system roles; admins can add custom roles). Role assignments are per employee and carry an optional group `scope` column (unused in v2.0). | Lookup and view-as stop being hardcoded lists. Leaves room to scope editors to a unit later. |
-| ADR-8 | **Observability:** Serilog to console/journald and a rolling file. An `audit_log` table records sign-ins, view-as, lookup and every admin mutation. `/healthz`. **Google Drive/Sheets telemetry is dropped.** | No user OAuth token on the server. Audit data stays queryable. |
-| ADR-9 | **Frontend:** React 19, MUI 9, react-router 7, `@tanstack/react-query` over the NSwag client, Tiptap (`mui-tiptap`) for the editor, DOMPurify. **One SPA**; admin routes are lazy-loaded and permission-gated. | Matches MyMentor (`D:\git\HCMUS.MyMentor\MyMentor\MyMentor.Frontend`) and the style guide. |
+**Non-goals (v2.0):** student portal; email or Web Push delivery (the schema leaves room for an outbox); Documents and KHCN modules;
+acting as an OIDC provider for other apps; VNeID sign-in (the login screen shows it disabled, as the build does).
 
 ---
 
-## 3. Data model (Postgres, snake_case)
+## 2. Platform
+
+| Layer | Choice |
+|---|---|
+| Runtime | **.NET 10 LTS** (supported until Nov 2028). The scaffold's net8.0 **and the locally installed SDK 9** both reach end of support on 2026-11-10, six weeks from now. This needs a .NET 10 SDK on the dev box (§10 Q1). |
+| Backend | ASP.NET Core 10 controllers organised as feature modules. EF Core 10 + Npgsql (snake_case via `EFCore.NamingConventions`). NSwag keeps generating the TS client (bump `generate-api.ps1`'s `net8.0` path). |
+| Database | **PostgreSQL 18** if the dev server has it (native `uuidv7()`, async I/O, virtual generated columns), else 17. D01 checks this. Extensions: `citext`, `unaccent`, `pg_trgm`. |
+| IDs | `uuid` v7 for notifications, files and imports (time-ordered and safe to expose). `bigint identity` elsewhere. The MSCB is a natural key. |
+| Auth | Server-side Google OIDC (`/api/auth/login` redirect, as in the build). An HttpOnly `__Host-` session cookie, sliding 12 h. Data-protection keys stored in PG. |
+| Background work | One PG-backed job queue (`jobs` table, `FOR UPDATE SKIP LOCKED`) drained by a hosted service. No Hangfire or Redis. |
+| Realtime | Server-Sent Events (`GET /api/notifications/stream`), fed by PG `LISTEN/NOTIFY`, so it keeps working with more than one instance. |
+| Files | `IFileStore` with local-disk storage (`/var/lib/hcmus-support/files`) and an S3-compatible option. Size and MIME allowlist. |
+| Observability | Serilog to journald and a rolling file. OpenTelemetry traces and metrics, with OTLP export when configured. `/healthz`. An `audit_log` table. |
+| Frontend | React 19, **MUI v9 re-themed** (§7), `@mui/icons-material`, react-router 7 (data router, lazy routes, real URLs), TanStack Query 5, react-hook-form + zod, MUI X Date Pickers and Charts, **Tiptap 3** (`mui-tiptap`) editor, Vite 8 with React Compiler (already scaffolded). |
+| Sync | A separate `HCMUSSupportV2.Sync` console tool runs inside the HCMUS network. It reads HRM SQL Server and POSTs typed batches to the ingest API, so the database is never exposed. |
+
+---
+
+## 3. Data model
+
+PostgreSQL, snake_case. `→` marks an FK. Unless noted, every table has `created_at` and `updated_at`.
+
+### 3.1 People & access
 
 ```
-employees            id text PK (MSCB) · hrm_nhansu_id int NULL · full_name · unit_name NULL · department_name NULL
-                     · status (active|inactive) · source (hrm|manual) · synced_at · created_at · updated_at
-employee_emails      email citext PK · employee_id FK · is_primary bool · source (hr|hrm|import) · created_at · created_by
-roles                id · code UNIQUE · name · description · is_system bool
-role_permissions     role_id FK · permission text · PK(role_id, permission)
-role_assignments     employee_id FK · role_id FK · scope_group_id FK NULL · granted_by · granted_at · expires_at NULL
-groups               id · code UNIQUE · name · description · kind (static|unit|rule) · rule jsonb NULL · created_by · timestamps
-group_members        group_id FK · employee_id FK · added_by · added_at · PK(group_id, employee_id)
-
-record_categories    code PK (e.g. salary-progress) · title · nav_group · sort · display (profile|table|list)
-                     · fields jsonb [{key,label,kind:text|date|money|number|html}] · header_template · legacy_template
-                     · source (hrm|manual) · last_synced_at · is_visible
-employee_records     id bigserial · category_code FK · employee_id FK · ordinal · data jsonb · INDEX(employee_id, category_code)
-
-notifications        id uuid · title · body_html · topic text NULL · status (draft|scheduled|published|archived)
-                     · publish_at · expires_at NULL · pinned bool · audience_all bool · cloned_from uuid NULL
-                     · created_by · updated_by · timestamps · xmin concurrency token
-notification_targets      notification_id FK · group_id NULL · employee_id NULL · CHECK exactly one
-notification_recipient_rows notification_id FK · employee_id FK · ordinal · vars jsonb · PK(notification_id, employee_id, ordinal)
-notification_reads   notification_id FK · employee_id FK · read_at · PK(notification_id, employee_id)
-
-api_clients          id · name UNIQUE · token_hash · scopes text[] · created_at · last_used_at · revoked_at NULL
-sync_runs            id · source · category · started_at · finished_at · status · employees · rows · error NULL
-audit_log            id bigserial · at · actor_employee_id · acting_as_employee_id NULL · action · target_type · target_id
-                     · details jsonb · ip · user_agent
-quick_links          id · title · url · description · nav_group · sort · is_visible   (v1's Google Form links)
-data_protection_keys (EF DataProtection store)
+org_units           id bigint PK · hrm_id int UNIQUE · parent_id → org_units NULL · kind (unit|department) · name · code NULL · is_active
+employees           code text PK (MSCB) · hrm_id int UNIQUE NULL · full_name · full_name_unaccent (generated, trigram GIN)
+                    · org_unit_id → org_units NULL · department_id → org_units NULL · position_title NULL · academic_rank NULL
+                    · degree NULL · status (active|inactive|retired) · photo_url NULL · source (hrm|manual) · synced_at
+employee_emails     email citext PK · employee_code → employees · is_primary · note NULL · added_by → employees · added_at
+                    (no domain CHECK: some staff use external addresses)
+role_assignments    employee_code → employees · role text CHECK (role IN ('editor','admin')) · granted_by · granted_at
+                    · PK(employee_code, role)        -- "employee" is implicit
+groups              id bigint PK · name UNIQUE · description · kind (static|org_unit|rule) · org_unit_id NULL · include_descendants bool
+                    · rule jsonb NULL · member_count int (maintained) · created_by · archived_at NULL
+group_members       group_id → groups · employee_code → employees · source (manual|computed) · added_by NULL · added_at
+                    · PK(group_id, employee_code) · INDEX(employee_code)
 ```
 
-Rules:
-- **Who can sign in:** an employee whose status is `active` and who has an email in `employee_emails`. Emails are unique (citext PK), so a
-  duplicate is rejected at write time. v1's "drop both rows" is gone.
-- **A notification is visible to E** when it is published, `publish_at ≤ now`, not expired, and at least one of these holds: `audience_all`, E is in a target group,
-  E is a target employee, or E has recipient rows.
-- **Rendering:** each recipient row renders as one feed item, which matches v1. Read state is tracked per (notification, employee).
-- **Records** are only ever returned to their owner, or to a holder of `employees.view_as` (audited).
+- **Sign-in:** a verified Google email is looked up in `employee_emails`. It must belong to an `active` employee. An email maps to
+  exactly one MSCB (the PK enforces it), and an employee may have many emails.
+- **MSCB:** HRM has 9 duplicate MSCBs. Sync puts the duplicates in `sync_issues` and does not guess, and an admin resolves them.
+- **Rule groups:** a `rule` is a small JSON filter over `org_unit` (with descendants), `position_title`, `academic_rank`, `degree`,
+  `status`, the current salary grade, or "has an active email". Members are recomputed (`source=computed`) after each roster
+  sync and whenever the rule changes, and the editor sees a live preview count. `org_unit` groups are auto-created per unit.
 
-## 4. RBAC
+### 3.2 HRM domain (typed; one table per category, each with its own page)
 
-| Permission | employee (implicit) | editor | hr | support | admin |
-|---|:-:|:-:|:-:|:-:|:-:|
-| `self.read` (own records & notifications) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `notifications.manage` (CRUD, publish, archive, clone, import recipients) | | ✓ | | | ✓ |
-| `notifications.read_all` (admin list incl. drafts, read stats) | | ✓ | ✓ | | ✓ |
-| `employees.read` (pick targets, list employees) | | ✓ | ✓ | ✓ | ✓ |
-| `employees.manage` (emails, status, bulk import) | | | ✓ | | ✓ |
-| `groups.manage` | | ✓ | ✓ | | ✓ |
-| `employees.lookup` | | | ✓ | ✓ | ✓ |
-| `employees.view_as` (read-only impersonation) | | | | ✓ | ✓ |
-| `roles.manage` (assign roles; only admins can grant `admin`) | | | ✓* | | ✓ |
-| `audit.read` | | | | | ✓ |
-| `integrations.manage` (API clients), `sync.manage` (runs, categories, quick links) | | | | | ✓ |
-
-\* hr can assign `editor` and `hr` only.
-
-**Legacy mapping:** anyone in the `ViewAs` or `Lookup` lists becomes `support`. The repo owner becomes `admin`. The import report lists the
-exact people so the user can review it. `Statistics` is dropped.
-
-## 5. API surface (all under `/api`, cookie session unless noted)
+`hrm_id` is the HRM source row id, unique per table. It drives the upserts. Dates use `date` plus a `*_precision`
+(`day|month|year`) column wherever HRM stores partial dates.
 
 ```
-POST   auth/google                {code}            → sets cookie, returns Me
-POST   auth/logout
-POST   auth/dev-login             {employeeId}      (Development only)
-GET    me                         → {employee, emails, permissions[], actingAs?}
-
-GET    records/categories         → visible categories with counts for me
-GET    records/{category}         → my rows (or acting-as target's)
-GET    notifications              ?unread&topic&page → my feed (rendered, sanitized)
-GET    notifications/unread-count
-POST   notifications/{id}/read
-
-# management (permission-gated)
-GET/POST/PUT/DELETE  admin/notifications[/{id}]
-POST   admin/notifications/{id}/publish | archive | clone
-POST   admin/notifications/{id}/recipients/import   (xlsx/csv: MSCB column + placeholder columns) → validation report
-GET    admin/notifications/{id}/preview?employeeId=
-GET    admin/notifications/{id}/stats               → targeted / read counts
-GET/POST/PUT/DELETE  admin/employees[/{id}], admin/employees/{id}/emails, POST admin/employees/emails/import
-GET/POST/PUT/DELETE  admin/groups[/{id}], admin/groups/{id}/members (+ import)
-GET/POST/PUT/DELETE  admin/roles, admin/role-assignments
-GET    admin/lookup?q=                              (unaccent + trigram, paged)
-POST   admin/view-as {employeeId} · DELETE admin/view-as
-GET    admin/audit?…  · GET admin/sync-runs · CRUD admin/record-categories · CRUD admin/quick-links · CRUD admin/api-clients
-
-# integrations (Authorization: ApiKey <token>, scoped)
-POST   integration/v1/records/{category}            (scope records.ingest)  gzip JSON, replaces category
-POST   integration/v1/employees                     (scope employees.ingest) upsert HRM roster
-GET    /healthz (no /api)
+employee_profiles     employee_code PK → employees · last_name · first_name · date_of_birth · gender · ethnicity · religion · nationality
+                      · birth_place · hometown · phone_mobile · phone_home · personal_email
+                      · permanent_address · contact_address (text, plus ward/district/province columns)
+                      · salary_grade_code · salary_grade_name · salary_step · salary_coefficient numeric(5,2)
+                      · education_level · political_theory · party_joined_on · youth_union_joined_on · trade_union_joined_on
+employee_sensitive    employee_code PK → employees · national_id · national_id_issued_on · national_id_issued_by
+                      · tax_code · bank_name · bank_branch · bank_account · social_insurance_no · health_insurance_no
+                      (separate table: never returned in a list, masked by default, every reveal is audited)
+salary_history        id · hrm_id · employee_code · grade_code · grade_name · step · coefficient numeric(5,2) · over_grade_pct numeric(5,2) NULL
+                      · decision_no · signed_on · effective_from · next_raise_on NULL · note
+position_history      id · hrm_id · employee_code · title · unit_description · coefficient numeric(4,2) NULL · appointed_on
+                      · decision_no · signed_on · ended_on NULL
+commendations         id · hrm_id · employee_code · kind (award|title) · name · academic_year NULL · decision_no · decided_on
+academic_degrees      id · hrm_id · employee_code · degree_type · major · institution · country · training_form
+                      · enrolled_on · graduated_on · thesis_title NULL
+trainings             id · hrm_id · employee_code · content · place · training_form · start_on · end_on
+business_trips        id · hrm_id · employee_code · from_on · to_on · place · purpose · transport · decision_no · decided_on · note
+innovations           id · hrm_id · employee_code · code · title · type · decision_no · recognized_on · academic_year NULL
+teaching_loads        id · employee_code · academic_year ('2024-2025') · term (1|2|3) · course_code · course_name · class_code
+                      · level (dh|sdh|…) · periods int · standard_hours numeric(7,2) · source_import_id → imports
+research_projects     id · code UNIQUE · title · level · research_type · funding numeric(14,0) NULL · period_text · accepted_on NULL · result
+research_project_members  project_id → research_projects · employee_code · role (chu_nhiem|thanh_vien|…) · PK(project_id, employee_code)
+publications          id · doi UNIQUE NULL · eid UNIQUE NULL · title · venue · year · details · url NULL
+publication_authors   publication_id → publications · employee_code · ordinal · PK(publication_id, employee_code)
 ```
+
+**Sources**
+- HRM jobs feed `employee_profiles`, `employee_sensitive`, salary, position, commendations, degrees, trainings, business trips and innovations.
+- Admin Excel imports feed `teaching_loads`, `research_*` and `publications` until a KHCN or academic-affairs integration exists.
+  The importer replaces data per academic year or per dataset.
+
+### 3.3 Notifications
+
+Fan-out happens on write: every recipient gets a delivery row, so inbox reads are a single index range scan.
+
+```
+tags                     id · name UNIQUE · color · sort
+notification_series      id · name UNIQUE · description          -- "Nâng lương thường xuyên", "Thâm niên nhà giáo", …
+notifications            id uuid v7 PK · series_id → notification_series NULL · title · summary (auto from first paragraph, editable)
+                         · content jsonb (Tiptap/ProseMirror doc) · content_text text (plain text for search and preview)
+                         · variables jsonb  [{key, label, type: text|date|number|money}]
+                         · status (draft|scheduled|published|archived) · publish_at NULL · published_at NULL · expires_at NULL
+                         · pinned_until NULL · requires_ack bool · audience_all bool · recipient_count int · read_count int · ack_count int
+                         · version int · created_by · updated_by
+                         · search tsvector GENERATED (vn_unaccent: title A, summary B, content_text C) · GIN(search)
+notification_tags        notification_id · tag_id · PK(notification_id, tag_id)
+notification_revisions   notification_id · version · title · content · variables · edited_by · edited_at · PK(notification_id, version)
+notification_audiences   id · notification_id · kind (all|group|employee|import) · group_id NULL · employee_code NULL · import_id NULL
+                         -- what the editor chose; kept so late joiners can be backfilled
+notification_deliveries  employee_code · notification_id · vars jsonb NULL (array of row objects; one item per row)
+                         · delivered_at · read_at NULL · acknowledged_at NULL · dismissed_at NULL
+                         · PK(employee_code, notification_id)
+                         · INDEX(employee_code, delivered_at DESC) INCLUDE (read_at)
+                         · partial INDEX(employee_code) WHERE read_at IS NULL     -- unread badge
+                         · INDEX(notification_id)                                  -- stats, recall
+notification_attachments id uuid v7 · notification_id · file_id → files · sort
+imports                  id uuid v7 · kind (notification_recipients|employee_emails|group_members|teaching|research|publications)
+                         · file_id → files · status (validated|applied|rejected) · summary jsonb · report jsonb · created_by
+files                    id uuid v7 · storage_key · file_name · content_type · size_bytes · sha256 · uploaded_by
+```
+
+**Lifecycle and mechanics**
+- **Publish:** at `publish_at`, or straight away, a job resolves the audiences into recipients. That is the union of all active
+  employees (when `audience_all`), group members, named employees and imported rows. It inserts deliveries with
+  `INSERT … SELECT … ON CONFLICT DO NOTHING`, sets the counters, and sends `NOTIFY notifications, <employee batch>`.
+  About 6k employees means roughly 6k rows per broadcast, so no partitioning is needed. Revisit at 10M deliveries (yearly range partitions on `delivered_at`).
+- **Late joiners:** when someone is added to a group, or a new employee or email appears, a job backfills deliveries for
+  published, unexpired notifications that target that group or everyone. Removing someone from a group keeps what they already received.
+- **Edits after publish:** a new `notification_revisions` row is written and `version` goes up. Deliveries are unchanged, and the
+  inbox shows "Đã cập nhật". Variables are never re-imported silently; a re-import goes through a validated `imports` row.
+- **Rendering:** the client renders the stored ProseMirror doc with a read-only Tiptap renderer, substituting `{{variable}}`
+  nodes from `vars`. There is no HTML string injection anywhere. Pasted HTML (and legacy news) is converted to the doc schema on input.
+- **Feed query** (keyset pagination on `(delivered_at, notification_id)`):
+  - deliveries ⋈ notifications, where status is published and the post is not expired
+  - optional filters: tags, date range, `search @@ websearch_to_tsquery('vn_unaccent', q)`, unread only
+  - ordered by currently pinned first, then `delivered_at DESC`
+- **Recall:** archiving hides the post from inboxes but keeps the deliveries, for audit.
+
+### 3.4 Platform
+
+```
+jobs             id bigint · type · payload jsonb · run_at · attempts · max_attempts · locked_until NULL · last_error NULL · done_at NULL
+                 · partial INDEX(run_at) WHERE done_at IS NULL
+api_clients      id · name UNIQUE · token_hash · scopes text[] · last_used_at · revoked_at NULL
+sync_runs        id · source · dataset · started_at · finished_at · status · inserted · updated · deleted · error NULL
+sync_issues      id · sync_run_id · dataset · kind (duplicate_mscb|unknown_unit|bad_date|…) · source_key · details jsonb · resolved_at NULL
+audit_log        id bigint · at · actor_code · acting_as_code NULL · action · target_type · target_id · details jsonb · ip inet · user_agent
+                 · BRIN(at)
+data_protection_keys
+```
+
+Text search config: `CREATE TEXT SEARCH CONFIGURATION vn_unaccent (COPY = simple)` mapped through `unaccent`, plus an
+`IMMUTABLE` `f_unaccent()` wrapper for the generated columns and trigram indexes.
+
+---
+
+## 4. Roles
+
+| Capability | employee | editor | admin |
+|---|:-:|:-:|:-:|
+| Own Hồ sơ, Sáng kiến, Giảng dạy, NCKH; own Tin tức (read, acknowledge) | ✓ | ✓ | ✓ |
+| Reveal own masked sensitive fields (audited) | ✓ | ✓ | ✓ |
+| Employee directory and search (MSCB, name, unit, emails); no profile data | | ✓ | ✓ |
+| **MSCB ↔ email mapping** (add, remove, set primary, bulk import with dry run) | | ✓ | ✓ |
+| Notifications: create, edit, schedule, publish, archive, clone; tags and series; recipient imports; stats | | ✓ | ✓ |
+| Groups: create, edit, rules, members, import | | ✓ | ✓ |
+| Grant or revoke **any role for any employee** | | | ✓ |
+| View-as (read-only impersonation, audited) | | | ✓ |
+| Employee status, manual employees, duplicate-MSCB resolution | | | ✓ |
+| Dataset imports (teaching, research, publications); sync runs and issues; API clients; audit log | | | ✓ |
+
+Guard rails:
+- The last admin cannot be removed.
+- Every role change, mapping change, view-as session and sensitive-field reveal is written to the audit log.
+- While view-as is active, the session is read-only, and the audit log records which pages the admin viewed.
+- Internally, each row maps to a named authorization policy (`Policies.ManageNotifications`, …). Future modules add their own
+  policies, and new roles can be added later without touching the controllers.
+
+---
+
+## 5. API (REST under `/api`, cookie session; integration routes use `Authorization: ApiKey …`)
+
+```
+auth          GET auth/login?returnUrl · GET auth/callback · POST auth/logout · GET auth/me · POST auth/dev-login (Development only)
+me            GET me/profile/overview · GET me/profile/general · GET me/profile/detailed · POST me/profile/sensitive/reveal {field}
+              GET me/salary · GET me/positions · GET me/commendations · GET me/degrees · GET me/trainings · GET me/business-trips
+              GET me/innovations?q&cursor · GET me/teaching?year · GET me/teaching/years · GET me/research/projects?q&cursor · GET me/research/publications?q&cursor
+notifications GET notifications?q&tags&from&to&unread&cursor · GET notifications/{id} · POST notifications/{id}/read
+              POST notifications/{id}/ack · POST notifications/read-all · GET notifications/unread-count · GET notifications/stream (SSE)
+              GET notifications/{id}/attachments/{fileId} · GET tags
+manage        notifications: GET/POST/PUT/DELETE manage/notifications[/{id}] · POST …/{id}/schedule|publish|archive|clone
+                · POST …/{id}/recipients/import (multipart) → import report · POST …/imports/{importId}/apply
+                · GET …/{id}/preview?employee= · GET …/{id}/stats · GET …/{id}/revisions · POST …/{id}/attachments
+              tags & series: CRUD manage/tags · CRUD manage/series
+              employees: GET manage/employees?q&unit&cursor · GET manage/employees/{code}
+                · POST/DELETE manage/employees/{code}/emails · POST manage/employee-emails/import (dry run → apply)
+              groups: CRUD manage/groups · POST manage/groups/preview-rule · PUT/DELETE manage/groups/{id}/members · POST …/members/import
+admin         GET/PUT admin/roles/{code} · POST/DELETE admin/view-as · GET admin/audit · GET admin/sync-runs · GET/PUT admin/sync-issues
+              POST admin/datasets/{teaching|research|publications}/import · CRUD admin/api-clients · PUT admin/employees/{code}/status
+              GET admin/dashboard (counts, read rates, recent activity)
+integration   POST integration/v1/org-units · employees · profiles · salary · positions · commendations · degrees · trainings
+              · business-trips · innovations      (scope hrm.ingest; full-snapshot batches; see D04)
+GET /healthz
+```
+
+All lists use keyset pagination: `{items, nextCursor}`. Errors are ProblemDetails, with Vietnamese `detail` text for messages shown to users.
+
+---
 
 ## 6. Frontend information architecture
 
-The shell, nav pill, stat cards and tables all follow the style guide. Nav groups:
+The sidebar is a flat list (as in the build) and every page has a real URL.
 
-- **Tổng quan:**
-  - Trang chủ: stat cards (unread notifications, last salary change, next raise date if present) and the latest notifications.
-  - Thông báo: inbox with filters (unread, topic), each item an expandable card.
-- **Hồ sơ:**
-  - Hồ sơ cá nhân: tabs for general and detailed profile.
-  - Quá trình công tác: tabs for salary, position, academic, training and business-mission.
-  - Khen thưởng: tabs for award and title.
-  - Sáng kiến.
-- **Giảng dạy & NCKH:** teaching-stats, research-stats, research-papers.
-- **Tiện ích:** quick links (update-info form, research profile form, innovation registration).
-- **Quản trị** (shown when any admin permission is held): Thông báo · Nhân sự & email · Nhóm · Phân quyền · Tra cứu · Xem như · Nhật ký ·
-  Đồng bộ & danh mục.
-- While view-as is active, a persistent warning banner shows "Đang xem với tư cách …" with an exit button, and all mutations are disabled.
-
-The record pages render from `record_categories.fields` through one generic component (`profile` uses a key-value card grid, `table` uses a
-sticky-header grouped table), so a new category from a new data source needs **no frontend code**.
+| # | Nav item (icon from `@mui/icons-material`) | Route | Page (bespoke design, §7.3) |
+|---|---|---|---|
+| 1 | Tin tức (`NotificationsOutlined`, unread badge) | `/tin-tuc`, `/tin-tuc/:id` | Inbox and detail. **This is the landing page.** |
+| 2 | Hồ sơ cá nhân (`BadgeOutlined`) | `/ho-so` and `/ho-so/{thong-tin-chung,thong-tin-chi-tiet,luong,chuc-vu,khen-thuong,dao-tao,boi-duong,cong-tac}` | Overview plus 8 detail pages |
+| 3 | Sáng kiến (`LightbulbOutlined`) | `/sang-kien` | Innovations |
+| 4 | Giảng dạy (`SchoolOutlined`) | `/giang-day` | Teaching load |
+| 5 | Nghiên cứu khoa học (`ScienceOutlined`) | `/nckh/de-tai`, `/nckh/bai-bao` | Projects and publications |
+| 6 | Quản lý thông báo (`EditNotificationsOutlined`), editor | `/quan-ly/thong-bao[/:id]`, `/quan-ly/nhan-su`, `/quan-ly/nhom[/:id]` | Notifications, the employee email mapping, groups |
+| 7 | Quản trị (`AdminPanelSettingsOutlined`), admin | `/quan-tri`, `/quan-tri/{phan-quyen,xem-thu,nhat-ky,dong-bo,du-lieu}` | Dashboard, roles, view-as, audit, sync, datasets |
 
 ---
 
-## 7. Conventions for parallel agents (read before starting any delivery)
+## 7. UI: the PromptingFEBuild look on MUI v9
 
-- **Branching:** branch `feat/d<NN>-<slug>` from `main`, one PR per delivery, rebased on `main` before merge. End PR descriptions with the attribution lines.
-- **Backend layout:** `Features/<Feature>/{<Feature>Controller.cs, <Feature>Service.cs, Dtos.cs, <Feature>Feature.cs}`.
-  Entity configuration goes in `Data/Configurations/<Entity>Configuration.cs`. In `Program.cs`, a delivery only adds one `builder.Services.AddXxxFeature()` line.
-- **Migrations:** each delivery adds **one** migration named `D<NN>_<Name>`, generated **last, after rebasing**. If
-  `AppDbContextModelSnapshot.cs` conflicts, delete your own migration, rebase and regenerate it. Never edit another delivery's migration.
-- **API client:** `HCMUSSupportV2.Frontend/src/api/generated-client.ts` is generated by `generate-api.cmd` and committed. Never edit it by hand.
-  On a conflict, regenerate it.
-- **Frontend layout:** `src/features/<feature>/…`. Nav entries go in `src/app/navigation.ts` and routes in `src/app/routes.tsx`, one entry per line to keep merges trivial.
-  Shared UI goes in `src/components/` (StatCard, SectionCard, PillSelect, PageState, …), built in D01.
-- **Config and secrets:** commit nothing secret. The dev connection string goes in `appsettings.Development.local.json` (gitignored, loaded by
-  `Program.cs`) or user-secrets. Dev DB: `10.0.0.11:65432`, user `sa`, database `hcmus_support_dev`. Tests use a throwaway database,
-  `hcmus_support_test_<guid>`, created and dropped per test run.
-- **Tests:** `HCMUSSupportV2.Backend.Tests` (xUnit, `WebApplicationFactory`, real Postgres) covers every endpoint's happy path and its authorization
-  denial. Frontend uses vitest for pure helpers (formatting, date parsing, placeholder rendering).
-- **Language:** UI text is Vietnamese. Identifiers, comments and commit messages are English. Show missing values as `—` and use ` · ` as the separator.
-- **PII:** never log record `data`, emails or tokens. Never put real employee data in fixtures. Use synthetic MSCBs such as `T0001`.
+The build lives at `D:\git\SupportHcmusV2PromptingFEBuild`, written with Tailwind; INVENTORY §7 has the details. **Rebuild its look, not
+its code.** The build ran every category through one generic list/markdown viewer. **V2 does not do that:** each category gets its
+own page and components. Shared *primitives* such as `AcrylicCard`, `StatCard` and `PageHeader` are fine. A shared *category renderer*
+is not.
+
+### 7.1 Theme tokens (`theme.ts`)
+
+| Token | Value |
+|---|---|
+| `palette.primary.main` | `#303F9F` (indigo 700) |
+| `palette.secondary.main` | `#ECEFF1` |
+| `palette.text.primary` / `secondary` | `#263238` / `#546E7A` |
+| `palette.background.default` | `#F5F7F9` (flat), with a `bg-logo` watermark bottom-right at 0.2 opacity (the asset is self-hosted in `public/`) |
+| `shape.borderRadius` | **5** (cards, dialogs). Chips and avatars are full-round; inputs and buttons use 2–3 px. |
+| Typography | Inter 300–900. Section labels: overline-style, 11 px, `fontWeight 900`, uppercase, `letterSpacing: 0.15em`. Body text 0.925 rem. |
+| Acrylic surface | `bgcolor: alpha('#fff', 0.4)`, `backdropFilter: 'blur(8px) saturate(125%)'` (+ `WebkitBackdropFilter`), 1 px border `grey.100` |
+| Blocky shadow | `0 4px 12px -2px rgba(0,0,0,.08), 0 2px 6px -1px rgba(0,0,0,.04)`. On hover: `translateY(-1px)` and `0 6px 16px -4px rgba(79,195,247,.15)` |
+| Motion | Fly-in 300 ms `cubic-bezier(.16,1,.3,1)`, 50 ms stagger. Dialogs zoom and fade in, and exit over 250 ms. Respect `prefers-reduced-motion`. |
+| Table head | `primary.main` background with white 700-weight text, through a theme override, as the style guide says (using this palette). |
+
+Implement these as theme `components` overrides and variants (`MuiPaper` variant `acrylic`, `MuiCard`, `MuiDialog`, `MuiChip`,
+`MuiTableCell`), so pages use `<Paper variant="acrylic">` rather than ad-hoc `sx`.
+
+### 7.2 Shell
+- **Sidebar:** `Drawer`, 288 px, on `lg` and up. Background `radial-gradient(circle at top right, #fafcfc, #E3F2FD)`. The "Support HCMUS" brand is in primary bold with a white glow.
+  Rows are 64 px with uppercase 11 px `fontWeight 900` labels. A single **sliding active indicator** moves with a 300 ms ease and is drawn as a sunken tab (`#F0F2F5`
+  with an inset shadow and a 4 px primary left border). Idle icons are muted, the active icon is primary and scaled to 1.1.
+- **Below `lg`:** a 64 px top bar (menu button, page title, avatar). The drawer is 90 vw (max 450) and opens over a dark acrylic scrim.
+- **Desktop:** no AppBar. A floating 44 px avatar sits top-right and opens an acrylic menu with the name, MSCB, roles, version (from `GET /api/system/info`) and a red "Đăng xuất".
+- While view-as is active, a fixed warning bar shows "Đang xem với tư cách {name} · {MSCB}" with a "Thoát" button.
+- **Login:** a wide two-column acrylic card. On the left, "Support HCMUS" and the greeting copy from the build. On the right, a
+  "Đăng nhập với Google" tile and a **disabled** "Đăng nhập với VNeID" tile. Error and sync states follow the build.
+
+### 7.3 Pages (each is its own feature folder and its own components)
+
+| Page | Design |
+|---|---|
+| **Tin tức** | **Filter bar:** sticky acrylic bar with debounced search, tag chips (multi-select), "Từ ngày"/"Đến ngày" date pickers and an "Chưa đọc" toggle.<br>**Rows:** title, summary and the first tag plus `+N`. Unread rows are bold with a primary dot. Rows carry pin and "Cần xác nhận" chips. Infinite scroll.<br>**Detail:** the build's viewer modal at `/tin-tuc/:id`, deep-linkable. It shows the rendered doc, an attachments list, "Xác nhận đã đọc", and "Các kỳ trước" (same series). |
+| **Hồ sơ cá nhân** | **Hero:** acrylic card with an 8 px primary left border, Google photo, name, MSCB pill, "position — unit", and email and phone lines.<br>**Cards:** 8 summary cards in a 3/2/1-column grid, each with **real** data: the build hard-coded the training card. Each card links to its page. |
+| Thông tin chung | Sectioned key-value cards: Cá nhân, Liên hệ (with copy buttons), Địa chỉ (thường trú / liên hệ). |
+| Thông tin chi tiết | Sections: Công tác (unit, position, ngạch/bậc/hệ số), Học hàm & học vị, Đoàn thể (Đảng/Đoàn/Công đoàn dates), Tài chính & bảo hiểm. In the last section, sensitive values are masked `•••• 1234` and revealed per field by click, which is audited. |
+| Quá trình lương | **Stat cards:** current ngạch, bậc, hệ số, vượt khung %, and the next raise date as a "còn N tháng" countdown.<br>**Chart:** MUI X step-line of hệ số over time.<br>**Timeline:** vertical list of decisions (số QĐ, ngày ký, ngày hưởng, ghi chú). |
+| Chức vụ | Vertical timeline. The current position is emphasised, and each entry shows its tenure ("3 năm 2 tháng"). |
+| Khen thưởng | Tabs "Khen thưởng" and "Danh hiệu". Cards are grouped by năm học with an award icon, name and decision. A count stat sits on top. |
+| Quá trình đào tạo | Diploma-style cards, newest first: degree, major, institution · country, years, thesis title. |
+| Quá trình bồi dưỡng | Table grouped by year, with sticky group dividers (style-guide helper `useStickyGroupPush`). |
+| Đi công tác | Stats (trips, days abroad) and a year filter, then a table with destination, dates, purpose and decision. |
+| **Sáng kiến** | Stats (count, by type). A searchable list. Detail dialog with code, type, decision and recognition year. |
+| **Giảng dạy** | Academic-year pill select. Stats: total quy đổi hours, classes, courses. A table grouped by học kỳ with sticky dividers. Source caption: "Nguồn: …, cập nhật …". |
+| **NCKH** | The build's skewed pill switcher between Đề tài and Bài báo.<br>**Đề tài:** rows show title, a role chip (Chủ nhiệm/Thành viên), level and funding; the detail lists members (linked when they are employees).<br>**Bài báo:** title, venue · year, a DOI link and co-authors. |
+| **Quản lý thông báo** | **List:** status chips, filters, series, read % bar.<br>**Editor:** Tiptap with a "Chèn biến" menu built from the variables, title, summary, tags, series, publish/expiry pickers, pin and "Cần xác nhận". The **targeting panel** offers Tất cả, nhóm picker, nhân sự picker, and "Tải danh sách" (xlsx/csv: an MSCB column plus variable columns, with a downloadable template and a validation report). It shows a live recipient count. "Xem trước với tư cách…" picks a recipient to preview as. Attachments. Clone from the previous post in the series. Revision history. |
+| **Nhân sự & email** (editor) | Searchable directory. The detail shows MSCB, name, unit and an email list with add, remove and set-primary. Bulk import (columns MSCB, Họ tên, Email 1..6) uses dry run → report (new, removed, conflicts: an email owned by another MSCB, unknown MSCB) → apply. |
+| **Nhóm** (editor) | Master-detail, as in the build. Group kinds: tĩnh / theo đơn vị / theo điều kiện. The rule builder has a live preview count. Members can be edited or imported. Shows the notifications that targeted the group. |
+| **Quản trị** | **Dashboard** (all figures are real, unlike the build's hard-coded ones): notifications sent, read rate, active users in the last 7 days, last sync status, recent audit events.<br>**Other pages:** Phân quyền (search an employee, toggle editor/admin), Xem thử (pick an employee, start view-as, browse the real pages read-only), Nhật ký (audit filters), Đồng bộ (runs, issues to resolve), Dữ liệu (dataset imports). |
+
+Page states, formatting (`—`, ` · `, `Intl` money `đ`, tolerant dates) and a11y follow UI-STYLE-GUIDE §7, §8 and §10.
 
 ---
 
-## 8. Deliveries
+## 8. Conventions for parallel agents
 
-Dependency graph (→ means "must be merged first"):
+- **Branching:** branch `feat/d<NN>-<slug>` off `main`, one PR per delivery, rebased before merge. End PR descriptions with the repo's attribution lines.
+- **Backend layout:** `Modules/<Module>/<Feature>/` contains the controller, the service, the DTO records and `<Module>Module.cs` (`AddXxxModule()` plus its policies).
+  EF configuration lives next to its entity, `<Entity>Configuration.cs`, and is applied through `ApplyConfigurationsFromAssembly`.
+  `Program.cs` gets exactly **one line per module**.
+- **Migrations:** one per delivery, named `D<NN>_<Name>`, generated **last, after rebasing**. If the model snapshot conflicts, delete your
+  migration, rebase and regenerate it. Never edit a merged migration.
+- **API client:** `src/api/generated-client.ts` is produced only by `generate-api.cmd` and is committed. Regenerate it when it conflicts.
+- **Frontend layout:** `src/features/<feature>/` holds that feature's pages, components and query hooks. The routes and nav registries, `src/app/routes.tsx`
+  and `src/app/nav.ts`, take one line per entry. Primitives go in `src/ui/`. A primitive must be category-agnostic, and a category component must not be
+  reused for another category.
+- **Secrets:** commit none. Put dev config in `appsettings.Development.local.json` (gitignored; template `*.example`) or user-secrets.
+  The dev DB is `10.0.0.11:65432`, user `sa`, database `hcmus_support_dev`. Tests create and drop `hcmus_support_test_<guid>`.
+- **Tests:**
+  - Backend: xUnit with `WebApplicationFactory` against real PG. Every endpoint needs a happy-path test and a forbidden-role test. Notifications also need fan-out and visibility tests.
+  - Frontend: vitest for helpers and Playwright smoke tests per page, run against dev-login with synthetic data.
+- **Fixtures:** synthetic data only (MSCB `T0001…`). Never copy real HRM rows into the repo or into logs.
+- **Language:** Vietnamese for UI text. English for code, comments and commits.
+
+---
+
+## 9. Deliveries
 
 ```
-D01 Backend foundation ─┬─► D03 Auth & session ─┬─► D04 People & access ──┬─► D08 Lookup / view-as / audit
-D02 Frontend shell ─────┘                       ├─► D05 Records ──────────┼─► D09 Sync tool (git, hrm)
-                                                ├─► D06 Notifications API ┴─► D10 Legacy migration
-                                                │        └─► D07 Notifications UI
-                                                └─► D11 API clients & module seams
-D12 Infra & deploy (independent, start anytime) · D13 Security cleanup (independent) · D14 Parity & cutover (last)
+Wave 0   D01 Backend foundation ‖ D02 Frontend foundation & shell ‖ D16 Infra ‖ D17 Security cleanup
+Wave 1   D03 Auth, employees, emails, roles, groups schema            (needs D01; login UI needs D02)
+Wave 2   D04 HRM domain + ingest ‖ D06 Groups engine ‖ D07 Notifications engine ‖ D14a Admin core   (need D03)
+Wave 3   D05 Sync tool (D04) ‖ D08 Tin tức UI (D07) ‖ D09 Notification editor UI (D07, D06)
+         ‖ D10 Hồ sơ overview/general/detailed (D04) ‖ D11 Lương/Chức vụ/Khen thưởng (D04)
+         ‖ D12 Đào tạo/Bồi dưỡng/Công tác (D04) ‖ D13 Sáng kiến/Giảng dạy/NCKH (D04) ‖ D14b Admin pages (D06, D07)
+Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ```
 
-Parallel lanes:
-- **Wave 0:** D01 ‖ D02 ‖ D12 ‖ D13.
-- **Wave 1:** D03.
-- **Wave 2:** D04 ‖ D05 ‖ D06 ‖ D11.
-- **Wave 3:** D07 ‖ D08 ‖ D09 ‖ D10.
-- **Wave 4:** D14.
+### D01 · Backend foundation
+- [ ] Retarget to **net10.0** (§10 Q1): backend, sln, `generate-api.ps1` TFM path, and the NSwag version that supports it.
+- [ ] Npgsql EF Core 10 and snake_case. Verify the dev PG version (≥17; use `uuidv7()` if ≥18). Create the extensions, `vn_unaccent` and `f_unaccent()`.
+- [ ] Configuration: `appsettings.{Env}.local.json` loading, `ConnectionStrings:Default`, `Storage:*`, `Auth:*`, plus the `.example` files.
+- [ ] Platform pieces:
+  - [ ] Serilog
+  - [ ] OpenTelemetry (OTLP optional)
+  - [ ] ProblemDetails
+  - [ ] `/healthz`
+  - [ ] `GET /api/system/info`
+  - [ ] rate limiter (`auth/*`, `integration/*`)
+  - [ ] forwarded headers
+- [ ] The `Modules/` pattern and the `jobs` queue: entity, `IJobQueue.Enqueue`, a hosted worker with SKIP LOCKED, retry and backoff, and a test job.
+- [ ] `IFileStore` (local disk), the `files` table, `audit_log` with `IAuditLogger`, and `data_protection_keys`. Migration `D01_Platform`.
+- [ ] `HCMUSSupportV2.Backend.Tests` with a PG fixture.
+- **Done when:** `dotnet test` is green, `/healthz` is Healthy, a queued test job runs, and `generate-api.cmd` emits `SystemClient`.
 
-### D01: Backend foundation
-- [ ] Swap the SqlServer package for `Npgsql.EntityFrameworkCore.PostgreSQL` 9 plus `EFCore.NamingConventions`. Wire up `AppDbContext`, `UseSnakeCaseNamingConvention()` and the extensions `citext`, `unaccent` and `pg_trgm`.
-- [ ] Load `appsettings.{Env}.local.json`, add `ConnectionStrings:Default`, and add a `.local.json.example` template.
-- [ ] Serilog (console plus rolling file), ProblemDetails for errors, `/healthz` (DB check), forwarded headers (already present).
-- [ ] Feature-folder skeleton with an `AddXxxFeature()` pattern and a sample `Features/System/SystemController` (`GET /api/system/info` → version).
-- [ ] Baseline migration `D01_Initial` containing `audit_log` and `data_protection_keys`, plus an `IAuditLogger` service.
-- [ ] Test project `HCMUSSupportV2.Backend.Tests` with a Postgres fixture (DB per run) added to the sln.
-- [ ] Vite dev proxy `/api` → `http://localhost:5161`. `generate-api.cmd` still works.
-- **Done when:** `dotnet test` is green against the dev PG, `dotnet run` serves `/healthz` = Healthy, and `generate-api.cmd` emits a client containing `SystemClient`.
+### D02 · Frontend foundation & shell (§7.1–7.2)
+- [ ] Install MUI v9, Emotion, icons, react-router 7, TanStack Query, react-hook-form + zod, and MUI X pickers and charts. Add Inter and `theme.ts` with every §7.1 token as theme variants and overrides.
+- [ ] `src/ui/` primitives: `AcrylicCard`, `StatCard`, `PageHeader`, `FlyIn` (stagger helper), `PageState` (error, loading and empty), `MaskedValue`, `EmptyDash`, and the formatting helpers, with vitest tests.
+- [ ] Shell: sliding-indicator sidebar, mobile drawer, floating avatar menu, view-as bar, bg-logo watermark. Driven by `nav.ts` with role gating.
+- [ ] Login page (build design) and the auth/loading/error screens. `AuthProvider` around `GET /api/auth/me`, `RequireRole`, and a 401 handler that redirects to the login page.
+- [ ] Vite dev proxy `/api` → backend. `index.html`: `lang="vi"`, title "Support HCMUS". Placeholder routes for every §6 page.
+- **Done when:** build, lint and vitest are green, and the PR has screenshots at 1440 px and 375 px that match the build's look.
 
-### D02: Frontend shell (style guide port)
-- [ ] Install MUI 9, Emotion, react-router 7, react-query and DOMPurify. Add Inter, `theme.ts` and `index.css` (style guide §2). Copy `cardFlyIn.ts`,
-      `CardWatermarkIcon.tsx`, `TabbedPanel.tsx`, `useFillHeight.ts`, `useStickyGroupPush.ts` and `groupBySemester.ts` (as `groupByPeriod`) from
-      `D:\git\HCMUS.MyMentor\MyMentor\MyMentor.Frontend\src`.
-- [ ] `AppLayout`: 260 px drawer, nav pill, glass AppBar, mobile drawer, logout fade (§3). It is driven by a **permission-aware** `navigation.ts`.
-- [ ] Shared components: `StatCard` (single, de-duplicated), `SectionCard`, `PillSelect`, `PageState` (error, loading and empty, §7), `StatusBanner`,
-      `SafeHtml` (DOMPurify, legacy table CSS from v1's `styles/table.css`), and the formatting helpers (`—`, ` · `, money, tolerant date parse) with vitest tests.
-- [ ] An `AuthProvider` stub (`useMe()`, `hasPermission()`), `RequireAuth` and `RequirePermission` guards, and a login page shell (style guide §4.12; the Google button comes in D03).
-- [ ] `index.html` with lang `vi`, title "Support HCMUS", and favicon. Placeholder pages for every nav entry in §6.
-- **Done when:** `npm run build` and `npm run lint` are clean, and the shell matches the style guide on desktop and at 375 px (screenshot both in the PR).
+### D03 · Auth, employees, emails, roles (backend + wiring)
+- [ ] Entities and migration `D03_Identity`: `org_units`, `employees`, `employee_emails`, `role_assignments`, and the `groups`/`group_members` schema (logic comes in D06).
+- [ ] Google OIDC: `/api/auth/login` → `callback`. Validate the issuer, audience and `email_verified`, then map the email to an employee, which must be active. Issue the `__Host-` cookie session (sliding 12 h). Add antiforgery for unsafe methods.
+- [ ] `GET auth/me` returns `{code, fullName, unit, photoUrl, emails, roles, actingAs}`, `POST auth/logout`, and `POST auth/dev-login`, which is enabled only in the Development environment with a config flag.
+- [ ] Authorization policies from §4, and a "last admin" guard. Audit `auth.login`, `auth.denied` and `auth.logout`.
+- [ ] Bootstrap: `Admin:BootstrapEmails` config seeds the first admin when the database has no admin yet.
+- **Done when:** tests cover a valid sign-in, wrong audience, unverified email, unknown email, inactive employee, and dev-login rejected in Production. A real Google sign-in works on localhost.
 
-### D03: Auth & session (needs D01, D02)
-- [ ] Minimal `employees`, `employee_emails`, `roles`, `role_permissions` and `role_assignments` entities, with migration `D03_Identity`.
-      D04 builds the management on top of these.
-- [ ] `Permissions` constants (§4), seeded system roles, and a policy-per-permission authorization handler that reads assignments, cached per request.
-- [ ] `POST /api/auth/google`: exchange the code with the configured Google client, validate the id_token (audience, issuer, `email_verified`), map the email to an
-      employee, and issue the cookie session (HttpOnly, Secure, SameSite=Lax, sliding 12 h). Store data-protection keys in PG. Add the antiforgery header.
-- [ ] `POST /api/auth/logout`, `GET /api/me`, and dev-login gated by environment and config. Audit `auth.login`, `auth.login_denied` and `auth.logout`.
-- [ ] Frontend: `@react-oauth/google` auth-code popup, wire up `AuthProvider` with real data, handle 401 by redirecting to login, and make logout actually log out.
-- [ ] Config keys `Auth:Google:ClientId` and `Auth:Google:ClientSecret` go in local or secret config only.
-- **Done when:** tests cover a valid token, a wrong audience, an unverified email, an unknown email, an inactive employee and dev-login being off in Production; a manual Google sign-in works on localhost.
+### D04 · HRM domain schema & ingest API
+- [ ] The §3.2 tables, with the EF mappings and migration `D04_Hrm`.
+- [ ] `POST integration/v1/{dataset}` takes full-snapshot batches (gzip JSON, ≤ 20 MB). The service:
+  1. Binary-COPYs the batch into a temp table.
+  2. `MERGE … WHEN NOT MATCHED BY SOURCE THEN DELETE` (PG 17+) on `hrm_id`.
+  3. Writes `sync_runs`.
+  4. Writes `sync_issues` for duplicate MSCBs, unknown units and unparseable dates.
+  - It refuses a run whose row count falls more than 20 % below the last good run unless `?force=true`.
+  - It enqueues `groups.recompute` after an `employees` or `org-units` run.
+- [ ] A minimal `api_clients` table (hashed tokens, scopes) and an ApiKey auth handler. Admin UI is in D14b.
+- [ ] `me/*` read endpoints (§5) for all HRM datasets. They honour `actingAs`, mask `employee_sensitive`, and expose reveal-with-audit.
+- [ ] Admin dataset import endpoints for teaching, research and publications (xlsx), using the dry-run report → apply flow through `imports`. Publish the template formats as downloadable `.xlsx`.
+- **Done when:** ingesting synthetic fixtures for every dataset round-trips, the truncation guard and duplicate-MSCB issue are tested, and nobody can read another employee's rows unless view-as is active.
 
-### D04: People & access management (needs D03)
-- [ ] Employees admin: list with search and paging, detail, status, and email CRUD (unique emails, with a clear error on duplicates).
-- [ ] **Bulk email import** (xlsx/csv, the same columns as the "Dữ liệu chính" sheet: MSCB, name, email1..6). Dry run → report (new, changed,
-      duplicate id, duplicate email, unknown MSCB) → apply. This replaces the Google Sheet and `scripts/main.py`.
-- [ ] Groups: CRUD, members (add, remove, csv import), and `kind=unit` groups auto-maintained from `employees.unit_name` (refreshed after roster ingest).
-- [ ] Roles: list and custom-role CRUD (permission checklist), assignment UI, and the rule that only admins grant `admin`.
-- [ ] Audit every mutation.
-- **Done when:** an HR user can onboard a new staff email end to end in the UI, and an editor cannot open HR pages (403 from the API and hidden in the nav).
+### D05 · Sync tool (`HCMUSSupportV2.Sync`)
+- [ ] .NET 10 console with `sync hrm --datasets all|<list> [--dry-run]`. Its SQL lives in `Sync/Queries/*.sql`, rewritten from `docs/jjobs` to select the **typed columns** of §3.2 plus `hrm_id`.
+  Fix the known bugs: drop the business-mission debug filter on one MSCB, and fix the academic-progress country join.
+  Write the org-unit and roster queries (`DM_DONVI`, `DM_PHONGBAN`, `NS_NHANSU` status).
+- [ ] `sync legacy-git --path <SupportHCMUSData>`: a one-off or transition source that maps v1 JSON into the same typed payloads, parsing `dd/MM/yyyy` with precision.
+- [ ] Posts gzip batches with the API key. Per-dataset summary, non-zero exit on failure, and `--dry-run` prints counts without posting.
+- [ ] `docs/SYNC.md`: install on the HRM box, run nightly at 22:30 from Task Scheduler, use a least-privilege SQL login (D17), and how to rotate the token.
+- **Done when:** the dry run against HRM (or the local data repo) gives per-dataset counts that match INVENTORY §4, and a full run into dev passes D04's validations.
 
-### D05: Records (needs D03)
-- [ ] `record_categories` and `employee_records`, migration `D05_Records`, and a seed of the 14 categories (§6 groups) **with field definitions**.
-      `[haiku]` sub-task: extract the Vietnamese labels for each field from each `.jjob` `Template` in `docs/jjobs` and from the manual datasets' templates.
-- [ ] `RecordIngestService`: validate the payload against the category, replace the category atomically, write `sync_runs`, and reject a payload whose row
-      count drops more than X% unless `force=true` (guards against v1's silent truncation).
-- [ ] Ingest endpoints `integration/v1/records/{category}` and `integration/v1/employees` (roster upsert, which feeds `employees`). Use a minimal
-      `api_clients` table with hashed tokens; D11 adds the management UI.
-- [ ] Employee API: `GET records/categories` and `GET records/{category}` (owner only, honouring acting-as once D08 lands).
-- [ ] Frontend: a generic `RecordView` (profile cards or a table per `display` and `fields`), the Hồ sơ, Quá trình, Khen thưởng, Sáng kiến and Giảng dạy & NCKH pages, and Trang chủ stat cards.
-- **Done when:** ingesting a synthetic fixture of every category renders correctly, a user never sees another user's rows (test), and the truncation guard is tested.
+### D06 · Groups engine
+- [ ] Group CRUD and member management: manual edits, csv/xlsx import, auto-generated org-unit groups.
+- [ ] The rule language (§3.1) as a validated JSON schema, compiled to SQL with no string concatenation. `preview-rule` returns the count and a sample.
+- [ ] `groups.recompute` job (after sync and on rule change) that diffs `group_members` with `source=computed`. Emits `group.members_added` → the late-joiner backfill job (D07).
+- **Done when:** rule, org-unit-with-descendants and static groups are tested, and so is the recompute diff.
 
-### D06: Notifications API (needs D03; group targeting needs D04's tables, so coordinate or stub)
-- [ ] Entities and migration `D06_Notifications` as in §3. Status machine: draft → scheduled/published → archived. Optimistic concurrency.
-- [ ] Rendering: escape each `{Placeholder}` value, sanitize with `HtmlSanitizer` (allowlist that keeps tables and inline styles needed by legacy news), one item per recipient row,
-      and an optional `[dd/MM/yyyy]` header prefix flag.
-- [ ] Visibility query (§3) as one indexed SQL query, paged. Unread count and mark-read.
-- [ ] Admin CRUD, publish (immediate or scheduled via `publish_at`), archive, **clone** (copies body and targets, not recipient rows), preview as an employee,
-      and stats (targeted vs read).
-- [ ] Recipient import: xlsx/csv with an MSCB column plus placeholder columns → validation report (unknown MSCB, placeholders that are missing or unused) → apply.
-- [ ] Audit every management action.
-- **Done when:** tests show an all/group/employee/recipient-row target each reaching exactly the right people, a scheduled post is invisible before `publish_at`, and XSS in a variable is escaped.
+### D07 · Notifications engine (backend)
+- [ ] §3.3 tables, migration `D07_Notifications`, `vn_unaccent` search column, and indexes. Seed tags (Lương, Thâm niên, Khen thưởng, Khảo sát, Đào tạo, Chung).
+- [ ] Shared doc schema: `docs/notification-doc-schema.md` lists the allowed ProseMirror nodes and marks (paragraph, heading 2–4, bold, italic, underline, link, lists, table, hard break, image (files only), `variable`). The server validates `content` against it and extracts `content_text` and `summary`.
+- [ ] Recipient import (xlsx/csv). It detects the MSCB column, maps other columns to variables, and reports unknown or inactive MSCBs, duplicate rows (several rows per MSCB are allowed when intended), and variables used in the body but missing from the file. Template download.
+- [ ] Lifecycle (draft → scheduled/published → archived): publish job fan-out, late-joiner backfill job, revisions, clone (copies content, variables, tags, series and audiences, but not imported rows), and stats counters.
+- [ ] Inbox endpoints (§5): keyset paging, filters, FTS, read, ack, read-all, unread count. SSE stream via `LISTEN/NOTIFY` with heartbeats.
+- [ ] Attachments through `IFileStore`, with a MIME and size allowlist and an authorization check that the caller has a delivery.
+- **Done when:** tests prove `all`, `group`, `employee` and `import` audiences reach exactly the right people; scheduled posts are invisible before `publish_at`; a late joiner gets backfilled; FTS without diacritics finds an accented title ("tham nien" → "Thâm niên"); and an employee without a delivery gets 404.
 
-### D07: Notifications UI (needs D06)
-- [ ] Employee: Thông báo inbox (filters, unread dot, expandable cards via `SafeHtml`, mark read on expand), an unread badge on the nav and AppBar, and the latest-notifications section on Trang chủ.
-- [ ] Editor: list (status chips, filters), editor page (title, topic, `mui-tiptap` body with a **placeholder-insert menu** fed from the imported column names,
-      publish/expire dates, pinned), a targeting panel (all / group picker / employee picker / recipient upload with the validation report), a preview-as
-      picker, and buttons for clone, publish and archive.
-- [ ] A stats drawer showing targeted, read and the read %.
-- **Done when:** an editor can make "Nâng lương thường xuyên 2026" by cloning the 2025 post and uploading this year's Excel, preview it as one recipient and publish it, and that recipient sees it with the unread badge.
+### D08 · Tin tức UI
+- [ ] Inbox, filters, unread styling, infinite scroll, detail route and modal, attachments, acknowledge, read-on-open, series history, unread badge over SSE in the nav and avatar.
+- [ ] A read-only Tiptap renderer with a `variable` node that renders from `vars`. One item per vars row, for posts with several rows.
+- **Done when:** Playwright checks that a published synthetic post appears live, opening it marks it read, the badge decrements, and an ack is persisted.
 
-### D08: Lookup, view-as, audit (needs D04, D05, D06)
-- [ ] `admin/lookup`: search by id, name (`unaccent` + trigram) or email, paged, 300 ms debounced UI showing results as `Name · MSCB` with the email underneath.
-- [ ] View-as: a session claim `acting_as` set and cleared via the API, read-only (mutations rejected while it is active), used by records and notifications for reads, with the UI banner and
-      an audit entry per start/stop **and per record or notification read**.
-- [ ] Audit log viewer (filters: actor, action, date range).
-- [ ] Decide on PII masking under view-as (§9 Q4) and implement the chosen default.
-- **Done when:** a support user can look up a person, view as them and exit; every step appears in the audit log; and an employee without the permission gets 403.
+### D09 · Notification editor UI (manage)
+- [ ] List and editor as in §7.3: `mui-tiptap` with the variable menu, a paste-HTML → doc conversion, targeting panel with live count, import flow with report, preview-as, schedule, publish, archive, clone, revisions, attachments.
+- [ ] Tags and series management dialogs.
+- **Done when:** Playwright checks that an editor can make "Nâng lương thường xuyên 2026" by cloning the 2025 post and uploading a synthetic xlsx, preview it as a recipient and publish it, and that the recipient sees it with the substituted values.
 
-### D09: Sync tool (needs D05)
-- [ ] New project `HCMUSSupportV2.Sync` (.NET 8 console): `sync --source git --path <SupportHCMUSData> [--category X]`. It reads v1 JSON (all chunks), strips the
-      braces from keys, and POSTs gzipped JSON to the ingest API. It also derives the employee roster from general-profile.
-- [ ] `sync --source hrm --jobs <dir of .jjob>`: runs each `SqlQuery` against HRM (`Microsoft.Data.SqlClient`) and maps columns to fields the same way,
-      with **no** template rendering. Fix the known SQL issues and document each change: remove the business-mission debug filter on a single hardcoded MSCB, and fix
-      the academic-progress country join.
-- [ ] Config via an appsettings file and env vars (API base URL, API token, HRM connection string). Exit codes and a summary line per category. Docs for running it from
-      Windows Task Scheduler at 22:30 on the HRM box.
-- **Done when:** a dry run against a local SupportHCMUSData checkout reproduces the per-category employee and row counts listed in INVENTORY §4, and a real run against dev ingests everything.
+### D10 · Hồ sơ: overview, Thông tin chung, Thông tin chi tiết
+- [ ] The hero, the 8 summary cards (real data, linked) and the two pages in §7.3. The sensitive-field reveal is audited.
+- **Done when:** the pages render synthetic data, handle empty data and errors, show masked values revealed one at a time, and the PR includes screenshots.
 
-### D10: Legacy migration (needs D04, D05, D06)
-- [ ] An idempotent `migrate-legacy` command (in the Sync tool or a backend CLI verb) covering:
-  - [ ] `users.json` → employees and emails (source `hr`), with a report of conflicts against the HRM roster.
-  - [ ] `privileged.users.json` → `support` role assignments, plus an `admin` assignment for the owner. Print the list for the user to review.
-  - [ ] `notifications/news/*.json` (56 files, ignoring `.old` and `backup/`) → notifications (status `published`, `publish_at = datestr`,
-        recipient rows from `values`, entity-decoded titles, sanitized bodies). Files that list about 1,800 ids become `audience_all` where that matches the active roster.
-  - [ ] teaching-stats (4 years), research-stats and paper-details → manual record categories.
-  - [ ] request-update-info → a pinned `audience_all` notification. Google Form URLs → `quick_links`.
-  - `apps.json` is **not** migrated. The v1 S2S endpoint and its tokens are retired.
-- **Done when:** a re-run is a no-op, and a spot check of 5 real users shows the same news items and records as v1 (§D14 script).
+### D11 · Hồ sơ: Quá trình lương, Chức vụ, Khen thưởng
+- [ ] The three bespoke pages in §7.3: salary stats, step chart and timeline; position timeline with tenure; award and title tabs grouped by năm học.
 
-### D11: API clients & module seams (needs D03)
-- [ ] API-client management UI and API: create (the token is shown once), revoke, scopes, last used. The first client is the Sync tool (D09).
-- [ ] Rate limiting (`AddRateLimiter`) on `auth/*` and `integration/*`.
-- [ ] Write down the module contract in `docs/MODULES.md` (§10), and prove it with the existing features: each feature declares its permissions,
-      nav entries and DI registration in one place. A new module must not need edits to shared core files beyond one registration line each.
-- **Done when:** a revoked token gets 401 (tested), and `docs/MODULES.md` walks through adding a dummy module end to end.
+### D12 · Hồ sơ: Quá trình đào tạo, Bồi dưỡng, Đi công tác
+- [ ] The three bespoke pages in §7.3: diploma cards; a training table grouped by year with sticky dividers; business trips with stats and a year filter.
 
-### D12: Infra & deploy (independent)
-- [ ] Provision a new droplet (recommended: Debian 13, 2 vCPU / 4 GB) with PostgreSQL 17 (local, listening on localhost only), .NET 8 runtime and nginx.
-- [ ] A system user `hcmus-support`, a systemd unit with `Restart=always` and env-file secrets, and `/healthz` checked by DO uptime monitoring.
-- [ ] nginx: TLS (certbot, apex and www), `/api` → the app, SPA fallback, the COOP `same-origin-allow-popups` header on HTML, `client_max_body_size` for the ingest
-      payload (about 10 MB gzipped), and a basic rate limit. CORS isn't needed (same origin).
-- [ ] Nightly `pg_dump` to off-box storage (DO Spaces), 14 daily and 8 weekly copies, plus a **tested restore**. Journald size cap.
-- [ ] `deploy.ps1`: `dotnet publish -c Release -r linux-x64 --self-contained false` (frontend built by the msbuild target) → rsync → restart → health check.
-- [ ] Runbook `docs/OPERATIONS.md`.
-- **Done when:** the staging hostname serves the D01 build over TLS, a reboot brings it back, and a restore drill is documented.
+### D13 · Sáng kiến, Giảng dạy, Nghiên cứu khoa học
+- [ ] The three bespoke sections in §7.3, including the NCKH skewed switcher. Use proper responsive labels; the build relied on a Tailwind `xs` breakpoint that doesn't exist.
 
-### D13: Security cleanup (independent, `[haiku]` for the inventory parts)
-- [ ] Rotate: the Google OAuth client secret (v1 hard-coded), the GitHub PAT in `GitIntegrationTest`, the HRM `sa` password (exposed in 3 files), and the v1 S2S app tokens (revoke them at cutover).
-      Remove the plaintext password from `/root/.gitconfig` on prod. Fix `scripts/sheets.py`, which prints the service account. Each item is a checklist entry for the user, because rotations need a human.
-- [ ] Create a least-privilege, **read-only** HRM SQL login for the Sync tool, limited to the `NS_*` and `DM_*` tables in §INVENTORY.
-- [ ] Decide what to do with PII in the SupportHCMUSData git history after cutover: archive it as a private repo, or purge it.
-- **Done when:** every listed credential is rotated or confirmed dead, and the user has ticked it off.
+### D14a · Admin core (backend)
+- [ ] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. Sync runs and issues endpoints.
 
-### D14: Parity check & cutover (last)
-- [ ] A parity script: for N sample MSCBs × every category, compare v1 `/api/viewas` (as a privileged user) with the v2 records and notifications counts and key fields.
-- [ ] Run v2 on staging, with a daily `sync --source git` after 22:30, for one week. Then switch to `--source hrm` on the HRM box and stop the git push.
-- [ ] Update the Google OAuth client: authorized origins and redirect URIs for the new host (dev `http://localhost:5173` as well).
-- [ ] Cutover: lower the DNS TTL, then switch DNS (or nginx). Keep v1 running read-only on the old droplet for 30 days, then decommission it (the droplet and the `/tchc` remnants).
-- [ ] Tell the KHCN and Documents owners that the v1 user-dump endpoint goes away at cutover. They are not migrated; they are rebuilt as modules later.
-- **Done when:** the parity report is clean and real staff can sign in on the production host.
+### D14b · Admin & editor management pages
+- [ ] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet.
+- [ ] Nhóm (editor): master-detail, rule builder with preview.
+- [ ] Quản trị: dashboard, Phân quyền, Xem thử, Nhật ký, Đồng bộ (runs and issue resolution), Dữ liệu (dataset imports), API clients.
+- **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/quan-tri/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.
+
+### D15 · Legacy migration (one-off, idempotent)
+- [ ] Roster and emails: `config/users.json` → `employee_emails`. Report emails that conflict with HRM or point to an unknown MSCB.
+- [ ] Roles: the repo owner becomes `admin`. `privileged.users.json` (ViewAs/Lookup) is **listed for the user to decide** rather than auto-granted, because v2 has only editor and admin.
+- [ ] News: `tools/legacy-news` (Node and TypeScript, using `@tiptap/html` `generateJSON` with the D07 schema) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns HTML and entities into docs, `{col}` placeholders into `variable` nodes, and `values` rows into `vars`. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
+- [ ] The HRM categories come from `sync legacy-git` (D05) or a live `sync hrm`.
+- [ ] Datasets: teaching-stats (parse the `{rows}` HTML tables into `teaching_loads`), research-stats → `research_projects` and members, paper-details → `publications`.
+- [ ] The request-update-info banner and the v1 Google Form links become a pinned `audience_all` notification. `apps.json` is not migrated.
+- **Done when:** a re-run is a no-op, and for 5 sampled real employees the v2 inbox and pages carry the same facts as v1 (checked in D18).
+
+### D16 · Infra & deploy (independent)
+- [ ] A new droplet (Debian 13, 2 vCPU / 4 GB, §10 Q2) running PostgreSQL 18 on localhost only, the .NET 10 runtime and nginx. User `hcmus-support`. A systemd unit with `Restart=always`, an env-file for secrets, and a file store under `/var/lib/hcmus-support`.
+- [ ] nginx:
+  - [ ] TLS for the apex domain **and www**
+  - [ ] HSTS
+  - [ ] `/api` → the app, with SSE-friendly `proxy_buffering off` on `/api/notifications/stream`
+  - [ ] SPA fallback
+  - [ ] gzip and brotli
+  - [ ] `client_max_body_size 25m`
+  - [ ] a basic rate limit
+  - [ ] no wildcard CORS
+- [ ] Nightly `pg_dump` and file-store backup to off-box storage (14 daily, 8 weekly), plus a **tested restore**. Journald size cap. DO uptime check on `/healthz`.
+- [ ] `deploy.ps1`: publish linux-x64 → rsync → migrate (an EF bundle or `--migrate` flag) → restart → health check. A `docs/OPERATIONS.md` runbook.
+- **Done when:** the staging host serves the D01 build over TLS, comes back after a reboot, and a restore drill is documented.
+
+### D17 · Security cleanup (independent, `[haiku]` for the checklist work)
+- [ ] User-run rotation checklist:
+  - [ ] the v1 Google OAuth client secrets (hard-coded in HRBackend)
+  - [ ] the GitHub PAT in `GitIntegrationTest`
+  - [ ] the HRM `sa` password (exposed in 3 files)
+  - [ ] the v1 `apps.json` tokens
+  - [ ] the plaintext password in prod `/root/.gitconfig`
+  - [ ] fix or retire `scripts/sheets.py`, which prints the service account to CI logs
+- [ ] A least-privilege, read-only HRM SQL login for the Sync tool, limited to the `NS_*` and `DM_*` tables it reads.
+- [ ] After cutover, a decision on the PII-laden SupportHCMUSData history: archive it read-only, or purge it.
+
+### D18 · Parity & cutover
+- [ ] A parity script, run per category for N sampled MSCBs: v1 `/api/viewas` versus v2 `me/*` (through admin view-as). Counts and key fields must match, apart from documented fixes.
+- [ ] Staging soak for one week with nightly `sync hrm`. Then stop the v1 git push.
+- [ ] Google OAuth client: add the production, staging and `http://localhost:5173` redirect URIs. Rotate the secret.
+- [ ] Cutover:
+  - [ ] lower the DNS TTL and switch
+  - [ ] keep v1 read-only for 30 days, then decommission it (the droplet and the `/tchc` remnants)
+  - [ ] tell the KHCN and Documents owners that the v1 user-dump endpoint has gone
+- **Done when:** the parity report is clean and real staff can sign in and see their data in production.
 
 ---
 
-## 9. Decisions needed (defaults the agents use unless told otherwise)
+## 10. Decisions needed (agents use the default unless told otherwise)
 
 | # | Question | Default |
 |---|---|---|
-| Q1 | Hosting: a new droplet, or resize the old one? Postgres on the box or managed? | New Debian 13 droplet, 2 vCPU / 4 GB, local PG 17 + off-box dumps. |
-| Q2 | Which machine runs the HRM sync (where does today's 22:30 "HRM-Database" commit come from)? | The same internal Windows box, on Task Scheduler. |
-| Q3 | Who can sign in: only HR-curated emails (as in v1), or every active HRM employee with an HRM email? | HR-curated plus HRM emails imported as `source=hrm` but **not** login-enabled until HR confirms them. |
-| Q4 | Does view-as show PII (national ID, bank account, tax code, insurance)? | Masked, except the last 4 digits; the full value only to `admin`. |
-| Q5 | Can editors target everyone, or only their own unit? | Everyone (global). The schema supports scoping later. |
-| Q6 | Email notifications on publish? | Not in v2.0. Design the `notifications` table so an outbox can be added. |
-| Q7 | Google OAuth client: reuse v1's client (add origins) or create a new one in a new GCP project? | Reuse it, add the localhost and staging origins, rotate the secret. |
+| Q1 | Upgrade to **.NET 10** now? net8 and the installed SDK 9 both reach end of support on 2026-11-10. This needs the .NET 10 SDK on the dev box. | Yes. D01 retargets to net10.0. |
+| Q2 | Hosting: a new droplet, or resize? Postgres local or managed? | A new Debian 13 droplet, 2 vCPU / 4 GB, local PG 18 with off-box dumps. |
+| Q3 | Which machine runs the nightly HRM sync? (The box that makes today's 22:30 "HRM-Database" commit isn't documented in any repo.) | The same internal Windows box, on Task Scheduler. |
+| Q4 | Who can sign in: only mapped emails (as in v1), or also the email stored in HRM? | Only emails in `employee_emails`. D15 seeds them from users.json. HRM emails are shown to editors as suggestions and are not auto-mapped. |
+| Q5 | What happens to the 8 v1 ViewAs/Lookup holders? | Not auto-granted. D15 lists them and the user picks editors and admins. |
+| Q6 | Email or Web Push on publish? | Not in v2.0. Deliveries and jobs make it an additive outbox later. |
 
 ---
 
-## 10. Future modules (Documents, KHCN, …)
+## 11. Future modules (Documents, KHCN, …)
 
-These are not part of v2.0, but v2.0 must not block them:
-
-- **Shared core:** employees, emails, groups, RBAC, audit log, notifications and records. A module gets these by dependency, never by copying them.
-  For example, Documents can notify a group through the notifications service, and KHCN can publish research data as record categories (research-stats and
-  research-papers already sit there).
-- **Module shape:** backend `Features/<Module>/…` with its own `AddXxxFeature()`, permission constants prefixed with the module
-  (`documents.*`, `khcn.*`), and its own migrations (`D<NN>_<Module>_…`). Frontend `src/features/<module>/` with its own nav group
-  and routes, gated by those permissions.
-- **Data from other systems** arrives through `integration/v1/*` with a scoped API client, the same way the HRM sync does.
-- **Integration targets** (BSC/HRM, EMIS, KHCN DB, …) are separate adapters in the Sync tool. They are not in the web app.
-
+- Modules use the shared core (employees, emails, groups, roles, audit, files, jobs, notifications) through DI. They never copy it.
+  For example, Documents can notify a group via `INotificationPublisher`, and KHCN can own `research_*` and `publications` and replace the admin Excel imports.
+- **Module shape:**
+  - `Modules/<Name>/` with `AddXxxModule()` and its own policies, which may add roles such as `documents.manager`
+  - migrations `D<NN>_<Name>_…`
+  - a `src/features/<name>/` folder with its own nav entries and routes
+- Data from other systems (BSC/HRM, EMIS, the KHCN database, …) arrives through `integration/v1/*` with scoped API clients, using Sync-tool adapters.
