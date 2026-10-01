@@ -166,7 +166,7 @@ public class FilesController(AppDbContext db, IFileStore files) : ControllerBase
 {
     /// <summary>Only images that are not notification attachments are served here; attachments need a delivery (see the inbox API).</summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "image/*")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
         var meta = await files.GetAsync(id, ct);
