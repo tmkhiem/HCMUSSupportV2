@@ -430,6 +430,8 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** rule, org-unit-with-descendants and static groups are tested, and so is the recompute diff.
 
 ### D07 · Notifications engine (backend)
+> D07a landed the Markdown contract (`docs/notification-markdown.md`, with the validator test vectors) and the MDXEditor spike (passed; `:var[Key]` kept). D07 implements the Markdig validator against that file.
+
 - [ ] §3.3 tables, migration `D07_Notifications`, `vn_unaccent` search column, and indexes. Seed tags (Lương, Thâm niên, Khen thưởng, Khảo sát, Đào tạo, Chung).
 - [ ] Markdown contract: `docs/notification-markdown.md` defines the allowed GFM subset, the `:var[key]` directive, image URLs (`/api/files/{id}` only), and the rule that raw HTML is not allowed. A Markdig-based `NotificationMarkdown` service validates the body, lists the placeholders it uses, and extracts `content_text` and `summary`. **Spike first:** confirm that MDXEditor round-trips `:var[...]` unchanged through `directivesPlugin` and source mode, and that pasted text containing `{`, `}` or `<` isn't mangled. Record the result in the doc.
 - [ ] Recipient import (xlsx/csv). It detects the MSCB column, maps other columns to variables, and reports unknown or inactive MSCBs, duplicate rows (several rows per MSCB are allowed when intended), and variables used in the body but missing from the file. Template download.
@@ -439,11 +441,15 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** tests prove `all`, `group`, `employee` and `import` audiences reach exactly the right people; scheduled posts are invisible before `publish_at`; a late joiner gets backfilled; FTS without diacritics finds an accented title ("tham nien" → "Thâm niên"); and an employee without a delivery gets 404.
 
 ### D08 · Tin tức UI
+> D07a landed `NotificationBody` + `remarkVars` (`src/features/notifications/body/`) with its unit tests. D08 only has to use it.
+
 - [ ] Inbox, filters, unread styling, infinite scroll, detail route and modal, attachments, acknowledge, read-on-open, series history, unread badge over SSE in the nav and avatar.
 - [ ] A shared `NotificationBody` renderer (`react-markdown` + `remark-gfm` + `remark-directive`, with a remark plugin that substitutes `:var[key]` from `vars` as text nodes; HTML skipped). One block per vars row, for posts with several rows. Unit tests: substitution, missing value → `—`, and a value containing markup is shown as literal text.
 - **Done when:** Playwright checks that a published synthetic post appears live, opening it marks it read, the badge decrements, and an ack is persisted.
 
 ### D09 · Notification editor UI (manage)
+> D07a landed `LazyNotificationMarkdownEditor` (MDXEditor, `:var[Key]` chip, "Chèn biến", upload-only image dialog, source/diff mode) and `MarkdownPreviewPane`, plus the `/dev/markdown` playground. D09 adds the MSCB picker, data fetching and the rest of the page.
+
 - [ ] List and editor as in §7.3: MDXEditor with the custom `:var[...]` directive chip and the "Chèn biến" menu, a split live preview of the unsaved draft as a chosen MSCB, image upload to `files`, targeting panel with live count, import flow with report, preview-as, schedule, publish, archive, clone, revisions, attachments.
 - [ ] Tags and series management dialogs.
 - **Done when:** Playwright checks that an editor can make "Nâng lương thường xuyên 2026" by cloning the 2025 post and uploading a synthetic xlsx, preview it as a recipient and publish it, and that the recipient sees it with the substituted values.

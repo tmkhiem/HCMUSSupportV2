@@ -166,6 +166,14 @@ login page until you reload. The switch is `import.meta.env.DEV && VITE_MOCK_AUT
 mock user lives in a dynamically imported module, so production builds contain neither (checked: a build with
 `VITE_MOCK_AUTH=1` still has no mock data).
 
+## Notification Markdown (D07a)
+
+The contract, the spike findings and the validator test vectors are in [notification-markdown.md](notification-markdown.md).
+Code lives in `src/features/notifications/`: `body/` (`NotificationBody`, `remarkVars`, `urls`), `editor/`
+(`LazyNotificationMarkdownEditor` - always import this one, the editor is a separate ~1.4 MB lazy chunk -,
+`NotificationMarkdownEditor`, `MarkdownPreviewPane`, `contractPlugin`) and `dev/DevMarkdownPage` (route `/dev/markdown`, registered
+only when `import.meta.env.DEV`, so production builds have neither the page nor the editor chunk).
+
 ## Tests
 
 - `npm test`: vitest + Testing Library (jsdom). `format.test.ts`, `http.test.ts`, `nav.test.ts`, `returnUrl.test.ts` and
@@ -184,4 +192,5 @@ mock user lives in a dynamically imported module, so production builds contain n
   switching user; `/login?error=` redirect. Existing servers on those ports are reused locally (not in CI).
 - The specs write screenshots to `docs/screenshots/d02/` (1440x900 and 375x812: shell, drawer, account menu, view-as bar,
   login). Commit them when the look changes. The login shots are taken in dev, where the "Đăng nhập thử (dev)" panel shows: `git checkout docs/screenshots` after a run unless the login page itself changed.
+- `e2e/markdown.spec.ts` (project `markdown`, port 5373, mock auth) drives `/dev/markdown`: placeholder chips, source/diff mode, typed and pasted text, tables, the raw-HTML fallback, image upload. Screenshots go to `docs/screenshots/d07a/`. `src/features/notifications/` has the renderer tests and `mdxRoundTrip.test.tsx`.
 - Feature deliveries add a Playwright smoke test per page against synthetic data (PLAN §8).
