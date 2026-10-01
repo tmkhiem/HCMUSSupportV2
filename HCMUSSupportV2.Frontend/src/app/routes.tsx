@@ -20,8 +20,21 @@ const page = (path: string, title: string, lazy: RouteObject['lazy'] = placehold
 
 const redirect = (path: string, to: string): RouteObject => ({ path, element: <Navigate to={to} replace /> })
 
+/** Dev-only playgrounds. `import.meta.env.DEV` is a build-time constant, so production bundles contain none of this. */
+const devRoutes: RouteObject[] = import.meta.env.DEV
+  ? [
+      {
+        path: '/dev/markdown',
+        lazy: () => import('../features/notifications/dev/DevMarkdownPage'),
+        errorElement: <RouteErrorPage />,
+        handle: { title: 'Markdown spike' },
+      },
+    ]
+  : []
+
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginAlias /> },
+  ...devRoutes,
   {
     path: '/dang-nhap',
     lazy: () => import('../auth/LoginPage'),

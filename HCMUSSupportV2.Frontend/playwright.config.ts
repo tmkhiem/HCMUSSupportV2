@@ -6,6 +6,8 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const MOCK_PORT = 5273
 const PLAIN_PORT = 5274
+/** Dev-only Markdown playground (`/dev/markdown`); mock auth only so the app shell's `/api/auth/me` needs no backend. */
+const MARKDOWN_PORT = 5373
 
 export default defineConfig({
   testDir: './e2e',
@@ -23,6 +25,11 @@ export default defineConfig({
       testMatch: /auth\.spec\.ts/,
       use: { baseURL: `http://localhost:${PLAIN_PORT}` },
     },
+    {
+      name: 'markdown',
+      testMatch: /markdown\.spec\.ts/,
+      use: { baseURL: `http://localhost:${MARKDOWN_PORT}` },
+    },
   ],
   webServer: [
     {
@@ -36,6 +43,13 @@ export default defineConfig({
       command: `npx vite --port ${PLAIN_PORT} --strictPort`,
       url: `http://localhost:${PLAIN_PORT}`,
       env: { VITE_MOCK_AUTH: '' },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `npx vite --port ${MARKDOWN_PORT} --strictPort`,
+      url: `http://localhost:${MARKDOWN_PORT}`,
+      env: { VITE_MOCK_AUTH: '1' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
