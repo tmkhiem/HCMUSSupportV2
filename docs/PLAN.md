@@ -26,7 +26,7 @@ student portal is out of scope.
    - attachments
    - live unread badge
 3. **Editors**:
-   - Write rich notifications with per-recipient variables.
+   - Write notifications in **Markdown** (MDXEditor) with per-recipient placeholders, and see a live **preview as any MSCB**.
    - Target them at everyone, groups (static, org-unit or rule-based), individual employees, or an uploaded recipient sheet.
    - Schedule, publish and archive them, and clone last year's post in a series. This covers the yearly "Thâm niên nhà giáo",
      "Nâng lương thường xuyên" and "Vượt khung" posts.
@@ -47,16 +47,16 @@ acting as an OIDC provider for other apps; VNeID sign-in (the login screen shows
 
 | Layer | Choice |
 |---|---|
-| Runtime | **.NET 10 LTS** (supported until Nov 2028). The scaffold's net8.0 **and the locally installed SDK 9** both reach end of support on 2026-11-10, six weeks from now. This needs a .NET 10 SDK on the dev box (§10 Q1). |
-| Backend | ASP.NET Core 10 controllers organised as feature modules. EF Core 10 + Npgsql (snake_case via `EFCore.NamingConventions`). NSwag keeps generating the TS client (bump `generate-api.ps1`'s `net8.0` path). |
-| Database | **PostgreSQL 18** if the dev server has it (native `uuidv7()`, async I/O, virtual generated columns), else 17. D01 checks this. Extensions: `citext`, `unaccent`, `pg_trgm`. |
-| IDs | `uuid` v7 for notifications, files and imports (time-ordered and safe to expose). `bigint identity` elsewhere. The MSCB is a natural key. |
+| Runtime | **.NET 8** (`net8.0`, as scaffolded; built with the installed SDK 9). The owner decided to stay on 8 (§10 Q1). Support ends 2026-11-10, so retargeting later should be a one-line TFM change: avoid APIs that only exist in .NET 9+, such as `Guid.CreateVersion7`. |
+| Backend | ASP.NET Core 8 controllers organised as feature modules. EF Core 9 + `Npgsql.EntityFrameworkCore.PostgreSQL` 9 (both run on net8.0), snake_case via `EFCore.NamingConventions`. NSwag generates the TS client, with `generate-api.ps1` unchanged. **Markdig** validates notification Markdown and extracts plain text. |
+| Database | **PostgreSQL 17**. Dev is 17.11 at `10.0.0.11:65432`, and prod uses the same major version. Extensions available on dev: `citext`, `unaccent`, `pg_trgm`, `pgcrypto`, `pg_stat_statements`. Use `MERGE … WHEN NOT MATCHED BY SOURCE` (PG 17) and stored generated columns. Client tools are in `D:\tools\pgsql\bin` (`psql`, `pg_dump`). |
+| IDs | `uuid` v7 for notifications, files and imports, generated in the app with the `UUIDNext` package (PG 17 has no `uuidv7()`). They are time-ordered and safe to expose. `bigint identity` elsewhere. The MSCB is a natural key. |
 | Auth | Server-side Google OIDC (`/api/auth/login` redirect, as in the build). An HttpOnly `__Host-` session cookie, sliding 12 h. Data-protection keys stored in PG. |
 | Background work | One PG-backed job queue (`jobs` table, `FOR UPDATE SKIP LOCKED`) drained by a hosted service. No Hangfire or Redis. |
 | Realtime | Server-Sent Events (`GET /api/notifications/stream`), fed by PG `LISTEN/NOTIFY`, so it keeps working with more than one instance. |
 | Files | `IFileStore` with local-disk storage (`/var/lib/hcmus-support/files`) and an S3-compatible option. Size and MIME allowlist. |
 | Observability | Serilog to journald and a rolling file. OpenTelemetry traces and metrics, with OTLP export when configured. `/healthz`. An `audit_log` table. |
-| Frontend | React 19, **MUI v9 re-themed** (§7), `@mui/icons-material`, react-router 7 (data router, lazy routes, real URLs), TanStack Query 5, react-hook-form + zod, MUI X Date Pickers and Charts, **Tiptap 3** (`mui-tiptap`) editor, Vite 8 with React Compiler (already scaffolded). |
+| Frontend | React 19, **MUI v9 re-themed** (§7), `@mui/icons-material`, react-router 7 (data router, lazy routes, real URLs), TanStack Query 5, react-hook-form + zod, MUI X Date Pickers and Charts, **MDXEditor** (`@mdxeditor/editor`) for writing notifications, `react-markdown` + `remark-gfm` + `remark-directive` for rendering them (raw HTML off), Vite 8 with React Compiler (already scaffolded). |
 | Sync | A separate `HCMUSSupportV2.Sync` console tool runs inside the HCMUS network. It reads HRM SQL Server and POSTs typed batches to the ingest API, so the database is never exposed. |
 
 ---
@@ -134,7 +134,7 @@ Fan-out happens on write: every recipient gets a delivery row, so inbox reads ar
 tags                     id · name UNIQUE · color · sort
 notification_series      id · name UNIQUE · description          -- "Nâng lương thường xuyên", "Thâm niên nhà giáo", …
 notifications            id uuid v7 PK · series_id → notification_series NULL · title · summary (auto from first paragraph, editable)
-                         · content jsonb (Tiptap/ProseMirror doc) · content_text text (plain text for search and preview)
+                         · body_md text (GFM Markdown with :var[...] placeholders) · content_text text (plain text for search and preview)
                          · variables jsonb  [{key, label, type: text|date|number|money}]
                          · status (draft|scheduled|published|archived) · publish_at NULL · published_at NULL · expires_at NULL
                          · pinned_until NULL · requires_ack bool · audience_all bool · recipient_count int · read_count int · ack_count int
@@ -165,8 +165,17 @@ files                    id uuid v7 · storage_key · file_name · content_type 
   published, unexpired notifications that target that group or everyone. Removing someone from a group keeps what they already received.
 - **Edits after publish:** a new `notification_revisions` row is written and `version` goes up. Deliveries are unchanged, and the
   inbox shows "Đã cập nhật". Variables are never re-imported silently; a re-import goes through a validated `imports` row.
-- **Rendering:** the client renders the stored ProseMirror doc with a read-only Tiptap renderer, substituting `{{variable}}`
-  nodes from `vars`. There is no HTML string injection anywhere. Pasted HTML (and legacy news) is converted to the doc schema on input.
+- **Body format:** v1 baked HTML; **v2 stores Markdown.** The body is GFM (headings, emphasis, lists, tables, links, and images
+  served from `files`) with **placeholders written as text directives**: `:var[HeSoLuong]`. MDXEditor shows each one as a chip through a
+  custom directive descriptor. Raw HTML and unknown directives are rejected on save; the server checks with Markdig and
+  extracts `content_text` and `summary`. The set of placeholders used must be a subset of `variables`.
+- **Rendering:** the client renders `body_md` with `react-markdown` + `remark-gfm` + `remark-directive` and a small remark plugin.
+  The plugin replaces each `:var[key]` with a **text node** holding the recipient's value, so values can never inject markup.
+  A missing value renders as `—`, and HTML is skipped. Recipients with several `vars` rows get one rendered block per row.
+  The same `NotificationBody` component renders the inbox, the editor preview and the admin preview.
+- **Preview as an MSCB:** in the editor, the preview pane renders the **unsaved** draft with the variables of an MSCB picked from the
+  imported recipients or the targeted employees. Variables come from `GET manage/notifications/{id}/preview-vars?employee=`, or straight
+  from the uncommitted import report before it is applied. It also shows whether that MSCB is actually in the audience.
 - **Feed query** (keyset pagination on `(delivered_at, notification_id)`):
   - deliveries ⋈ notifications, where status is published and the post is not expired
   - optional filters: tags, date range, `search @@ websearch_to_tsquery('vn_unaccent', q)`, unread only
@@ -227,7 +236,7 @@ notifications GET notifications?q&tags&from&to&unread&cursor · GET notification
               GET notifications/{id}/attachments/{fileId} · GET tags
 manage        notifications: GET/POST/PUT/DELETE manage/notifications[/{id}] · POST …/{id}/schedule|publish|archive|clone
                 · POST …/{id}/recipients/import (multipart) → import report · POST …/imports/{importId}/apply
-                · GET …/{id}/preview?employee= · GET …/{id}/stats · GET …/{id}/revisions · POST …/{id}/attachments
+                · GET …/{id}/preview-vars?employee= (the vars rows plus whether that MSCB is in the audience) · GET …/{id}/stats · GET …/{id}/revisions · POST …/{id}/attachments
               tags & series: CRUD manage/tags · CRUD manage/series
               employees: GET manage/employees?q&unit&cursor · GET manage/employees/{code}
                 · POST/DELETE manage/employees/{code}/emails · POST manage/employee-emails/import (dry run → apply)
@@ -312,7 +321,7 @@ Implement these as theme `components` overrides and variants (`MuiPaper` variant
 | **Sáng kiến** | Stats (count, by type). A searchable list. Detail dialog with code, type, decision and recognition year. |
 | **Giảng dạy** | Academic-year pill select. Stats: total quy đổi hours, classes, courses. A table grouped by học kỳ with sticky dividers. Source caption: "Nguồn: …, cập nhật …". |
 | **NCKH** | The build's skewed pill switcher between Đề tài and Bài báo.<br>**Đề tài:** rows show title, a role chip (Chủ nhiệm/Thành viên), level and funding; the detail lists members (linked when they are employees).<br>**Bài báo:** title, venue · year, a DOI link and co-authors. |
-| **Quản lý thông báo** | **List:** status chips, filters, series, read % bar.<br>**Editor:** Tiptap with a "Chèn biến" menu built from the variables, title, summary, tags, series, publish/expiry pickers, pin and "Cần xác nhận". The **targeting panel** offers Tất cả, nhóm picker, nhân sự picker, and "Tải danh sách" (xlsx/csv: an MSCB column plus variable columns, with a downloadable template and a validation report). It shows a live recipient count. "Xem trước với tư cách…" picks a recipient to preview as. Attachments. Clone from the previous post in the series. Revision history. |
+| **Quản lý thông báo** | **List:** status chips, filters, series, read % bar.<br>**Editor:** MDXEditor (toolbar: headings, bold/italic, lists, table, link, image upload, source-mode toggle) with a "Chèn biến" menu that inserts `:var[key]` chips from the variables, plus a split **live preview** with an MSCB picker, title, summary, tags, series, publish/expiry pickers, pin and "Cần xác nhận". The **targeting panel** offers Tất cả, nhóm picker, nhân sự picker, and "Tải danh sách" (xlsx/csv: an MSCB column plus variable columns, with a downloadable template and a validation report). It shows a live recipient count. "Xem trước với tư cách…" picks a recipient to preview as. Attachments. Clone from the previous post in the series. Revision history. |
 | **Nhân sự & email** (editor) | Searchable directory. The detail shows MSCB, name, unit and an email list with add, remove and set-primary. Bulk import (columns MSCB, Họ tên, Email 1..6) uses dry run → report (new, removed, conflicts: an email owned by another MSCB, unknown MSCB) → apply. |
 | **Nhóm** (editor) | Master-detail, as in the build. Group kinds: tĩnh / theo đơn vị / theo điều kiện. The rule builder has a live preview count. Members can be edited or imported. Shows the notifications that targeted the group. |
 | **Quản trị** | **Dashboard** (all figures are real, unlike the build's hard-coded ones): notifications sent, read rate, active users in the last 7 days, last sync status, recent audit events.<br>**Other pages:** Phân quyền (search an employee, toggle editor/admin), Xem thử (pick an employee, start view-as, browse the real pages read-only), Nhật ký (audit filters), Đồng bộ (runs, issues to resolve), Dữ liệu (dataset imports). |
@@ -356,8 +365,8 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ```
 
 ### D01 · Backend foundation
-- [ ] Retarget to **net10.0** (§10 Q1): backend, sln, `generate-api.ps1` TFM path, and the NSwag version that supports it.
-- [ ] Npgsql EF Core 10 and snake_case. Verify the dev PG version (≥17; use `uuidv7()` if ≥18). Create the extensions, `vn_unaccent` and `f_unaccent()`.
+- [ ] Stay on **net8.0** (§10 Q1). Swap `Microsoft.EntityFrameworkCore.SqlServer` for `Npgsql.EntityFrameworkCore.PostgreSQL` 9 and `EFCore.NamingConventions` 9.
+- [ ] snake_case naming, and `UUIDNext` for v7 ids. The baseline migration creates the extensions (`citext`, `unaccent`, `pg_trgm`), `vn_unaccent` and `f_unaccent()`. Dev PG is 17.11, and `sa` is a superuser.
 - [ ] Configuration: `appsettings.{Env}.local.json` loading, `ConnectionStrings:Default`, `Storage:*`, `Auth:*`, plus the `.example` files.
 - [ ] Platform pieces:
   - [ ] Serilog
@@ -403,7 +412,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** ingesting synthetic fixtures for every dataset round-trips, the truncation guard and duplicate-MSCB issue are tested, and nobody can read another employee's rows unless view-as is active.
 
 ### D05 · Sync tool (`HCMUSSupportV2.Sync`)
-- [ ] .NET 10 console with `sync hrm --datasets all|<list> [--dry-run]`. Its SQL lives in `Sync/Queries/*.sql`, rewritten from `docs/jjobs` to select the **typed columns** of §3.2 plus `hrm_id`.
+- [ ] .NET 8 console with `sync hrm --datasets all|<list> [--dry-run]`. Its SQL lives in `Sync/Queries/*.sql`, rewritten from `docs/jjobs` to select the **typed columns** of §3.2 plus `hrm_id`.
   Fix the known bugs: drop the business-mission debug filter on one MSCB, and fix the academic-progress country join.
   Write the org-unit and roster queries (`DM_DONVI`, `DM_PHONGBAN`, `NS_NHANSU` status).
 - [ ] `sync legacy-git --path <SupportHCMUSData>`: a one-off or transition source that maps v1 JSON into the same typed payloads, parsing `dd/MM/yyyy` with precision.
@@ -419,7 +428,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 
 ### D07 · Notifications engine (backend)
 - [ ] §3.3 tables, migration `D07_Notifications`, `vn_unaccent` search column, and indexes. Seed tags (Lương, Thâm niên, Khen thưởng, Khảo sát, Đào tạo, Chung).
-- [ ] Shared doc schema: `docs/notification-doc-schema.md` lists the allowed ProseMirror nodes and marks (paragraph, heading 2–4, bold, italic, underline, link, lists, table, hard break, image (files only), `variable`). The server validates `content` against it and extracts `content_text` and `summary`.
+- [ ] Markdown contract: `docs/notification-markdown.md` defines the allowed GFM subset, the `:var[key]` directive, image URLs (`/api/files/{id}` only), and the rule that raw HTML is not allowed. A Markdig-based `NotificationMarkdown` service validates the body, lists the placeholders it uses, and extracts `content_text` and `summary`. **Spike first:** confirm that MDXEditor round-trips `:var[...]` unchanged through `directivesPlugin` and source mode, and that pasted text containing `{`, `}` or `<` isn't mangled. Record the result in the doc.
 - [ ] Recipient import (xlsx/csv). It detects the MSCB column, maps other columns to variables, and reports unknown or inactive MSCBs, duplicate rows (several rows per MSCB are allowed when intended), and variables used in the body but missing from the file. Template download.
 - [ ] Lifecycle (draft → scheduled/published → archived): publish job fan-out, late-joiner backfill job, revisions, clone (copies content, variables, tags, series and audiences, but not imported rows), and stats counters.
 - [ ] Inbox endpoints (§5): keyset paging, filters, FTS, read, ack, read-all, unread count. SSE stream via `LISTEN/NOTIFY` with heartbeats.
@@ -428,11 +437,11 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 
 ### D08 · Tin tức UI
 - [ ] Inbox, filters, unread styling, infinite scroll, detail route and modal, attachments, acknowledge, read-on-open, series history, unread badge over SSE in the nav and avatar.
-- [ ] A read-only Tiptap renderer with a `variable` node that renders from `vars`. One item per vars row, for posts with several rows.
+- [ ] A shared `NotificationBody` renderer (`react-markdown` + `remark-gfm` + `remark-directive`, with a remark plugin that substitutes `:var[key]` from `vars` as text nodes; HTML skipped). One block per vars row, for posts with several rows. Unit tests: substitution, missing value → `—`, and a value containing markup is shown as literal text.
 - **Done when:** Playwright checks that a published synthetic post appears live, opening it marks it read, the badge decrements, and an ack is persisted.
 
 ### D09 · Notification editor UI (manage)
-- [ ] List and editor as in §7.3: `mui-tiptap` with the variable menu, a paste-HTML → doc conversion, targeting panel with live count, import flow with report, preview-as, schedule, publish, archive, clone, revisions, attachments.
+- [ ] List and editor as in §7.3: MDXEditor with the custom `:var[...]` directive chip and the "Chèn biến" menu, a split live preview of the unsaved draft as a chosen MSCB, image upload to `files`, targeting panel with live count, import flow with report, preview-as, schedule, publish, archive, clone, revisions, attachments.
 - [ ] Tags and series management dialogs.
 - **Done when:** Playwright checks that an editor can make "Nâng lương thường xuyên 2026" by cloning the 2025 post and uploading a synthetic xlsx, preview it as a recipient and publish it, and that the recipient sees it with the substituted values.
 
@@ -461,14 +470,15 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ### D15 · Legacy migration (one-off, idempotent)
 - [ ] Roster and emails: `config/users.json` → `employee_emails`. Report emails that conflict with HRM or point to an unknown MSCB.
 - [ ] Roles: the repo owner becomes `admin`. `privileged.users.json` (ViewAs/Lookup) is **listed for the user to decide** rather than auto-granted, because v2 has only editor and admin.
-- [ ] News: `tools/legacy-news` (Node and TypeScript, using `@tiptap/html` `generateJSON` with the D07 schema) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns HTML and entities into docs, `{col}` placeholders into `variable` nodes, and `values` rows into `vars`. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
+- [ ] News: `tools/legacy-news` (Node and TypeScript, using `turndown` + `turndown-plugin-gfm`) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns the baked HTML (Word/Outlook inline styles, entities) into GFM Markdown, `{col}` placeholders into `:var[col]`, and `values` rows into `vars`. It reports any post whose layout didn't survive the conversion, such as merged-cell tables. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
 - [ ] The HRM categories come from `sync legacy-git` (D05) or a live `sync hrm`.
+- [ ] Seed `employee_emails` from `D:gitSupportHCMUSDatanfigSers.json` (see §10 Q4).
 - [ ] Datasets: teaching-stats (parse the `{rows}` HTML tables into `teaching_loads`), research-stats → `research_projects` and members, paper-details → `publications`.
 - [ ] The request-update-info banner and the v1 Google Form links become a pinned `audience_all` notification. `apps.json` is not migrated.
 - **Done when:** a re-run is a no-op, and for 5 sampled real employees the v2 inbox and pages carry the same facts as v1 (checked in D18).
 
 ### D16 · Infra & deploy (independent)
-- [ ] A new droplet (Debian 13, 2 vCPU / 4 GB, §10 Q2) running PostgreSQL 18 on localhost only, the .NET 10 runtime and nginx. User `hcmus-support`. A systemd unit with `Restart=always`, an env-file for secrets, and a file store under `/var/lib/hcmus-support`.
+- [ ] A new droplet (Debian 13, 2 vCPU / 4 GB, §10 Q2) running PostgreSQL 17 on localhost only, the ASP.NET Core 8 runtime and nginx. User `hcmus-support`. A systemd unit with `Restart=always`, an env-file for secrets, and a file store under `/var/lib/hcmus-support`.
 - [ ] nginx:
   - [ ] TLS for the apex domain **and www**
   - [ ] HSTS
@@ -509,10 +519,10 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 
 | # | Question | Default |
 |---|---|---|
-| Q1 | Upgrade to **.NET 10** now? net8 and the installed SDK 9 both reach end of support on 2026-11-10. This needs the .NET 10 SDK on the dev box. | Yes. D01 retargets to net10.0. |
-| Q2 | Hosting: a new droplet, or resize? Postgres local or managed? | A new Debian 13 droplet, 2 vCPU / 4 GB, local PG 18 with off-box dumps. |
+| Q1 | .NET version | **Decided:** stay on .NET 8. Keep the code free of APIs that need .NET 9 or later, so a later retarget is cheap. |
+| Q2 | Hosting | **Decided:** a new Debian 13 droplet, 2 vCPU / 4 GB, local PG 17, off-box dumps. |
 | Q3 | Which machine runs the nightly HRM sync? (The box that makes today's 22:30 "HRM-Database" commit isn't documented in any repo.) | The same internal Windows box, on Task Scheduler. |
-| Q4 | Who can sign in: only mapped emails (as in v1), or also the email stored in HRM? | Only emails in `employee_emails`. D15 seeds them from users.json. HRM emails are shown to editors as suggestions and are not auto-mapped. |
+| Q4 | Who can sign in | **Decided:** only mapped emails in `employee_emails`, seeded once from `D:\git\SupportHCMUSData\config\users.json` (1,925 people) and maintained by editors from then on. HRM emails are not auto-mapped. |
 | Q5 | What happens to the 8 v1 ViewAs/Lookup holders? | Not auto-granted. D15 lists them and the user picks editors and admins. |
 | Q6 | Email or Web Push on publish? | Not in v2.0. Deliveries and jobs make it an additive outbox later. |
 
