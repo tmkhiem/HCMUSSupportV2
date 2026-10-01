@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -1769,6 +1770,595 @@ namespace HCMUSSupportV2.Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AckCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("ack_count");
+
+                    b.Property<bool>("AudienceAll")
+                        .HasColumnType("boolean")
+                        .HasColumnName("audience_all");
+
+                    b.Property<string>("BodyMd")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("")
+                        .HasColumnName("body_md");
+
+                    b.Property<string>("ContentText")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("")
+                        .HasColumnName("content_text");
+
+                    b.Property<DateTimeOffset?>("ContentUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("content_updated_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset?>("PinnedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pinned_until");
+
+                    b.Property<DateTimeOffset?>("PublishAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("publish_at");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<int>("ReadCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("read_count");
+
+                    b.Property<int>("RecipientCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("recipient_count");
+
+                    b.Property<bool>("RequiresAck")
+                        .HasColumnType("boolean")
+                        .HasColumnName("requires_ack");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<NpgsqlTsVector>("Search")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search")
+                        .HasComputedColumnSql("setweight(to_tsvector('vn_unaccent', coalesce(title, '')), 'A') || setweight(to_tsvector('vn_unaccent', coalesce(summary, '')), 'B') || setweight(to_tsvector('vn_unaccent', coalesce(content_text, '')), 'C')", true);
+
+                    b.Property<long?>("SeriesId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("series_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("draft")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasDefaultValue("")
+                        .HasColumnName("summary");
+
+                    b.Property<bool>("SummaryIsCustom")
+                        .HasColumnType("boolean")
+                        .HasColumnName("summary_is_custom");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("Variables")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("variables")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notifications");
+
+                    b.HasIndex("CreatedBy")
+                        .HasDatabaseName("ix_notifications_created_by");
+
+                    b.HasIndex("Search")
+                        .HasDatabaseName("ix_notifications_search");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Search"), "gin");
+
+                    b.HasIndex("SeriesId")
+                        .HasDatabaseName("ix_notifications_series_id");
+
+                    b.HasIndex("UpdatedBy")
+                        .HasDatabaseName("ix_notifications_updated_by");
+
+                    b.HasIndex("Status", "PublishAt")
+                        .HasDatabaseName("ix_notifications_status_publish_at");
+
+                    b.ToTable("notifications", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_notifications_status", "status IN ('draft','scheduled','published','archived')");
+                        });
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<int>("Sort")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_attachments");
+
+                    b.HasIndex("FileId")
+                        .HasDatabaseName("ix_notification_attachments_file_id");
+
+                    b.HasIndex("NotificationId")
+                        .HasDatabaseName("ix_notification_attachments_notification_id");
+
+                    b.ToTable("notification_attachments", (string)null);
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationAudience", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("EmployeeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("employee_code");
+
+                    b.Property<long?>("GroupId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid?>("ImportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_audiences");
+
+                    b.HasIndex("EmployeeCode")
+                        .HasDatabaseName("ix_notification_audiences_employee_code");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_notification_audiences_group_id")
+                        .HasFilter("group_id IS NOT NULL");
+
+                    b.HasIndex("ImportId")
+                        .HasDatabaseName("ix_notification_audiences_import_id");
+
+                    b.HasIndex("NotificationId")
+                        .HasDatabaseName("ix_notification_audiences_notification_id");
+
+                    b.ToTable("notification_audiences", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_notification_audiences_kind", "kind IN ('all','group','employee','import')");
+                        });
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationDelivery", b =>
+                {
+                    b.Property<string>("EmployeeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("employee_code");
+
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<DateTimeOffset?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("acknowledged_at");
+
+                    b.Property<DateTimeOffset>("DeliveredAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delivered_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTimeOffset?>("DismissedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dismissed_at");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Vars")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("vars");
+
+                    b.HasKey("EmployeeCode", "NotificationId")
+                        .HasName("pk_notification_deliveries");
+
+                    b.HasIndex("EmployeeCode")
+                        .HasDatabaseName("ix_notification_deliveries_unread")
+                        .HasFilter("read_at IS NULL");
+
+                    b.HasIndex("NotificationId")
+                        .HasDatabaseName("ix_notification_deliveries_notification_id");
+
+                    b.HasIndex("EmployeeCode", "DeliveredAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("ix_notification_deliveries_inbox");
+
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmployeeCode", "DeliveredAt"), new[] { "ReadAt" });
+
+                    b.ToTable("notification_deliveries", (string)null);
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationRecipientImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("applied_at");
+
+                    b.Property<string>("Columns")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("columns");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<string>("Report")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("report");
+
+                    b.Property<string>("Rows")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("rows");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_recipient_imports");
+
+                    b.HasIndex("CreatedBy")
+                        .HasDatabaseName("ix_notification_recipient_imports_created_by");
+
+                    b.HasIndex("FileId")
+                        .HasDatabaseName("ix_notification_recipient_imports_file_id");
+
+                    b.HasIndex("NotificationId")
+                        .HasDatabaseName("ix_notification_recipient_imports_notification_id");
+
+                    b.ToTable("notification_recipient_imports", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_notification_recipient_imports_status", "status IN ('validated','applied','rejected')");
+                        });
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationRevision", b =>
+                {
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("EditedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("edited_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("EditedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("edited_by");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Variables")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("variables");
+
+                    b.HasKey("NotificationId", "Version")
+                        .HasName("pk_notification_revisions");
+
+                    b.HasIndex("EditedBy")
+                        .HasDatabaseName("ix_notification_revisions_edited_by");
+
+                    b.ToTable("notification_revisions", (string)null);
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationSeries", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_series");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notification_series_name");
+
+                    b.ToTable("notification_series", (string)null);
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationTag", b =>
+                {
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tag_id");
+
+                    b.HasKey("NotificationId", "TagId")
+                        .HasName("pk_notification_tags");
+
+                    b.HasIndex("TagId")
+                        .HasDatabaseName("ix_notification_tags_tag_id");
+
+                    b.ToTable("notification_tags", (string)null);
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Tag", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Sort")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tags");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tags_name");
+
+                    b.ToTable("tags", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            Color = "#303F9F",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Lương",
+                            Sort = 10,
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            Color = "#00796B",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Thâm niên",
+                            Sort = 20,
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            Color = "#F9A825",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Khen thưởng",
+                            Sort = 30,
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            Color = "#6A1B9A",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Khảo sát",
+                            Sort = 40,
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = 5L,
+                            Color = "#0277BD",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Đào tạo",
+                            Sort = 50,
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = 6L,
+                            Color = "#546E7A",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Chung",
+                            Sort = 60,
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
+                });
+
             modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Platform.Audit.AuditLogEntry", b =>
                 {
                     b.Property<long>("Id")
@@ -2258,6 +2848,144 @@ namespace HCMUSSupportV2.Backend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_group_members_groups_group_id");
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", b =>
+                {
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Identity.Directory.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_notifications_employees_created_by");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationSeries", null)
+                        .WithMany()
+                        .HasForeignKey("SeriesId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_notifications_notification_series_series_id");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Identity.Directory.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_notifications_employees_updated_by");
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationAttachment", b =>
+                {
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Platform.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_attachments_stored_file_file_id");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_attachments_notification_notification_id");
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationAudience", b =>
+                {
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Identity.Directory.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeCode")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_notification_audiences_employees_employee_code");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Identity.Groups.Group", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_notification_audiences_groups_group_id");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationRecipientImport", null)
+                        .WithMany()
+                        .HasForeignKey("ImportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_notification_audiences_notification_recipient_import_import");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_audiences_notification_notification_id");
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationDelivery", b =>
+                {
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Identity.Directory.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeCode")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_deliveries_employees_employee_code");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_deliveries_notifications_notification_id");
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationRecipientImport", b =>
+                {
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Identity.Directory.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_notification_recipient_imports_employees_created_by");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Platform.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_notification_recipient_imports_stored_file_file_id");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_recipient_imports_notifications_notification_id");
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationRevision", b =>
+                {
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Identity.Directory.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EditedBy")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_notification_revisions_employees_edited_by");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_revisions_notifications_notification_id");
+                });
+
+            modelBuilder.Entity("HCMUSSupportV2.Backend.Modules.Notifications.Domain.NotificationTag", b =>
+                {
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_tags_notifications_notification_id");
+
+                    b.HasOne("HCMUSSupportV2.Backend.Modules.Notifications.Domain.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_tags_tag_tag_id");
                 });
 #pragma warning restore 612, 618
         }
