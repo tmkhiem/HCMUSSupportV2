@@ -1,15 +1,16 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.HttpOverrides;
+using HCMUSSupportV2.Backend.Infrastructure;
+using HCMUSSupportV2.Backend.Modules.Platform;
 
 namespace HCMUSSupportV2.Backend;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
+        builder.AddLocalConfiguration(args);   // appsettings.{Environment}.local.json (git-ignored secrets)
+        builder.AddPlatformInfrastructure();   // Serilog, OpenTelemetry, database, health, rate limiter, ProblemDetails, forwarded headers
 
         builder.Services.AddControllers();
 
@@ -18,45 +19,16 @@ public class Program
         // exposed at runtime.
         builder.Services.AddOpenApiDocument();
 
-        var knownNetworks = builder.Configuration.GetSection("ReverseProxy:KnownNetworks").Get<string[]>() ?? [];
-        var knownProxies = builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [];
-        builder.Services.Configure<ForwardedHeadersOptions>(options =>
-        {
-            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-            // KnownNetworks takes Microsoft.AspNetCore.HttpOverrides.IPNetwork (CIDR prefix
-            // + length), not the System.Net.IPNetwork struct - parse the "a.b.c.d/n" form manually.
-            foreach (var network in knownNetworks)
-            {
-                var parts = network.Split('/');
-                options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse(parts[0]), int.Parse(parts[1])));
-            }
-            foreach (var proxy in knownProxies) options.KnownProxies.Add(IPAddress.Parse(proxy));
-        });
-
-
-        // Add your DbContext once you have models (see Data/AppDbContext.cs), then
-        // scaffold an existing database into Models/ with:
-        //   dotnet ef dbcontext scaffold "<connection-string>" Microsoft.EntityFrameworkCore.SqlServer -o Models
-        // builder.Services.AddDbContext<AppDbContext>(options =>
-        //     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+        // Modules: exactly one line per module.
+        builder.Services.AddPlatformModule(builder.Configuration);
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
-
-        app.UseForwardedHeaders();
-
-        app.UseHttpsRedirection();
-
-        app.UseDefaultFiles();
-        app.UseStaticFiles();
-
+        await app.MigrateDatabaseIfConfiguredAsync();
+        app.UsePlatformPipeline();
         app.UseAuthorization();
+        app.MapPlatformEndpoints();
 
-
-        app.MapControllers();
-        app.MapFallbackToFile("index.html");
-
-        app.Run();
+        await app.RunAsync();
     }
 }
