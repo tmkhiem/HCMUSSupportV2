@@ -415,13 +415,14 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** ingesting synthetic fixtures for every dataset round-trips, the truncation guard and duplicate-MSCB issue are tested, and nobody can read another employee's rows unless view-as is active.
 
 ### D05 · Sync tool (`HCMUSSupportV2.Sync`)
-- [ ] .NET 8 console with `sync hrm --datasets all|<list> [--dry-run]`. Its SQL lives in `Sync/Queries/*.sql`, rewritten from `docs/jjobs` to select the **typed columns** of §3.2 plus `hrm_id`.
+- [x] .NET 8 console with `sync hrm --datasets all|<list> [--dry-run]`. Its SQL lives in `Sync/Queries/*.sql`, rewritten from `docs/jjobs` to select the **typed columns** of §3.2 plus `hrm_id`.
   Fix the known bugs: drop the business-mission debug filter on one MSCB, and fix the academic-progress country join.
   Write the org-unit and roster queries (`DM_DONVI`, `DM_PHONGBAN`, `NS_NHANSU` status).
-- [ ] `sync legacy-git --path <SupportHCMUSData>`: a one-off or transition source that maps v1 JSON into the same typed payloads, parsing `dd/MM/yyyy` with precision.
-- [ ] Posts gzip batches with the API key. Per-dataset summary, non-zero exit on failure, and `--dry-run` prints counts without posting.
-- [ ] `docs/SYNC.md`: install on the HRM box, run nightly at 22:30 from Task Scheduler, use a least-privilege SQL login (D17), and how to rotate the token.
+- [x] `sync legacy-git --path <SupportHCMUSData>`: a one-off or transition source that maps v1 JSON into the same typed payloads, parsing `dd/MM/yyyy` with precision.
+- [x] Posts gzip batches with the API key. Per-dataset summary, non-zero exit on failure, and `--dry-run` prints counts without posting.
+- [x] `docs/SYNC.md`: install on the HRM box, run nightly at 22:30 from Task Scheduler, use a least-privilege SQL login (D17), and how to rotate the token.
 - **Done when:** the dry run against HRM (or the local data repo) gives per-dataset counts that match INVENTORY §4, and a full run into dev passes D04's validations.
+> D05 note: the `hrm` queries (`Sync/Queries/*.sql`) were written without database access and are unit-tested through the row mapper only; the first `sync hrm --dry-run` on the HRM box must confirm the column assumptions listed in `docs/SYNC.md` (org-unit parent, employee status, department id offset).
 
 ### D06 · Groups engine
 - [x] Group CRUD and member management: manual edits, csv/xlsx import, auto-generated org-unit groups.
