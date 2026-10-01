@@ -1,0 +1,6 @@
+# Server-side files must keep LF line endings even when checked out on Windows.
+deploy/**/*.sh text eol=lf
+deploy/systemd/* text eol=lf
+deploy/nginx/* text eol=lf
+deploy/journald/* text eol=lf
+deploy/env.example text eol=lf

@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly HCMUS Support V2 backup (02:30 server time)
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+# Spread the start a little and run a missed backup after the machine was off at 02:30.
+RandomizedDelaySec=300
+Persistent=true
+Unit=hcmus-support-backup.service
+
+[Install]
+WantedBy=timers.target

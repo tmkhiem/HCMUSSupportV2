@@ -480,21 +480,21 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ### D16 · Deployment kit (independent; **do not touch the live server**)
 The owner will upgrade the running server (`support.hcmus.edu.vn`) to current versions **after v2 is complete**. Until then,
 nothing is installed, changed or deployed there; read-only inspection is the most that's allowed. This delivery only produces the kit.
-- [ ] `deploy/` holds:
-  - [ ] a systemd unit (`hcmus-support.service`, user `hcmus-support`, `Restart=always`, an env-file for secrets)
-  - [ ] the nginx site config:
-    - [ ] TLS for the apex domain **and www**
-    - [ ] HSTS
-    - [ ] `/api` proxy, with `proxy_buffering off` for `/api/notifications/stream`
-    - [ ] SPA fallback
-    - [ ] gzip
-    - [ ] `client_max_body_size 25m`
-    - [ ] rate limit
-    - [ ] no wildcard CORS
-  - [ ] journald size cap
-  - [ ] a `pg_dump` and file-store backup script with 14 daily and 8 weekly copies, plus a restore script
-- [ ] `deploy.ps1`: publish linux-x64 → rsync → migrate (EF bundle) → restart → health check. Target host is a parameter, and there is **no default**.
-- [ ] `docs/OPERATIONS.md`: the server upgrade runbook (Debian upgrade, .NET 8 runtime, PostgreSQL 17, removing the v1 tmux process), first deploy, backup and restore, rollback.
+- [x] `deploy/` holds:
+  - [x] a systemd unit (`hcmus-support.service`, user `hcmus-support`, `Restart=always`, an env-file for secrets)
+  - [x] the nginx site config:
+    - [x] TLS for the apex domain **and www**
+    - [x] HSTS
+    - [x] `/api` proxy, with `proxy_buffering off` for `/api/notifications/stream`
+    - [x] SPA fallback
+    - [x] gzip
+    - [x] `client_max_body_size 25m`
+    - [x] rate limit
+    - [x] no wildcard CORS
+  - [x] journald size cap
+  - [x] a `pg_dump` and file-store backup script with 14 daily and 8 weekly copies, plus a restore script
+- [x] `deploy.ps1`: publish linux-x64 → rsync → migrate (EF bundle) → restart → health check. Target host is a parameter, and there is **no default**.
+- [x] `docs/OPERATIONS.md`: the server upgrade runbook (Debian upgrade, .NET 8 runtime, PostgreSQL 17, removing the v1 tmux process), first deploy, backup and restore, rollback.
 - **Done when:** the kit is reviewed and dry-run validated (`nginx -t` and `systemd-analyze verify` run in a local container or VM, not on the live server).
 
 ### D17 · Security cleanup (independent, `[haiku]` for the checklist work)
