@@ -75,3 +75,6 @@ desktop.ini
 # Claude Code local state
 .claude/settings.local.json
 .claude/worktrees/
+
+# Local file storage
+App_Data/

@@ -1,0 +1,14 @@
+{
+  "ConnectionStrings": {
+    "Default": "Host=10.0.0.11;Port=65432;Database=hcmus_support_dev_dNN;Username=sa;Password=<your-password>"
+  },
+  "Auth": {
+    "Google": {
+      "ClientId": "<google-oauth-client-id>",
+      "ClientSecret": "<google-oauth-client-secret>"
+    }
+  },
+  "Storage": {
+    "LocalRoot": "App_Data/files"
+  }
+}
