@@ -85,13 +85,13 @@ const editorSx: SxProps<Theme> = (theme) => ({
     '& h3': { fontSize: '1.075rem' },
     '& h4': { fontSize: '0.975rem' },
     '& table': { borderCollapse: 'collapse', width: '100%' },
-    '& table th': {
+    '& table th:not([data-tool-cell]):not([class*="tableToolsColumn"])': {
       backgroundColor: theme.palette.primary.main,
       color: theme.palette.primary.contrastText,
       fontWeight: 700,
       textAlign: 'left',
     },
-    '& table th, & table td': { border: `1px solid ${theme.palette.divider}`, p: '6px 12px', fontSize: '0.875rem' },
+    '& table :is(th, td):not([data-tool-cell]):not([class*="tableToolsColumn"])': { border: `1px solid ${theme.palette.divider}`, p: '6px 12px', fontSize: '0.875rem' },
     '& img': { maxWidth: '100%', height: 'auto', borderRadius: '5px' },
   },
 })
