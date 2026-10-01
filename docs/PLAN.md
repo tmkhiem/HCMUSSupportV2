@@ -432,12 +432,12 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ### D07 · Notifications engine (backend)
 > D07a landed the Markdown contract (`docs/notification-markdown.md`, with the validator test vectors) and the MDXEditor spike (passed; `:var[Key]` kept). D07 implements the Markdig validator against that file.
 
-- [ ] §3.3 tables, migration `D07_Notifications`, `vn_unaccent` search column, and indexes. Seed tags (Lương, Thâm niên, Khen thưởng, Khảo sát, Đào tạo, Chung).
-- [ ] Markdown contract: `docs/notification-markdown.md` defines the allowed GFM subset, the `:var[key]` directive, image URLs (`/api/files/{id}` only), and the rule that raw HTML is not allowed. A Markdig-based `NotificationMarkdown` service validates the body, lists the placeholders it uses, and extracts `content_text` and `summary`. **Spike first:** confirm that MDXEditor round-trips `:var[...]` unchanged through `directivesPlugin` and source mode, and that pasted text containing `{`, `}` or `<` isn't mangled. Record the result in the doc.
-- [ ] Recipient import (xlsx/csv). It detects the MSCB column, maps other columns to variables, and reports unknown or inactive MSCBs, duplicate rows (several rows per MSCB are allowed when intended), and variables used in the body but missing from the file. Template download.
-- [ ] Lifecycle (draft → scheduled/published → archived): publish job fan-out, late-joiner backfill job, revisions, clone (copies content, variables, tags, series and audiences, but not imported rows), and stats counters.
-- [ ] Inbox endpoints (§5): keyset paging, filters, FTS, read, ack, read-all, unread count. SSE stream via `LISTEN/NOTIFY` with heartbeats.
-- [ ] Attachments through `IFileStore`, with a MIME and size allowlist and an authorization check that the caller has a delivery.
+- [x] §3.3 tables, migration `D07_Notifications`, `vn_unaccent` search column, and indexes. Seed tags (Lương, Thâm niên, Khen thưởng, Khảo sát, Đào tạo, Chung).
+- [x] Markdown contract: `docs/notification-markdown.md` defines the allowed GFM subset, the `:var[key]` directive, image URLs (`/api/files/{id}` only), and the rule that raw HTML is not allowed. A Markdig-based `NotificationMarkdown` service validates the body, lists the placeholders it uses, and extracts `content_text` and `summary`. **Spike first:** confirm that MDXEditor round-trips `:var[...]` unchanged through `directivesPlugin` and source mode, and that pasted text containing `{`, `}` or `<` isn't mangled. Record the result in the doc.
+- [x] Recipient import (xlsx/csv). It detects the MSCB column, maps other columns to variables, and reports unknown or inactive MSCBs, duplicate rows (several rows per MSCB are allowed when intended), and variables used in the body but missing from the file. Template download.
+- [x] Lifecycle (draft → scheduled/published → archived): publish job fan-out, late-joiner backfill job, revisions, clone (copies content, variables, tags, series and audiences, but not imported rows), and stats counters.
+- [x] Inbox endpoints (§5): keyset paging, filters, FTS, read, ack, read-all, unread count. SSE stream via `LISTEN/NOTIFY` with heartbeats.
+- [x] Attachments through `IFileStore`, with a MIME and size allowlist and an authorization check that the caller has a delivery.
 - **Done when:** tests prove `all`, `group`, `employee` and `import` audiences reach exactly the right people; scheduled posts are invisible before `publish_at`; a late joiner gets backfilled; FTS without diacritics finds an accented title ("tham nien" → "Thâm niên"); and an employee without a delivery gets 404.
 
 ### D08 · Tin tức UI
