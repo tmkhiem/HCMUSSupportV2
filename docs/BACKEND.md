@@ -207,7 +207,7 @@ after the first start). The grant is audited as `roles.bootstrap_admin`.
 
 `org_units`, `employees` (PK `code` = MSCB; `full_name_unaccent` is a stored generated column `f_unaccent(full_name)`
 with a trigram GIN index), `employee_emails` (`email citext` PK), `role_assignments` (role CHECK `editor|admin`),
-`groups` and `group_members` (schema only, the engine is D06). `org_units.hrm_id` is required; the Development roster uses
+`groups` and `group_members` (engine: see "Groups engine" below). `org_units.hrm_id` is required; the Development roster uses
 `-1` for its synthetic unit. Query them with `db.Set<Employee>()` etc. (namespaces `Identity.Directory`,
 `Identity.Authorization`, `Identity.Groups`).
 
@@ -285,6 +285,36 @@ Only indexes on `audit_log`: `ix_audit_log_at_id (at DESC, id DESC)` for keyset 
 - The roster sync (D04) may overwrite `employees.status` for `source=hrm` rows; an admin's manual status change on such a
   row is not protected from the next sync.
 - Not in D14a: `sync_runs` / `sync_issues` endpoints (D04 owns them), dataset imports and API clients.
+## Groups engine (D06, `Modules/Identity/Groups`)
+
+Lives inside the Identity module (next to the `groups` entities) and is registered by one line in `AddIdentityModule`
+(`services.AddGroupsEngine()`); `Program.cs` is untouched. Rule language: `docs/GROUP-RULES.md`.
+
+| Endpoint (policy `ManageGroups`, editor or admin) | Behaviour |
+|---|---|
+| `GET /api/manage/groups?q&kind&includeArchived&cursor&limit` | `{items, nextCursor}` ordered by name (keyset on the unique name); `q` ignores accents; items carry `memberCount`, `rule`, `orgUnitName` |
+| `GET /api/manage/groups/{id}` | one group |
+| `POST /api/manage/groups` `{name, description, kind: static\|rule, rule}` | 201; `org_unit` groups are generated, not created by hand; a rule group is computed at once |
+| `PUT /api/manage/groups/{id}` `{name, description, rule, includeDescendants}` | full update; org-unit groups only take `description` and `includeDescendants` (name follows the unit); a changed rule recomputes at once |
+| `DELETE /api/manage/groups/{id}` | archive (`archived_at`); 409 for org-unit groups. `POST .../{id}/restore` undoes it |
+| `GET /api/manage/groups/{id}/members?q&cursor&limit` | `{code, fullName, unit, source, addedAt}` ordered by code |
+| `PUT /api/manage/groups/{id}/members` `{codes}` | static groups only (409 otherwise): `{added, alreadyMember, unknown, inactive, memberCount}` |
+| `DELETE /api/manage/groups/{id}/members` `{codes}` | static only: `{removed, notMember, memberCount}` |
+| `POST /api/manage/groups/{id}/members/import?dryRun=true` (multipart `file`: csv or xlsx, max 5 MB / 20 000 rows) | stateless: dry run reports `{rows, added, alreadyMember, duplicate, unknown, inactive}`; upload the same file with `dryRun=false` to apply. The code column is found by its header (`MSCB`, `Mã số cán bộ`, ...), else column 1 |
+| `POST /api/manage/groups/preview-rule` `{rule}` | `{count, sample:[{code, fullName, unit}]}` (10 samples by code) or 400 with JSON paths |
+| `POST /api/manage/groups/recompute?groupId=` | 202 `{jobId}`; queues `groups.recompute` |
+
+Errors are ProblemDetails (Vietnamese `detail`); an invalid rule is a `ValidationProblemDetails` keyed by JSON path.
+Mutations are audited: `group.created`, `group.updated`, `group.archived`, `group.restored`, `group.members_added`,
+`group.members_removed`, `group.members_imported`, `group.recomputed` (job runs that changed something).
+
+**Observers.** After members are added (manual, import, create/update of a computed group, `groups.recompute`) every
+registered `IGroupMembershipObserver` is called once per group with the added codes only; failures are logged, never
+rethrown (the members are already committed). `RosterSyncGroupsObserver` implements `IRosterSyncObserver`: D04 calls it
+after a sync and it queues one `groups.recompute` (deduplicated while one is waiting).
+
+**Schema (migration `D06_Groups`)**: unique partial index `ux_groups_org_unit` (one auto group per org unit) and
+`ck_groups_shape` (org-unit groups have `org_unit_id`, rule groups have `rule`). `ClosedXML` reads the xlsx imports.
 
 ## Background jobs
 
