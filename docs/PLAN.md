@@ -332,7 +332,8 @@ Page states, formatting (`—`, ` · `, `Intl` money `đ`, tolerant dates) and a
 
 ## 8. Conventions for parallel agents
 
-- **Branching:** branch `feat/d<NN>-<slug>` off `main`, one PR per delivery, rebased before merge. End PR descriptions with the repo's attribution lines.
+- **Branching:** branch `feat/d<NN>-<slug>` off `main` in a worktree at `.claude/worktrees/d<NN>`. One branch per delivery, rebased before merge. Nothing gets deployed to the live server.
+- **Per-branch dev DB:** while a branch is in progress, use `hcmus_support_dev_d<NN>`, so parallel migrations don't collide. The shared `hcmus_support_dev` tracks `main` only. End PR descriptions with the repo's attribution lines.
 - **Backend layout:** `Modules/<Module>/<Feature>/` contains the controller, the service, the DTO records and `<Module>Module.cs` (`AddXxxModule()` plus its policies).
   EF configuration lives next to its entity, `<Entity>Configuration.cs`, and is applied through `ApplyConfigurationsFromAssembly`.
   `Program.cs` gets exactly **one line per module**.
@@ -355,7 +356,7 @@ Page states, formatting (`—`, ` · `, `Intl` money `đ`, tolerant dates) and a
 ## 9. Deliveries
 
 ```
-Wave 0   D01 Backend foundation ‖ D02 Frontend foundation & shell ‖ D16 Infra ‖ D17 Security cleanup
+Wave 0   D01 Backend foundation ‖ D02 Frontend foundation & shell ‖ D17 Security cleanup      (D16 deployment kit: any time after D01)
 Wave 1   D03 Auth, employees, emails, roles, groups schema            (needs D01; login UI needs D02)
 Wave 2   D04 HRM domain + ingest ‖ D06 Groups engine ‖ D07 Notifications engine ‖ D14a Admin core   (need D03)
 Wave 3   D05 Sync tool (D04) ‖ D08 Tin tức UI (D07) ‖ D09 Notification editor UI (D07, D06)
@@ -476,20 +477,25 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [ ] The request-update-info banner and the v1 Google Form links become a pinned `audience_all` notification. `apps.json` is not migrated.
 - **Done when:** a re-run is a no-op, and for 5 sampled real employees the v2 inbox and pages carry the same facts as v1 (checked in D18).
 
-### D16 · Infra & deploy (independent)
-- [ ] A new droplet (Debian 13, 2 vCPU / 4 GB, §10 Q2) running PostgreSQL 17 on localhost only, the ASP.NET Core 8 runtime and nginx. User `hcmus-support`. A systemd unit with `Restart=always`, an env-file for secrets, and a file store under `/var/lib/hcmus-support`.
-- [ ] nginx:
-  - [ ] TLS for the apex domain **and www**
-  - [ ] HSTS
-  - [ ] `/api` → the app, with SSE-friendly `proxy_buffering off` on `/api/notifications/stream`
-  - [ ] SPA fallback
-  - [ ] gzip and brotli
-  - [ ] `client_max_body_size 25m`
-  - [ ] a basic rate limit
-  - [ ] no wildcard CORS
-- [ ] Nightly `pg_dump` and file-store backup to off-box storage (14 daily, 8 weekly), plus a **tested restore**. Journald size cap. DO uptime check on `/healthz`.
-- [ ] `deploy.ps1`: publish linux-x64 → rsync → migrate (an EF bundle or `--migrate` flag) → restart → health check. A `docs/OPERATIONS.md` runbook.
-- **Done when:** the staging host serves the D01 build over TLS, comes back after a reboot, and a restore drill is documented.
+### D16 · Deployment kit (independent; **do not touch the live server**)
+The owner will upgrade the running server (`support.hcmus.edu.vn`) to current versions **after v2 is complete**. Until then,
+nothing is installed, changed or deployed there; read-only inspection is the most that's allowed. This delivery only produces the kit.
+- [ ] `deploy/` holds:
+  - [ ] a systemd unit (`hcmus-support.service`, user `hcmus-support`, `Restart=always`, an env-file for secrets)
+  - [ ] the nginx site config:
+    - [ ] TLS for the apex domain **and www**
+    - [ ] HSTS
+    - [ ] `/api` proxy, with `proxy_buffering off` for `/api/notifications/stream`
+    - [ ] SPA fallback
+    - [ ] gzip
+    - [ ] `client_max_body_size 25m`
+    - [ ] rate limit
+    - [ ] no wildcard CORS
+  - [ ] journald size cap
+  - [ ] a `pg_dump` and file-store backup script with 14 daily and 8 weekly copies, plus a restore script
+- [ ] `deploy.ps1`: publish linux-x64 → rsync → migrate (EF bundle) → restart → health check. Target host is a parameter, and there is **no default**.
+- [ ] `docs/OPERATIONS.md`: the server upgrade runbook (Debian upgrade, .NET 8 runtime, PostgreSQL 17, removing the v1 tmux process), first deploy, backup and restore, rollback.
+- **Done when:** the kit is reviewed and dry-run validated (`nginx -t` and `systemd-analyze verify` run in a local container or VM, not on the live server).
 
 ### D17 · Security cleanup (independent, `[haiku]` for the checklist work)
 - [ ] User-run rotation checklist:
@@ -504,11 +510,11 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 
 ### D18 · Parity & cutover
 - [ ] A parity script, run per category for N sampled MSCBs: v1 `/api/viewas` versus v2 `me/*` (through admin view-as). Counts and key fields must match, apart from documented fixes.
-- [ ] Staging soak for one week with nightly `sync hrm`. Then stop the v1 git push.
+- [ ] A one-week soak on a non-production host (or locally) with nightly `sync hrm`. Then the owner upgrades the live server (D16 runbook), deploys v2 and stops the v1 git push.
 - [ ] Google OAuth client: add the production, staging and `http://localhost:5173` redirect URIs. Rotate the secret.
 - [ ] Cutover:
-  - [ ] lower the DNS TTL and switch
-  - [ ] keep v1 read-only for 30 days, then decommission it (the droplet and the `/tchc` remnants)
+  - [ ] keep a full backup of v1 (`/root/backend`, the nginx config, the static html) before the in-place upgrade
+  - [ ] remove the `/tchc` remnants and the v1 tmux process after the switch
   - [ ] tell the KHCN and Documents owners that the v1 user-dump endpoint has gone
 - **Done when:** the parity report is clean and real staff can sign in and see their data in production.
 
@@ -519,7 +525,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 | # | Question | Default |
 |---|---|---|
 | Q1 | .NET version | **Decided:** stay on .NET 8. Keep the code free of APIs that need .NET 9 or later, so a later retarget is cheap. |
-| Q2 | Hosting | **Decided:** a new Debian 13 droplet, 2 vCPU / 4 GB, local PG 17, off-box dumps. |
+| Q2 | Hosting | **Decided:** the existing server is upgraded in place by the owner after v2 is complete (local PG 17, off-box dumps). **No deployment to the live server before then.** |
 | Q3 | Which machine runs the nightly HRM sync? (The box that makes today's 22:30 "HRM-Database" commit isn't documented in any repo.) | The same internal Windows box, on Task Scheduler. |
 | Q4 | Who can sign in | **Decided:** only mapped emails in `employee_emails`, seeded once from `D:\git\SupportHCMUSData\config\users.json` (1,925 people) and maintained by editors from then on. HRM emails are not auto-mapped. |
 | Q5 | What happens to the 8 v1 ViewAs/Lookup holders? | Not auto-granted. D15 lists them and the user picks editors and admins. |
