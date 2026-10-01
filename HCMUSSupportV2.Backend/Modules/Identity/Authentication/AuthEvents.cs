@@ -83,7 +83,8 @@ public static class SessionCookieEvents
 {
     /// <summary>
     /// Re-checks the principal against the database at most every <c>Auth:RevalidateSeconds</c>: a deactivated employee
-    /// is signed out, and role changes take effect without a new sign-in.
+    /// is signed out, and role changes take effect without a new sign-in. <see cref="SessionInvalidator"/> forces an
+    /// earlier re-check after an admin changes roles or status; an expired view-as session is dropped here too.
     /// </summary>
     public static async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
@@ -91,15 +92,27 @@ public static class SessionCookieEvents
         var options = services.GetRequiredService<IOptions<AuthOptions>>().Value;
         var time = services.GetRequiredService<TimeProvider>();
 
-        if (options.RevalidateSeconds > 0 &&
-            long.TryParse(context.Principal?.FindFirst(IdentityClaims.CheckedAt)?.Value, out var checkedAt) &&
-            time.GetUtcNow().ToUnixTimeSeconds() - checkedAt < options.RevalidateSeconds)
-            return;
+        var principals = services.GetRequiredService<PrincipalFactory>();
+        var invalidator = services.GetRequiredService<SessionInvalidator>();
+
+        // A view-as session ends on its own after its expiry (D14a), whatever the revalidation interval.
+        if (context.Principal is { } current && current.HasClaim(c => c.Type == IdentityClaims.ActingAs) &&
+            principals.IsViewAsExpired(current))
+        {
+            context.ReplacePrincipal(PrincipalFactory.WithoutActingAs(current));
+            context.ShouldRenew = true;
+        }
 
         var code = context.Principal is null ? null : IdentityClaims.CodeOf(context.Principal);
-        var fresh = code is null
+        if (options.RevalidateSeconds > 0 &&
+            long.TryParse(context.Principal?.FindFirst(IdentityClaims.CheckedAt)?.Value, out var checkedAt) &&
+            time.GetUtcNow().ToUnixTimeSeconds() - checkedAt < options.RevalidateSeconds &&
+            !(code is not null && invalidator.IsStale(code, checkedAt)))
+            return;
+
+        var fresh = context.Principal is null
             ? null
-            : await services.GetRequiredService<PrincipalFactory>().CreateAsync(code, context.HttpContext.RequestAborted);
+            : await principals.RefreshAsync(context.Principal, context.HttpContext.RequestAborted);
         if (fresh is null)
         {
             context.RejectPrincipal();

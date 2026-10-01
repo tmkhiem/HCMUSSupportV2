@@ -21,5 +21,9 @@ public class AuditLogEntryConfiguration : IEntityTypeConfiguration<AuditLogEntry
 
         // Append-only, naturally ordered by time: a BRIN index is tiny and enough for range scans.
         b.HasIndex(x => x.At).HasMethod("brin").HasDatabaseName("ix_audit_log_at");
+
+        // Admin audit query (D14a): newest-first keyset paging on (at, id), and per-action filters/counts.
+        b.HasIndex(x => new { x.At, x.Id }).IsDescending(true, true).HasDatabaseName("ix_audit_log_at_id");
+        b.HasIndex(x => new { x.Action, x.At }).HasDatabaseName("ix_audit_log_action_at");
     }
 }
