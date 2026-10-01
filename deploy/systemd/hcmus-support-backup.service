@@ -1,0 +1,33 @@
+# Nightly backup: pg_dump of the app database + tar of the file store (see scripts/backup.sh).
+# Triggered by hcmus-support-backup.timer. Manual run: systemctl start hcmus-support-backup.service
+[Unit]
+Description=HCMUS Support V2 backup (pg_dump + file store)
+After=postgresql.service
+
+[Service]
+Type=oneshot
+# Root is needed to read the file store and to `runuser` into the postgres OS user (peer auth,
+# so no database password is stored anywhere for backups).
+User=root
+# Optional overrides: BACKUP_DB_NAME, BACKUP_REMOTE (rclone destination), BACKUP_KEEP_DAILY, ...
+EnvironmentFile=-/etc/hcmus-support/backup.env
+# rclone reads its config from here (keep it root-only, 0600). Override in backup.env if needed.
+Environment=RCLONE_CONFIG=/etc/hcmus-support/rclone.conf
+ExecStart=/opt/hcmus-support/bin/backup.sh
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=idle
+SyslogIdentifier=hcmus-support-backup
+StandardOutput=journal
+StandardError=journal
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+LockPersonality=true
+ReadWritePaths=/var/backups/hcmus-support
