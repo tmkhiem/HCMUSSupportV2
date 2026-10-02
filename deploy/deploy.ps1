@@ -51,9 +51,9 @@ param(
     # How many releases to keep on the server.
     [int]$KeepReleases = 5,
 
-    # Configuration used for the EF bundle. Debug on purpose: the backend csproj excludes the EF Tools
-    # runtime assets in Release, and the bundle needs them.
-    [string]$BundleConfiguration = 'Debug',
+    # Configuration used for the EF bundle. Release works: the backend csproj keeps the EF Design assets in
+    # the build output in every configuration and only strips them from the publish output.
+    [string]$BundleConfiguration = 'Release',
 
     # Do not ask for confirmation (not needed with -WhatIf).
     [switch]$Yes
@@ -140,10 +140,13 @@ try {
     # --- 3. EF migrations bundle ---------------------------------------------------------------
     if ($PSCmdlet.ShouldProcess($BackendProj, 'dotnet ef migrations bundle --self-contained -r linux-x64')) {
         Push-Location $RepoRoot
+        # The design-time DbContext factory requires a connection string to build the model; no connection is made.
+        $prevCs = $env:ConnectionStrings__Default
+        if (-not $prevCs) { $env:ConnectionStrings__Default = 'Host=localhost;Database=bundle;Username=bundle;Password=bundle' }
         try {
             Invoke-Native 'dotnet' @('ef', 'migrations', 'bundle', '--project', $BackendProj, '--configuration', $BundleConfiguration,
                 '--self-contained', '-r', 'linux-x64', '--force', '--output', $Bundle)
-        } finally { Pop-Location }
+        } finally { $env:ConnectionStrings__Default = $prevCs; Pop-Location }
         if (-not (Test-Path $Bundle)) { throw 'migrations bundle was not produced' }
     }
 
