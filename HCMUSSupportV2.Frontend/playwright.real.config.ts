@@ -22,7 +22,12 @@ export default defineConfig({
       // --no-launch-profile: the `http` profile would open a browser and pin port 5161.
       command: 'dotnet run --project ../HCMUSSupportV2.Backend --no-launch-profile',
       url: `http://localhost:${API_PORT}/api/system/info`,
-      env: { ASPNETCORE_ENVIRONMENT: 'Development', ASPNETCORE_URLS: `http://localhost:${API_PORT}` },
+      env: {
+        ASPNETCORE_ENVIRONMENT: 'Development',
+        ASPNETCORE_URLS: `http://localhost:${API_PORT}`,
+        // The suite signs in many times a minute; the default 20/min auth limit would trip it.
+        RateLimiting__Auth__PermitLimit: '1000',
+      },
       reuseExistingServer: !process.env.CI,
       timeout: 240_000,
     },
