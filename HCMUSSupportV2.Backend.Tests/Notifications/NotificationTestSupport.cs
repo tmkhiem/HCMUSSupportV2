@@ -28,7 +28,8 @@ public class TestActingAsController : ControllerBase
     {
         var principal = await principals.CreateAsync(code);
         if (principal is null) return NotFound();
-        ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim(IdentityClaims.ActingAs, actingAs));
+        // D14a: view-as needs an unexpired acting_as_until or the cookie revalidator drops it.
+        principal = PrincipalFactory.WithActingAs(principal, actingAs, DateTimeOffset.UtcNow.AddHours(1));
         await HttpContext.SignInAsync(AuthSchemes.Cookie, principal);
         return NoContent();
     }
