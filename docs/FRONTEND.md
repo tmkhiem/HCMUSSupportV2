@@ -195,6 +195,27 @@ NSwag client has no Hrm endpoints yet), `careerFormat.ts` (`formatTenure` "3 nă
 - Playwright: `e2e/career.spec.ts` (project `career`, port 5383, mock auth) covers each page at 1440 and 375 px, the tab switch,
   and the empty / error states; screenshots go to `docs/screenshots/d11/`.
 
+## Hồ sơ cá nhân: overview, Thông tin chung, Thông tin chi tiết (D10)
+
+Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `SummaryCards` = one component per card on a shared
+`SummaryCardFrame`), `general/` (`GeneralPage`, `CopyButton`), `detailed/` (`DetailedPage`, `useReveal`), plus
+`api.ts` (hooks + types), `mockData.ts` and `ProfileFields.tsx` (layout only: `SectionCard`, `FieldList`, `FieldRow`,
+`BackToProfile`). Routes: `/ho-so`, `/ho-so/thong-tin-chung`, `/ho-so/thong-tin-chi-tiet`.
+
+- **API.** The NSwag client did not include the Hrm `me/*` endpoints when D10 was built, so `api.ts` calls
+  `GET /api/me/profile/{overview,general,detailed}` and `POST /api/me/profile/sensitive/reveal` through the shared `http`
+  layer, with hand-written types mirroring `Modules/Hrm/Me/MeDtos.cs`. Swap them for the generated `MeClient` once it is
+  regenerated. Query keys: `['profile', 'overview' | 'general' | 'detailed']` (dropped on user switch by `clearUserData`).
+- **Overview.** Hero (photo from the profile, else `me.photoUrl` only when not viewing as someone else, else initials) and
+  eight cards in a 3 / 2 / 1 column grid. `GeneralCard` and `DetailedCard` load their own queries (independent loads), the
+  other six read `ProfileOverview`. A 404 or `hasProfile: false` is the empty state, not an error.
+- **Partial dates.** `lib/partialDate.ts` `formatPartialDate({date, precision})` -> `dd/MM/yyyy`, `MM/yyyy` or `yyyy`; `—` when missing.
+- **Reveal.** Only the masked tail is ever in the query cache. `useReveal` fetches one field at a time (each call is audited
+  server-side), keeps the value in component state only, and "Ẩn" drops it. A 403 (view-as) shows "Không thể xem khi đang xem thử".
+- **Mock mode.** With `VITE_MOCK_AUTH` the hooks return `mockData.ts` (synthetic T0001) without a network call.
+- **Tests.** `src/features/profile/profile.test.tsx`, `src/lib/partialDate.test.ts`; Playwright project `profile`
+  (`e2e/profile.spec.ts`, mock server) writes screenshots to `docs/screenshots/d10/`.
+
 ## Tests
 
 - `npm test`: vitest + Testing Library (jsdom). `format.test.ts`, `http.test.ts`, `nav.test.ts`, `returnUrl.test.ts` and

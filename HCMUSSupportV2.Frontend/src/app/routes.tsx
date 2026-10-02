@@ -59,9 +59,9 @@ export const routes: RouteObject[] = [
       page('tin-tuc/:id', 'Chi tiết thông báo'),
 
       // Hồ sơ cá nhân
-      page('ho-so', 'Hồ sơ cá nhân'),
-      page('ho-so/thong-tin-chung', 'Thông tin chung'),
-      page('ho-so/thong-tin-chi-tiet', 'Thông tin chi tiết'),
+      page('ho-so', 'Hồ sơ cá nhân', () => import('../features/profile/overview/OverviewPage')),
+      page('ho-so/thong-tin-chung', 'Thông tin chung', () => import('../features/profile/general/GeneralPage')),
+      page('ho-so/thong-tin-chi-tiet', 'Thông tin chi tiết', () => import('../features/profile/detailed/DetailedPage')),
       page('ho-so/luong', 'Quá trình lương', () => import('../features/profile/salary/SalaryPage')),
       page('ho-so/chuc-vu', 'Chức vụ', () => import('../features/profile/positions/PositionsPage')),
       page('ho-so/khen-thuong', 'Khen thưởng', () => import('../features/profile/commendations/CommendationsPage')),
