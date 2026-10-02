@@ -96,8 +96,16 @@ export const routes: RouteObject[] = [
           page('thong-bao', 'Quản lý thông báo'),
           page('thong-bao/:id', 'Soạn thông báo'),
           page('nhan-su', 'Nhân sự & email'),
-          page('nhom', 'Nhóm'),
-          page('nhom/:id', 'Chi tiết nhóm'),
+          // One master-detail page for the list and the detail, so the list keeps its state while you pick a group.
+          {
+            path: 'nhom',
+            lazy: () => import('../features/manage/groups/GroupsPage'),
+            handle: { title: 'Nhóm' },
+            children: [
+              { index: true, element: null },
+              { path: ':id', element: null },
+            ],
+          },
         ],
       },
 
@@ -106,12 +114,12 @@ export const routes: RouteObject[] = [
         path: 'quan-tri',
         element: <RequireRole role="admin" />,
         children: [
-          { index: true, lazy: placeholder, handle: { title: 'Quản trị' } },
-          page('phan-quyen', 'Phân quyền'),
-          page('xem-thu', 'Xem thử'),
-          page('nhat-ky', 'Nhật ký'),
-          page('dong-bo', 'Đồng bộ'),
-          page('du-lieu', 'Dữ liệu'),
+          { index: true, lazy: () => import('../features/admin/AdminHomePage'), handle: { title: 'Quản trị' } },
+          page('phan-quyen', 'Phân quyền', () => import('../features/admin/RolesPage')),
+          page('xem-thu', 'Xem thử', () => import('../features/admin/ViewAsPage')),
+          page('nhat-ky', 'Nhật ký', () => import('../features/admin/AuditPage')),
+          page('dong-bo', 'Đồng bộ', () => import('../features/admin/SyncPage')),
+          page('du-lieu', 'Dữ liệu', () => import('../features/admin/DatasetsPage')),
         ],
       },
 

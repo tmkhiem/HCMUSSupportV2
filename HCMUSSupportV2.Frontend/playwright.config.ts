@@ -16,6 +16,8 @@ const INBOX_PORT = 5483
 const EDUCATION_PORT = 5583
 /** D13 Sáng kiến, Giảng dạy, Nghiên cứu khoa học on the mock user. */
 const RESEARCH_PORT = 5593
+/** D14b admin and groups pages: mock auth, `/api/**` stubbed in the spec. */
+const ADMIN_PORT = 5393
 
 export default defineConfig({
   testDir: './e2e',
@@ -37,6 +39,11 @@ export default defineConfig({
       name: 'plain',
       testMatch: /auth\.spec\.ts/,
       use: { baseURL: `http://localhost:${PLAIN_PORT}` },
+    },
+    {
+      name: 'admin',
+      testMatch: /admin\.spec\.ts/,
+      use: { baseURL: `http://localhost:${ADMIN_PORT}` },
     },
     {
       name: 'markdown',
@@ -110,6 +117,13 @@ export default defineConfig({
     {
       command: `npx vite --port ${RESEARCH_PORT} --strictPort`,
       url: `http://localhost:${RESEARCH_PORT}`,
+      env: { VITE_MOCK_AUTH: '1' },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `npx vite --port ${ADMIN_PORT} --strictPort`,
+      url: `http://localhost:${ADMIN_PORT}`,
       env: { VITE_MOCK_AUTH: '1' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

@@ -273,6 +273,37 @@ Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `Summa
 - **Tests.** `src/features/profile/profile.test.tsx`, `src/lib/partialDate.test.ts`; Playwright project `profile`
   (`e2e/profile.spec.ts`, mock server) writes screenshots to `docs/screenshots/d10/`.
 
+## Admin and group pages (D14b)
+
+Code: `src/features/admin/` (Quản trị `AdminHomePage`, `RolesPage`, `ViewAsPage`, `AuditPage`, `SyncPage`, `DatasetsPage`) and
+`src/features/manage/groups/` (`GroupsPage` master-detail, `GroupEditor`, `GroupMembers`, `RuleBuilder`, `ruleModel`).
+
+- **Routes.** `/quan-tri` (admin) with `phan-quyen`, `xem-thu`, `nhat-ky`, `dong-bo`, `du-lieu`; `/quan-ly/nhom[/:id]` (editor and admin).
+  `nhom` is one lazy route with two empty child routes, so the same `GroupsPage` stays mounted while a group is picked (the list keeps its
+  search and filters; the page reads the id with `useMatch`). Below `md` it shows either the list or the detail.
+- **Clients.** `features/admin/clients.ts` instantiates the generated `RolesClient`, `ViewAsClient`, `AdminEmployeesClient`,
+  `DashboardClient`, `AuditClient`, `GroupsClient`. The D04 endpoints (`sync-runs`, `sync-issues`, `datasets`) are **not** in the generated
+  client yet, so `features/admin/hrmApi.ts` has typed hand-written calls on `http`; swap them for generated clients after the next
+  `generate-api` run.
+- **Lists** use keyset paging (`useInfiniteQuery`, `nextCursor`, "Tải thêm"). Search inputs are debounced 300 ms.
+- **Phân quyền.** Search (q, role filter), row opens a drawer with editor and admin switches; Lưu = `PUT admin/roles/{code}`; the server's 409
+  (last admin) message is shown in the drawer. Role changes apply at once on the server.
+- **Xem thử.** Typeahead over `admin/roles?q=` -> `POST admin/view-as` -> `refreshSession()` -> `/tin-tuc`. The yellow `ViewAsBar` "Thoát"
+  already called `DELETE admin/view-as` through `exitViewAs` in `AuthProvider` (then `refreshSession`); no change was needed.
+- **Nhóm.** List with kind chips, search, "show archived"; "Tạo nhóm" dialog (static or rule). Detail: name, description, kind-specific part and
+  an unsaved-changes bar (Hoàn tác / Lưu, `role="region"` "Thay đổi chưa lưu"). Rule groups use `RuleBuilder` over `ruleModel` (one flat level
+  of conditions joined by all/any: org_unit id + descendants, position_title eq/contains, academic_rank, degree, status, has_email) with a live
+  `preview-rule` count and 10 samples; server validation errors (`$.all[i].…`) are shown under the matching condition. A stored rule with
+  nested combinators is shown read-only (never silently flattened). org_unit groups: descendants switch only. Static groups: add by MSCB list,
+  remove selected, csv/xlsx import with dry-run report then apply. There is no org-unit list endpoint, so org_unit conditions take the numeric unit id.
+- **Nhật ký.** Filters: actor MSCB, action (from `audit/actions`, with Vietnamese labels in `auditLabels.ts`), date range; keyset paging.
+- **Đồng bộ.** Open issues (resolve button) and recent runs. **Dữ liệu.** Per dataset: template download, upload -> validation report ->
+  "Áp dụng" (only when `validated`).
+- **Not built.** Nhân sự & email (needs `GET manage/employees`, email add/remove and bulk import endpoints) and the API-clients screen.
+
+Tests: `src/features/manage/groups/ruleModel.test.ts` (vitest). `e2e/admin.spec.ts` (project `admin`, port 5393, mock auth, `/api/**`
+stubbed by `e2e/adminFixtures.ts`) covers every page; screenshots in `docs/screenshots/d14b/`.
+
 ## Tests
 
 - `npm test`: vitest + Testing Library (jsdom). `format.test.ts`, `http.test.ts`, `nav.test.ts`, `returnUrl.test.ts` and

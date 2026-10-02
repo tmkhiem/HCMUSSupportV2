@@ -472,9 +472,10 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. (Sync runs and issues endpoints are owned by D04.)
 
 ### D14b · Admin & editor management pages
-- [ ] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet.
-- [ ] Nhóm (editor): master-detail, rule builder with preview.
-- [ ] Quản trị: dashboard, Phân quyền, Xem thử, Nhật ký, Đồng bộ (runs and issue resolution), Dữ liệu (dataset imports), API clients.
+- [ ] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet. **Open:** the backend has no `GET manage/employees` (directory/search for editors), no email add/remove endpoint and no bulk email import yet.
+- [x] Nhóm (editor): master-detail, rule builder with preview (`features/manage/groups`; static groups add members by MSCB list or csv/xlsx import with dry run, because editors have no employee-search endpoint).
+- [x] Quản trị: dashboard, Phân quyền, Xem thử, Nhật ký, Đồng bộ (runs and issue resolution), Dữ liệu (dataset imports) (`features/admin`).
+- [ ] API clients admin UI (`api_clients`: create, show token once, revoke). Not built: no HTTP endpoints exist for it yet.
 - **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/quan-tri/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.
 
 ### D15 · Legacy migration (one-off, idempotent)
