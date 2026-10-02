@@ -15,6 +15,7 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 | D06 | Groups engine: static, org-unit and rule groups, preview, recompute, import | ✓ |
 | D07 | Notifications engine: Markdig validator, editor API, recipient import, fan-out, inbox, FTS, SSE | ✓ (after fixing the same view-as test helper) |
 | D07a | Markdown contract + MDXEditor spike (passed, `:var[Key]` kept), `NotificationBody` renderer, editor component | ✓ |
+| D08 | Tin tức inbox: filters in URL, detail dialog with deep link, read/ack/read-all, attachments, series history, unread badge (no live stream) | ✓ (vitest 204, Playwright `inbox` 24, real-backend e2e 9) |
 | D10 | Hồ sơ: overview (hero + 8 summary cards), Thông tin chung, Thông tin chi tiết (masked + reveal) | ✓ (Playwright 7) |
 | D11 | Hồ sơ: Quá trình lương, Chức vụ, Khen thưởng pages | ✓ (vitest 163, Playwright `career`) |
 | D14a | Admin backend: roles, view-as (read-only + audited), audit query, dashboard | ✓ |
@@ -31,7 +32,6 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 
 ## Not started
 
-- **D08**: Tin tức inbox UI (renderer from D07a, SSE badge).
 - **D09**: notification editor UI (MDXEditor component from D07a, targeting, import, preview-as-MSCB).
 - **D12**: Hồ sơ pages for Đào tạo, Bồi dưỡng and Công tác.
 - **D13**: Sáng kiến, Giảng dạy and NCKH pages.
@@ -61,6 +61,11 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
    - an SSE connection cap per employee
 9. **Not done:** data-protection key encryption, and the security checklist rotations (owner actions, D17).
 10. **Roster sync overwrites manual changes:** sync can overwrite an admin's manual status change on HRM-sourced employees.
+
+11. **Mock data in the production bundle:** the D10 (`mockData-*.js`) and D11 (`careerMock-*.js`) mocks still end up in production chunks. Guard their imports with `import.meta.env.DEV && MOCK_AUTH`, the way the inbox does.
+12. **Stale e2e specs:** `shell.spec.ts` "every planned route renders its Vietnamese title" fails at `/ho-so`, and `markdown.spec.ts` "bold toolbar button and Ctrl+B" fails on main. Both are test problems, not app bugs.
+13. **Untyped `vars` in the generated client:** `InboxDetailDto.vars` comes out as an abstract `JsonNode`, and its `fromJS` throws. The detail view uses a hand-written `http.get` until the DTO gets a concrete type.
+14. **Live push is off** (`Notifications:Realtime:Enabled=false`). The frontend has no stream code.
 
 ## Way of working from now on (owner, 2026-10-02)
 
