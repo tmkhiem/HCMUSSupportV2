@@ -50,7 +50,7 @@ public sealed class LegacyCommands(string dataPath, IJsonPoster? poster, ReportD
         {
             var sw = Stopwatch.StartNew();
             var outcome = await poster!.PostJsonAsync(EmailsPath, new { users = UsersReader.ToRequest(users) }, o.DryRun, ct);
-            failed = !ReportOutcome("legacy-emails", outcome, "legacy-emails", sw, rejectedMeans: null);
+            failed = !ReportOutcome("legacy-emails", outcome, "legacy-emails", sw, checkStatus: false);
         }
 
         PrintNotes(map);
@@ -115,7 +115,7 @@ public sealed class LegacyCommands(string dataPath, IJsonPoster? poster, ReportD
             foreach (var (label, fileLabel, body) in requests)
             {
                 var outcome = await poster!.PostJsonAsync(DatasetPath(dataset), body, o.DryRun, ct);
-                if (!ReportOutcome(label, outcome, "legacy-datasets-" + fileLabel, sw, rejectedMeans: "status"))
+                if (!ReportOutcome(label, outcome, "legacy-datasets-" + fileLabel, sw, checkStatus: true))
                 {
                     failures++;
                     if (outcome.StatusCode is 0 or 401 or 403)
@@ -142,7 +142,7 @@ public sealed class LegacyCommands(string dataPath, IJsonPoster? poster, ReportD
     }
 
     /// <summary>Writes the detailed report to the report dir and prints the counters. False when the post failed or the server rejected the rows.</summary>
-    private bool ReportOutcome(string label, JsonPostOutcome outcome, string reportName, Stopwatch sw, string? rejectedMeans)
+    private bool ReportOutcome(string label, JsonPostOutcome outcome, string reportName, Stopwatch sw, bool checkStatus)
     {
         if (!outcome.Success)
         {
@@ -153,7 +153,7 @@ public sealed class LegacyCommands(string dataPath, IJsonPoster? poster, ReportD
         var file = reports.Write(reportName, outcome.Body!);
         using var doc = JsonDocument.Parse(outcome.Body!);
         var root = doc.RootElement;
-        var rejected = rejectedMeans is not null && root.TryGetProperty(rejectedMeans, out var st) && st.ValueKind == JsonValueKind.String && st.GetString() == "rejected";
+        var rejected = checkStatus && root.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.String && st.GetString() == "rejected";
         output.WriteLine($"[{label}] {(rejected ? "REJECTED " : "")}{Summarize(root)} ({sw.ElapsedMilliseconds} ms); report: {file}");
         return !rejected;
     }

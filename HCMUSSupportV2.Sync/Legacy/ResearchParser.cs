@@ -46,7 +46,7 @@ public static partial class ResearchParser
         public string Code { get; } = code;
         public string Title { get; } = title;
         public V1Row First { get; } = first;
-        public Dictionary<string, string> Members { get; } = new(StringComparer.Ordinal); // MSCB -> role code, insertion ordered below
+        public Dictionary<string, string> Members { get; } = new(StringComparer.Ordinal); // MSCB -> role code
         public List<string> MemberOrder { get; } = [];
     }
 
