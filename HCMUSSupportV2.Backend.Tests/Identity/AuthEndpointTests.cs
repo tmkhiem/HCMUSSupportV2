@@ -71,6 +71,9 @@ public class AuthEndpointTests(PostgresFixture database) : IAsyncLifetime
             emp.PhotoUrl = "https://photos.example.test/p.png";
             // make the second email the primary one
             var mails = await db.Set<EmployeeEmail>().Where(m => m.EmployeeCode == code).OrderBy(m => m.Email).ToListAsync();
+            // two steps: the unique index allows one primary per employee at any moment
+            foreach (var m in mails) m.IsPrimary = false;
+            await db.SaveChangesAsync();
             foreach (var m in mails) m.IsPrimary = m.Email.StartsWith("primary-");
             await db.SaveChangesAsync();
             return 0;

@@ -16,7 +16,9 @@ public class EmployeeEmailConfiguration : IEntityTypeConfiguration<EmployeeEmail
         b.Property(x => x.AddedBy).HasMaxLength(50);
         b.Property(x => x.AddedAt).HasDefaultValueSql("now()");
 
-        b.HasIndex(x => x.EmployeeCode);
+        b.HasIndex(x => new { x.EmployeeCode, x.AddedAt });
+        // At most one primary email per employee (D14c).
+        b.HasIndex(x => x.EmployeeCode).IsUnique().HasFilter("is_primary").HasDatabaseName("ux_employee_emails_one_primary");
 
         b.HasOne<Employee>().WithMany().HasForeignKey(x => x.EmployeeCode).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<Employee>().WithMany().HasForeignKey(x => x.AddedBy).OnDelete(DeleteBehavior.SetNull);
