@@ -14,6 +14,8 @@ const CAREER_PORT = 5383
 const INBOX_PORT = 5483
 /** D12 education pages (Đào tạo, Bồi dưỡng, Đi công tác) on the mock user. */
 const EDUCATION_PORT = 5583
+/** D13 Sáng kiến, Giảng dạy, Nghiên cứu khoa học on the mock user. */
+const RESEARCH_PORT = 5593
 
 export default defineConfig({
   testDir: './e2e',
@@ -56,6 +58,11 @@ export default defineConfig({
       testMatch: /education\.spec\.ts/,
       use: { baseURL: `http://localhost:${EDUCATION_PORT}` },
     },
+    {
+      name: 'research',
+      testMatch: /research\.spec\.ts/,
+      use: { baseURL: `http://localhost:${RESEARCH_PORT}` },
+    },
   ],
   webServer: [
     {
@@ -96,6 +103,13 @@ export default defineConfig({
     {
       command: `npx vite --port ${EDUCATION_PORT} --strictPort`,
       url: `http://localhost:${EDUCATION_PORT}`,
+      env: { VITE_MOCK_AUTH: '1' },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `npx vite --port ${RESEARCH_PORT} --strictPort`,
+      url: `http://localhost:${RESEARCH_PORT}`,
       env: { VITE_MOCK_AUTH: '1' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

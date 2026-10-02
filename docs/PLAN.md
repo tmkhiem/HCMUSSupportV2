@@ -466,7 +466,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] The three bespoke pages in §7.3: diploma cards; a training table grouped by year with sticky dividers; business trips with stats and a year filter.
 
 ### D13 · Sáng kiến, Giảng dạy, Nghiên cứu khoa học
-- [ ] The three bespoke sections in §7.3, including the NCKH skewed switcher. Use proper responsive labels; the build relied on a Tailwind `xs` breakpoint that doesn't exist.
+- [x] The three bespoke sections in §7.3, including the NCKH skewed switcher. Use proper responsive labels; the build relied on a Tailwind `xs` breakpoint that doesn't exist.
 
 ### D14a · Admin core (backend)
 - [x] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. (Sync runs and issues endpoints are owned by D04.)

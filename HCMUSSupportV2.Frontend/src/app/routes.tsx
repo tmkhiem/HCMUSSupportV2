@@ -80,12 +80,12 @@ export const routes: RouteObject[] = [
       page('ho-so/boi-duong', 'Quá trình bồi dưỡng', () => import('../features/profile/training/TrainingPage')),
       page('ho-so/cong-tac', 'Đi công tác', () => import('../features/profile/trips/TripsPage')),
 
-      page('sang-kien', 'Sáng kiến'),
-      page('giang-day', 'Giảng dạy'),
+      page('sang-kien', 'Sáng kiến', () => import('../features/innovation/InnovationPage')),
+      page('giang-day', 'Giảng dạy', () => import('../features/teaching/TeachingPage')),
 
       redirect('nckh', '/nckh/de-tai'),
-      page('nckh/de-tai', 'Đề tài nghiên cứu'),
-      page('nckh/bai-bao', 'Bài báo khoa học'),
+      page('nckh/de-tai', 'Đề tài nghiên cứu', () => import('../features/research/ProjectsPage')),
+      page('nckh/bai-bao', 'Bài báo khoa học', () => import('../features/research/PublicationsPage')),
 
       // Editor and above
       {
