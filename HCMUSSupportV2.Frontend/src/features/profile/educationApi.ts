@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { http } from '../../api/http'
 import { MOCK_AUTH } from '../../auth/useMe'
-import type { CommendationDate } from './careerApi'
+import type { PartialDate as LibPartialDate } from '../../lib/partialDate'
 
 /*
  * Hồ sơ: Quá trình đào tạo, Bồi dưỡng, Đi công tác (D12). Hand-written like `careerApi.ts` against
@@ -10,7 +10,7 @@ import type { CommendationDate } from './careerApi'
  */
 
 /** A date whose day or month may be unknown (`PartialDateDto`); same shape as the commendation dates. */
-export type PartialDate = CommendationDate
+export type PartialDate = LibPartialDate
 
 export interface DegreeEntry {
   id: number
