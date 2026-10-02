@@ -271,7 +271,7 @@ The sidebar is a flat list (as in the build) and every page has a real URL.
 
 ## 7. UI: the PromptingFEBuild look on MUI v9
 
-The build lives at `D:\git\SupportHcmusV2PromptingFEBuild`, written with Tailwind; INVENTORY §7 has the details. **Rebuild its look, not
+The build lives at `D:\git\SupportHcmusV2PromptingFEBuild` (a read-only snapshot is vendored at `docs/reference/prompting-fe-build/` for other machines), written with Tailwind; INVENTORY §7 has the details. **Rebuild its look, not
 its code.** The build ran every category through one generic list/markdown viewer. **V2 does not do that:** each category gets its
 own page and components. Shared *primitives* such as `AcrylicCard`, `StatCard` and `PageHeader` are fine. A shared *category renderer*
 is not.

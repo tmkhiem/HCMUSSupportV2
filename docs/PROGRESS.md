@@ -69,4 +69,6 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 
 ## Way of working from now on (owner, 2026-10-02)
 
-One Sonnet 5.5 agent at a time, with no parallel agents. After each item, the owner confirms (yes/no) before the next one starts.
+- **Main machine:** one Sonnet 5.5 agent at a time, with no parallel agents. After each item, the owner confirms (yes/no) before the next one starts.
+- **Secondary machine:** takes the small independent parts (D12, D13, the free follow-ups) under the rules in [PARALLEL-WORK.md](PARALLEL-WORK.md). Setup is in [DEV-SETUP.md](DEV-SETUP.md).
+- **In progress on the main machine:** D14b (finishing the admin pages), together with the frontend leftovers 7, 11 and 12.
