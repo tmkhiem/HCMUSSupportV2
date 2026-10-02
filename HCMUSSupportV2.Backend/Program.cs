@@ -2,6 +2,7 @@ using HCMUSSupportV2.Backend.Infrastructure;
 using HCMUSSupportV2.Backend.Modules.Hrm;
 using HCMUSSupportV2.Backend.Modules.Identity;
 using HCMUSSupportV2.Backend.Modules.Admin;
+using HCMUSSupportV2.Backend.Modules.Notifications;
 using HCMUSSupportV2.Backend.Modules.Platform;
 
 namespace HCMUSSupportV2.Backend;
@@ -27,6 +28,7 @@ public class Program
         builder.Services.AddIdentityModule(builder.Configuration);
         builder.Services.AddAdminModule(builder.Configuration);
         builder.Services.AddHrmModule(builder.Configuration);
+        builder.Services.AddNotificationsModule(builder.Configuration);
 
         var app = builder.Build();
 
