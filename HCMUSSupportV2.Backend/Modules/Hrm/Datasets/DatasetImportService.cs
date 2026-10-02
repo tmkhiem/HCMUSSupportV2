@@ -134,19 +134,21 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
 
     // ------------------------------------------------------------------ parsed rows
 
-    private sealed record TeachingRowData(int Row, string Mscb, string Year, int Term, string? CourseCode, string CourseName, string? ClassCode, string? Level, int Periods, decimal Hours)
+    // A teaching line is identified by teacher, year, term, course (code, else name), class and level. v1 has no course codes and
+    // reuses class labels such as "CQ", so the name (and the level, e.g. theory vs practice) has to take part in the identity.
+    internal sealed record TeachingRowData(int Row, string Mscb, string Year, int Term, string? CourseCode, string CourseName, string? ClassCode, string? Level, int Periods, decimal Hours)
     {
-        public string Key => string.Join('|', Mscb, Year, Term, CourseCode ?? "", ClassCode ?? "");
+        public string Key => TeachingKey(Mscb, Year, Term, CourseCode, CourseName, ClassCode, Level);
     }
 
-    private sealed record ResearchRowData(int Row, string Code, string Title, string? Level, string? Type, decimal? Funding, string? Period, DateOnly? Accepted, string? Result, string? Mscb, string Role);
+    internal sealed record ResearchRowData(int Row, string Code, string Title, string? Level, string? Type, decimal? Funding, string? Period, DateOnly? Accepted, string? Result, string? Mscb, string Role);
 
-    private sealed record PublicationRowData(int Row, string? Doi, string? Eid, string Title, string? Venue, int? Year, string? Details, string? Url, IReadOnlyList<string> Authors)
+    internal sealed record PublicationRowData(int Row, string? Doi, string? Eid, string Title, string? Venue, int? Year, string? Details, string? Url, IReadOnlyList<string> Authors)
     {
         public string Key => !string.IsNullOrEmpty(Doi) ? "doi:" + Doi.ToLowerInvariant() : !string.IsNullOrEmpty(Eid) ? "eid:" + Eid.ToLowerInvariant() : $"title:{Title.ToLowerInvariant()}|{Year}";
     }
 
-    private sealed class Parsed
+    internal sealed class Parsed
     {
         public List<ImportIssueDto> Bad { get; } = [];
         public List<TeachingRowData> Teaching { get; } = [];
@@ -209,74 +211,76 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
                 var r = row.RowNumber();
                 if (row.IsEmpty() || columns.All(c => Text(row, c.Key) is null)) continue;
 
+                string? Cell(string key) => Text(row, key);
                 switch (dataset)
                 {
-                    case DatasetNames.Teaching: ParseTeaching(row, r, Text, Bad, parsed); break;
-                    case DatasetNames.Research: ParseResearch(row, r, Text, Bad, parsed, ws); break;
-                    default: ParsePublication(row, r, Text, Bad, parsed); break;
+                    case DatasetNames.Teaching: ParseTeaching(r, Cell, Bad, parsed); break;
+                    case DatasetNames.Research: ParseResearch(r, Cell, Bad, parsed); break;
+                    default: ParsePublication(r, Cell, Bad, parsed); break;
                 }
             }
         }
         return parsed;
     }
 
-    private static void ParseTeaching(IXLRow row, int r, Func<IXLRow, string, string?> text, Action<int, string, string> bad, Parsed parsed)
+    /// <summary>Validates one teaching row (shared by the xlsx importer and the legacy JSON import) and adds it to <paramref name="parsed"/> when it is clean.</summary>
+    internal static void ParseTeaching(int r, Func<string, string?> text, Action<int, string, string> bad, Parsed parsed)
     {
         var errors = parsed.Bad.Count;
-        var mscb = text(row, "mscb");
+        var mscb = text("mscb");
         if (mscb is null) bad(r, "mscb", "Thiếu MSCB.");
-        var year = text(row, "year");
+        var year = text("year");
         if (year is null || !System.Text.RegularExpressions.Regex.IsMatch(year, @"^\d{4}-\d{4}$") || int.Parse(year[5..]) != int.Parse(year[..4]) + 1)
             bad(r, "year", "Năm học phải có dạng 2024-2025.");
-        if (!int.TryParse(text(row, "term"), out var term) || term is < 1 or > 3) bad(r, "term", "Học kỳ phải là 1, 2 hoặc 3.");
-        var name = text(row, "course_name");
+        if (!int.TryParse(text("term"), out var term) || term is < 1 or > 3) bad(r, "term", "Học kỳ phải là 1, 2 hoặc 3.");
+        var name = text("course_name");
         if (name is null) bad(r, "course_name", "Thiếu tên môn học.");
         var periods = 0;
-        if (text(row, "periods") is { } p && (!int.TryParse(p, NumberStyles.Integer, CultureInfo.InvariantCulture, out periods) || periods < 0)) bad(r, "periods", "Số tiết phải là số nguyên không âm.");
-        if (!TryDecimal(text(row, "hours"), out var hours) || hours < 0 || hours > 99999) bad(r, "hours", "Số giờ chuẩn phải là số không âm.");
+        if (text("periods") is { } p && (!int.TryParse(p, NumberStyles.Integer, CultureInfo.InvariantCulture, out periods) || periods < 0)) bad(r, "periods", "Số tiết phải là số nguyên không âm.");
+        if (!TryDecimal(text("hours"), out var hours) || hours < 0 || hours > 99999) bad(r, "hours", "Số giờ chuẩn phải là số không âm.");
         if (parsed.Bad.Count == errors)
-            parsed.Teaching.Add(new TeachingRowData(r, mscb!, year!, term, text(row, "course_code"), name!, text(row, "class_code"), text(row, "level"), periods, hours));
+            parsed.Teaching.Add(new TeachingRowData(r, mscb!, year!, term, text("course_code"), name!, text("class_code"), text("level"), periods, hours));
     }
 
-    private static void ParseResearch(IXLRow row, int r, Func<IXLRow, string, string?> text, Action<int, string, string> bad, Parsed parsed, IXLWorksheet ws)
+    internal static void ParseResearch(int r, Func<string, string?> text, Action<int, string, string> bad, Parsed parsed)
     {
         var errors = parsed.Bad.Count;
-        var code = text(row, "code");
+        var code = text("code");
         if (code is null) bad(r, "code", "Thiếu mã đề tài.");
-        var title = text(row, "title");
+        var title = text("title");
         if (title is null) bad(r, "title", "Thiếu tên đề tài.");
         decimal? funding = null;
-        if (text(row, "funding") is { } f)
+        if (text("funding") is { } f)
         {
             if (TryDecimal(f, out var fd) && fd is >= 0 and < 100_000_000_000_000m) funding = Math.Round(fd);
             else bad(r, "funding", "Kinh phí phải là số không âm.");
         }
         DateOnly? accepted = null;
-        if (text(row, "accepted") is { } a)
+        if (text("accepted") is { } a)
         {
             if (PartialDateParse(a) is { } d) accepted = d; else bad(r, "accepted", "Ngày nghiệm thu không hợp lệ.");
         }
-        var role = text(row, "role") is { } rl ? NormalizeRole(rl) : "thanh_vien";
-        if (role is null) bad(r, "role", "Vai trò phải là Chủ nhiệm hoặc Thành viên.");
+        var role = text("role") is { } rl ? NormalizeRole(rl) : "thanh_vien";
+        if (role is null) bad(r, "role", "Vai trò phải là Chủ nhiệm, Đồng chủ nhiệm hoặc Thành viên.");
         if (parsed.Bad.Count == errors)
-            parsed.Research.Add(new ResearchRowData(r, code!, title!, text(row, "level"), text(row, "type"), funding, text(row, "period"), accepted, text(row, "result"), text(row, "mscb"), role!));
+            parsed.Research.Add(new ResearchRowData(r, code!, title!, text("level"), text("type"), funding, text("period"), accepted, text("result"), text("mscb"), role!));
     }
 
-    private static void ParsePublication(IXLRow row, int r, Func<IXLRow, string, string?> text, Action<int, string, string> bad, Parsed parsed)
+    internal static void ParsePublication(int r, Func<string, string?> text, Action<int, string, string> bad, Parsed parsed)
     {
         var errors = parsed.Bad.Count;
-        var title = text(row, "title");
+        var title = text("title");
         if (title is null) bad(r, "title", "Thiếu tên bài báo.");
         int? year = null;
-        if (text(row, "year") is { } y)
+        if (text("year") is { } y)
         {
             if (int.TryParse(y, NumberStyles.Integer, CultureInfo.InvariantCulture, out var yi) && yi is >= 1900 and <= 2200) year = yi;
             else bad(r, "year", "Năm không hợp lệ.");
         }
-        var authors = (text(row, "authors") ?? "").Split([';', ',', '\n', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToList();
+        var authors = (text("authors") ?? "").Split([';', ',', '\n', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToList();
         if (authors.Count == 0) bad(r, "authors", "Cần ít nhất một MSCB tác giả.");
         if (parsed.Bad.Count == errors)
-            parsed.Publications.Add(new PublicationRowData(r, text(row, "doi"), text(row, "eid"), title!, text(row, "venue"), year, text(row, "details"), text(row, "url"), authors));
+            parsed.Publications.Add(new PublicationRowData(r, text("doi"), text("eid"), title!, text("venue"), year, text("details"), text("url"), authors));
     }
 
     private static bool TryDecimal(string? s, out decimal value)
@@ -291,6 +295,7 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
     private static string? NormalizeRole(string s) => Normalize(s) switch
     {
         "chunhiem" or "chunhiemdetai" or "chair" or "pi" => "chu_nhiem",
+        "dongchunhiem" => "dong_chu_nhiem",
         "thanhvien" or "member" or "tham gia" or "thamgia" => "thanh_vien",
         _ => null,
     };
@@ -324,11 +329,11 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
         var status = report.BadValues.Count == 0 && report.TotalRows > 0 ? ImportStatuses.Validated : ImportStatuses.Rejected;
         report = report with { Id = id, Status = status, FileName = stored.FileName };
 
+        var (summary, reportJson) = SerializeReport(report);
         db.Set<DatasetImport>().Add(new DatasetImport
         {
             Id = id, Dataset = dataset, FileId = stored.Id, Status = status, CreatedBy = user.Code,
-            Summary = JsonSerializer.Serialize(new { report.TotalRows, report.NewRows, report.UpdatedRows, report.RemovedRows, unknownMscbs = report.UnknownMscbs.Count, badValues = report.BadValues.Count }, Json),
-            Report = JsonSerializer.Serialize(report, Json),
+            Summary = summary, Report = reportJson,
         });
         await db.SaveChangesAsync(ct);
         await audit.LogAsync("dataset.import_validate", "dataset_import", id.ToString(), new { dataset, status, report.TotalRows }, ct);
@@ -349,7 +354,8 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
         return (await db.Set<Employee>().AsNoTracking().Where(e => distinct.Contains(e.Code)).Select(e => e.Code).ToListAsync(ct)).ToHashSet();
     }
 
-    private async Task<ImportReportDto> BuildReportAsync(string dataset, Parsed parsed, CancellationToken ct)
+    /// <summary>Diffs already-parsed rows against the current dataset (new, updated, removed, unknown MSCBs, duplicates). Writes nothing.</summary>
+    internal async Task<ImportReportDto> BuildReportAsync(string dataset, Parsed parsed, CancellationToken ct)
     {
         var bad = parsed.Bad.ToList();
         var unknown = new SortedSet<string>(StringComparer.Ordinal);
@@ -427,7 +433,10 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
             unknown.ToList(), bad.OrderBy(b => b.Row).ToList(), years);
     }
 
-    private static string TeachingKey(TeachingLoad t) => string.Join('|', t.EmployeeCode, t.AcademicYear, t.Term, t.CourseCode ?? "", t.ClassCode ?? "");
+    private static string TeachingKey(TeachingLoad t) => TeachingKey(t.EmployeeCode, t.AcademicYear, t.Term, t.CourseCode, t.CourseName, t.ClassCode, t.Level);
+
+    private static string TeachingKey(string mscb, string year, int term, string? courseCode, string courseName, string? classCode, string? level) =>
+        string.Join('|', mscb, year, term, courseCode ?? courseName, classCode ?? "", level ?? "");
 
     private static string PublicationKey(Publication p) =>
         !string.IsNullOrEmpty(p.Doi) ? "doi:" + p.Doi.ToLowerInvariant() : !string.IsNullOrEmpty(p.Eid) ? "eid:" + p.Eid.ToLowerInvariant() : $"title:{p.Title.ToLowerInvariant()}|{p.Year}";
@@ -447,12 +456,7 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
         if (report.BadValues.Count > 0 || report.TotalRows == 0) throw new DatasetImportException("Dữ liệu không còn hợp lệ. Hãy tải lên lại.", 409);
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        switch (import.Dataset)
-        {
-            case DatasetNames.Teaching: await ApplyTeachingAsync(parsed, id, ct); break;
-            case DatasetNames.Research: await ApplyResearchAsync(parsed, id, ct); break;
-            default: await ApplyPublicationsAsync(parsed, id, ct); break;
-        }
+        await ApplyRowsAsync(import.Dataset, parsed, id, ct);
         import.Status = ImportStatuses.Applied;
         import.UpdatedAt = time.GetUtcNow();
         report = report with { Id = id, Status = ImportStatuses.Applied, FileName = (await files.GetAsync(import.FileId, ct))?.FileName ?? "" };
@@ -464,6 +468,25 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
             new { dataset = import.Dataset, report.TotalRows, report.NewRows, report.UpdatedRows, report.RemovedRows }, ct);
         return report;
     }
+
+    /// <summary>
+    /// Replaces the dataset with the parsed rows (teaching per academic year present, research and publications whole), tagging them
+    /// with <paramref name="importId"/>, which must already exist in <c>dataset_imports</c>. The caller owns the transaction.
+    /// </summary>
+    internal async Task ApplyRowsAsync(string dataset, Parsed parsed, Guid importId, CancellationToken ct)
+    {
+        switch (dataset)
+        {
+            case DatasetNames.Teaching: await ApplyTeachingAsync(parsed, importId, ct); break;
+            case DatasetNames.Research: await ApplyResearchAsync(parsed, importId, ct); break;
+            default: await ApplyPublicationsAsync(parsed, importId, ct); break;
+        }
+    }
+
+    /// <summary>The <c>summary</c> and <c>report</c> jsonb values stored on a <see cref="DatasetImport"/>.</summary>
+    internal static (string Summary, string Report) SerializeReport(ImportReportDto report) =>
+        (JsonSerializer.Serialize(new { report.TotalRows, report.NewRows, report.UpdatedRows, report.RemovedRows, unknownMscbs = report.UnknownMscbs.Count, badValues = report.BadValues.Count }, Json),
+         JsonSerializer.Serialize(report, Json));
 
     private async Task ApplyTeachingAsync(Parsed parsed, Guid importId, CancellationToken ct)
     {
