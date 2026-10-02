@@ -290,6 +290,60 @@ Only indexes on `audit_log`: `ix_audit_log_at_id (at DESC, id DESC)` for keyset 
   row is not protected from the next sync.
 - Not in D14a: `sync_runs` / `sync_issues` endpoints (D04 owns them), dataset imports and API clients.
 
+## Nhân sự & email: MSCB to email mapping (D14c, `Modules/Admin/EmployeeEmails`)
+
+Editors (and admins) maintain `employee_emails`, which replaces the Google Sheet. Controller `ManageEmployeesController`
+(`/api/manage/employees`, `[TypeFilter<GroupsExceptionFilter>]` so failures are ProblemDetails with Vietnamese text); services
+`EmployeeEmailsService` (directory, add, remove, set primary) and `EmployeeEmailImportService` (bulk import). Reads need
+`Policies.ViewEmployeeDirectory`, writes `Policies.ManageEmployeeEmails` (both editor level, so an employee gets 403 and an
+anonymous caller 401). Every write is audited.
+
+| Endpoint | Result |
+|---|---|
+| `GET /api/manage/employees?q&status&hasEmail&flagged&unitId&cursor&limit` | `{items, nextCursor, total}` ordered by MSCB (keyset). `q` matches an MSCB prefix, the name without accents, or any email fragment. `flagged=true` = has an email that equals the **HRM personal email of another employee**. Each item: code, fullName, status, source, unitId, unit, positionTitle, `emails[]` (primary first: email, isPrimary, note, addedBy, addedAt, `hrmConflict`), `hasHrmConflict` |
+| `GET /api/manage/employees/{code}` | one item, 404 when unknown |
+| `POST /api/manage/employees/{code}/emails` `{email, isPrimary?, note?}` | 201 with the employee. 400 malformed email, note over 500 characters, or more than 10 emails. 404 unknown employee. 409 already mapped (this or another MSCB; the message names the owner) |
+| `DELETE /api/manage/employees/{code}/emails/{email}` | 200 with the employee. 404 unknown employee or an email that is not theirs. 409 when it is **your own last email** or the last email of the **last active admin** |
+| `PUT /api/manage/employees/{code}/emails/{email}/primary` | 200 with the employee (idempotent; audited only on a change). 404 as above |
+| `POST /api/manage/employees/emails/import?dryRun=true&removeMissing=false` (multipart `file`) | `EmailImportReportDto`. Same file again with `dryRun=false` applies it |
+
+**Rules.** Emails are trimmed and stored lower-case (the column is `citext`, so matching is case-insensitive anyway); at most
+10 per employee; an address belongs to exactly one MSCB (the PK). The first email is primary; `isPrimary=true` moves the flag;
+removing the primary promotes the oldest remaining one. A partial unique index `ux_employee_emails_one_primary`
+(`employee_code WHERE is_primary`) guarantees one primary per employee, and writes take an advisory lock
+(`EmployeeEmailsService.WriteLockKey`) inside a transaction. When an **active** employee gets their **first** email the
+registered `IEmployeeActivationObserver`s are called (so audience-all posts backfill). Removing a last email does not sign an
+open session out (sessions are not tied to an email; deactivate the employee for that), but the person can no longer sign in
+with that address. View-as sessions are read-only as everywhere (`ViewAsReadOnlyMiddleware`).
+
+**Audit actions.** `employee_email.added`, `employee_email.removed`, `employee_email.primary_set` (target = the MSCB, details =
+the email) and `employee_email.imported` (target type `employee_emails`; details = file name, counts, `removeMissing`).
+
+**Import.** `.xlsx` or `.csv` (5 MB, 20,000 rows), first sheet, header row required: a **MSCB** column (`MSCB`, `Mã số cán bộ`,
+`Mã CB` ...), an optional **Họ tên** column (only compared) and any columns whose header starts with **Email** (`Email 1`..`Email 6`).
+It is stateless: no import row is stored, the dry run and the apply both parse the file. Per row (MSCB matched
+case-insensitively; repeated MSCB rows are merged; rows without an MSCB or without emails are skipped and counted):
+- new email for a known MSCB -> `added` (the first one is primary when the person has no primary yet);
+- already theirs -> `unchanged`;
+- owned by another MSCB, or claimed by an earlier row of the same file -> `conflicts` (`owned_by_other`, `duplicate_in_file`; skipped);
+- unknown MSCB -> `unknown` (skipped); malformed email or more than 10 -> `invalid` (`invalid_format`, `too_many`; skipped);
+- `warnings` never block: `name_mismatch` (Họ tên differs from the directory, accent-insensitive), `hrm_conflict` (the address is the HRM personal
+  email of another employee), `duplicate_in_row`;
+- `removeMissing=true` makes the file authoritative for the listed MSCB: their other emails are removed (reported in `removed`), and
+  the row's first email becomes primary. A row with no valid email never removes anything.
+
+Counts are exact; each list is capped at 1,000 items (`truncated`). Applying runs in one transaction under the same advisory lock;
+a bad file answers 400 (unsupported type, unreadable workbook, no MSCB column, no Email column, too many rows).
+
+**Schema (migration `D14c_EmployeeEmails`).** Adds `ux_employee_emails_one_primary` and replaces the plain `employee_code` index by
+`(employee_code, added_at)` (EF cannot keep two indexes on the same column). The migration first demotes duplicate primaries
+(keeps the oldest). Code that flips the primary of an existing row must clear the old primary and save before setting the new
+one (see `AuthEndpointTests.Dev_login_signs_in_and_me_returns_the_profile`).
+
+**Tests.** `Admin/EmployeeEmailsTests.cs`: policy (401/403/200), directory search, filters, paging and HRM flags, the add, remove
+and primary rules, observers, the last-admin and own-email guards, Google sign-in accepting a freshly mapped address, the DB index,
+and the import (synthetic xlsx built with ClosedXML, and a csv) including dry run vs apply, `removeMissing`, conflicts and warnings.
+
 ## Groups engine (D06, `Modules/Identity/Groups`)
 
 Lives inside the Identity module (next to the `groups` entities) and is registered by one line in `AddIdentityModule`

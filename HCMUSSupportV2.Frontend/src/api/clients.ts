@@ -1,4 +1,4 @@
-import { AuthClient, MeClient, NotificationsClient, SystemClient, TagsClient } from './generated-client'
+import { AuthClient, ManageEmployeesClient, MeClient, NotificationsClient, SystemClient, TagsClient } from './generated-client'
 import { clientFetch } from './http'
 
 /** Typed NSwag clients. They share `clientFetch`: cookies, `X-XSRF-TOKEN`, ProblemDetails -> `ApiError`, 401 handler. */
@@ -9,3 +9,5 @@ export const notificationsClient = new NotificationsClient(undefined, clientFetc
 export const tagsClient = new TagsClient(undefined, clientFetch)
 /** Own Hồ sơ (`/api/me/*`). Its DTOs are all-optional with `Date`s: the profile feature maps them in `features/profile/meMappers.ts`. */
 export const meClient = new MeClient(undefined, clientFetch)
+/** Nhân sự & email (D14c, editor). */
+export const manageEmployeesClient = new ManageEmployeesClient(undefined, clientFetch)

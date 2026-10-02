@@ -11,7 +11,7 @@ const WEB_PORT = 5275
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: /real\.spec\.ts/,
+  testMatch: /real(\.[\w-]+)?\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],

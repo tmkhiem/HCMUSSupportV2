@@ -1,5 +1,6 @@
 import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined'
 import BadgeOutlined from '@mui/icons-material/BadgeOutlined'
+import ContactMailOutlined from '@mui/icons-material/ContactMailOutlined'
 import EditNotificationsOutlined from '@mui/icons-material/EditNotificationsOutlined'
 import LightbulbOutlined from '@mui/icons-material/LightbulbOutlined'
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined'
@@ -34,6 +35,7 @@ export const NAV: readonly NavEntry[] = [
   { id: 'innovation', label: 'Sáng kiến', icon: LightbulbOutlined, to: '/sang-kien' },
   { id: 'teaching', label: 'Giảng dạy', icon: SchoolOutlined, to: '/giang-day' },
   { id: 'research', label: 'Nghiên cứu khoa học', icon: ScienceOutlined, to: '/nckh/de-tai', match: '/nckh' },
+  { id: 'staff', label: 'Nhân sự & email', icon: ContactMailOutlined, to: '/quan-ly/nhan-su', role: 'editor' },
   { id: 'manage', label: 'Quản lý thông báo', icon: EditNotificationsOutlined, to: '/quan-ly/thong-bao', match: '/quan-ly', role: 'editor' },
   { id: 'admin', label: 'Quản trị', icon: AdminPanelSettingsOutlined, to: '/quan-tri', role: 'admin' },
 ]

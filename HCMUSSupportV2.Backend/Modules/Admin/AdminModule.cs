@@ -1,5 +1,6 @@
 using HCMUSSupportV2.Backend.Modules.Admin.Audit;
 using HCMUSSupportV2.Backend.Modules.Admin.Dashboard;
+using HCMUSSupportV2.Backend.Modules.Admin.EmployeeEmails;
 using HCMUSSupportV2.Backend.Modules.Admin.RoleGrants;
 using HCMUSSupportV2.Backend.Modules.Admin.ViewAs;
 
@@ -17,6 +18,8 @@ public static class AdminModule
         services.AddScoped<RoleAdminService>();
         services.AddScoped<AuditQueryService>();
         services.AddScoped<DashboardService>();
+        services.AddScoped<EmployeeEmailsService>();
+        services.AddScoped<EmployeeEmailImportService>();
         services.AddDashboardContributor<IdentityDashboardContributor>();
         return services;
     }

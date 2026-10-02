@@ -58,9 +58,9 @@ public static class MemberFileReader
         return codes;
     }
 
-    private static string Normalize(string s) => TextSearch.Unaccent(s).Trim().ToLowerInvariant();
+    internal static string Normalize(string s) => TextSearch.Unaccent(s).Trim().ToLowerInvariant();
 
-    private static List<string[]> ReadXlsx(Stream stream)
+    internal static List<string[]> ReadXlsx(Stream stream)
     {
         try
         {
@@ -84,7 +84,7 @@ public static class MemberFileReader
         }
     }
 
-    private static List<string[]> ReadCsv(Stream stream)
+    internal static List<string[]> ReadCsv(Stream stream)
     {
         using var reader = new StreamReader(stream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true, leaveOpen: true);
         var text = reader.ReadToEnd();
