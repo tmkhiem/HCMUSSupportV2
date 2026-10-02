@@ -463,7 +463,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] The three bespoke pages in §7.3: salary stats, step chart and timeline; position timeline with tenure; award and title tabs grouped by năm học.
 
 ### D12 · Hồ sơ: Quá trình đào tạo, Bồi dưỡng, Đi công tác
-- [ ] The three bespoke pages in §7.3: diploma cards; a training table grouped by year with sticky dividers; business trips with stats and a year filter.
+- [x] The three bespoke pages in §7.3: diploma cards; a training table grouped by year with sticky dividers; business trips with stats and a year filter.
 
 ### D13 · Sáng kiến, Giảng dạy, Nghiên cứu khoa học
 - [ ] The three bespoke sections in §7.3, including the NCKH skewed switcher. Use proper responsive labels; the build relied on a Tailwind `xs` breakpoint that doesn't exist.

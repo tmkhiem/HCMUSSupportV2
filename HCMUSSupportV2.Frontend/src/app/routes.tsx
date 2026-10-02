@@ -76,9 +76,9 @@ export const routes: RouteObject[] = [
       page('ho-so/luong', 'Quá trình lương', () => import('../features/profile/salary/SalaryPage')),
       page('ho-so/chuc-vu', 'Chức vụ', () => import('../features/profile/positions/PositionsPage')),
       page('ho-so/khen-thuong', 'Khen thưởng', () => import('../features/profile/commendations/CommendationsPage')),
-      page('ho-so/dao-tao', 'Quá trình đào tạo'),
-      page('ho-so/boi-duong', 'Quá trình bồi dưỡng'),
-      page('ho-so/cong-tac', 'Đi công tác'),
+      page('ho-so/dao-tao', 'Quá trình đào tạo', () => import('../features/profile/degrees/DegreesPage')),
+      page('ho-so/boi-duong', 'Quá trình bồi dưỡng', () => import('../features/profile/training/TrainingPage')),
+      page('ho-so/cong-tac', 'Đi công tác', () => import('../features/profile/trips/TripsPage')),
 
       page('sang-kien', 'Sáng kiến'),
       page('giang-day', 'Giảng dạy'),

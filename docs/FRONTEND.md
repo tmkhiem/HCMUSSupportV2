@@ -216,6 +216,21 @@ NSwag client has no Hrm endpoints yet), `careerFormat.ts` (`formatTenure` "3 nă
 - Playwright: `e2e/career.spec.ts` (project `career`, port 5383, mock auth) covers each page at 1440 and 375 px, the tab switch,
   and the empty / error states; screenshots go to `docs/screenshots/d11/`.
 
+## Hồ sơ: Đào tạo, Bồi dưỡng, Đi công tác (D12)
+
+Code in `src/features/profile/`: `degrees/` (`DegreesPage`, `DegreeCards`), `training/` (`TrainingPage`, `TrainingTable`), `trips/`
+(`TripsPage`, `TripsTable`), plus `educationApi.ts` (types and hooks `useDegrees`, `useTrainings`, `useBusinessTrips`, hand-written
+like `careerApi.ts`), `educationFormat.ts` (partial dates, `degreeYears`, `sortDegrees`, `groupTrainingsByYear`, `tripStats`; tested in
+`educationFormat.test.ts`) and `educationMock.ts` (synthetic data). All three reuse `CareerBreadcrumb`.
+
+- `/ho-so/dao-tao`: diploma-style cards, newest first. Degree type is the headline, then major, "trường · quốc gia", years, a training-form chip and the thesis title when present.
+- `/ho-so/boi-duong`: trainings grouped by year, each group in the new `ui/StickyGroup` (a divider that docks at the top of the
+  scroll container and is pushed off by the next one, plain `position: sticky`; category-agnostic, exported from `ui/index.ts`).
+  Rows are aligned columns with a header row from `md` up and stacked on mobile.
+- `/ho-so/cong-tac`: two `StatCard`s (Số chuyến, Số ngày) that follow a pill year select (caption above, UI-STYLE-GUIDE §4.6) over a trips table (nơi đến, thời gian + số ngày, mục đích, quyết định, ghi chú).
+- Mock mode: `?education=empty` or `?education=error` on a page URL shows the other states.
+- Playwright: `e2e/education.spec.ts` (project `education`, port 5583, mock auth) at 1440 and 375 px plus the empty / error states; screenshots go to `docs/screenshots/d12/`.
+
 ## Hồ sơ cá nhân: overview, Thông tin chung, Thông tin chi tiết (D10)
 
 Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `SummaryCards` = one component per card on a shared
