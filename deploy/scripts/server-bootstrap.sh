@@ -232,7 +232,7 @@ SQL
     umask 027
     printf '%s\n' "${tpl//__CONNECTION_STRING__/$conn}" > "$ENV_FILE"
     chown "root:$APP_USER" "$ENV_FILE"; chmod 0640 "$ENV_FILE"
-    info "wrote $ENV_FILE (edit it to add the Google client id/secret)"
+    info "wrote $ENV_FILE (edit it to add Auth__Google__ClientId/ClientSecret and Admin__BootstrapEmails__0)"
   else
     info "$ENV_FILE already exists - left untouched"
   fi
