@@ -38,7 +38,7 @@ export default function SettingsPanel({ form, onChange, publishAt, errors, disab
           select
           size="small"
           label="Chuỗi thông báo"
-          value={form.seriesId ?? ''}
+          value={(series.data ?? []).some((s) => s.id === form.seriesId) ? form.seriesId : ''}
           disabled={disabled}
           error={Boolean(errors.seriesId)}
           helperText={errors.seriesId ?? 'Gom các kỳ cùng loại để người nhận xem “Các kỳ trước”.'}

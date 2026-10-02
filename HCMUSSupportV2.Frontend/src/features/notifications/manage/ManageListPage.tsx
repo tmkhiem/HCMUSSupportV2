@@ -279,7 +279,7 @@ function FilterBar({ filters, onChange, tags, series }: FilterBarProps) {
             },
           }}
         />
-        <TextField select size="small" label="Thẻ" value={filters.tag ?? ''} onChange={(e) => onChange({ ...filters, tag: e.target.value === '' ? null : Number(e.target.value) })}>
+        <TextField select size="small" label="Thẻ" slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} value={tags.some((t) => t.id === filters.tag) ? filters.tag : ''} onChange={(e) => onChange({ ...filters, tag: e.target.value === '' ? null : Number(e.target.value) })}>
           <MenuItem value="">Tất cả thẻ</MenuItem>
           {tags.map((t) => (
             <MenuItem key={t.id} value={t.id}>
@@ -287,7 +287,7 @@ function FilterBar({ filters, onChange, tags, series }: FilterBarProps) {
             </MenuItem>
           ))}
         </TextField>
-        <TextField select size="small" label="Chuỗi" value={filters.series ?? ''} onChange={(e) => onChange({ ...filters, series: e.target.value === '' ? null : Number(e.target.value) })}>
+        <TextField select size="small" label="Chuỗi" slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} value={series.some((s) => s.id === filters.series) ? filters.series : ''} onChange={(e) => onChange({ ...filters, series: e.target.value === '' ? null : Number(e.target.value) })}>
           <MenuItem value="">Tất cả chuỗi</MenuItem>
           {series.map((s) => (
             <MenuItem key={s.id} value={s.id}>

@@ -16,6 +16,8 @@ const INBOX_PORT = 5483
 const EDUCATION_PORT = 5583
 /** D13 Sáng kiến, Giảng dạy, Nghiên cứu khoa học on the mock user. */
 const RESEARCH_PORT = 5593
+/** D09 notification editor (Quản lý thông báo) on the mock user and a stateful fake of `/api/manage/*` (e2e/editorFake.ts). */
+const EDITOR_PORT = 5683
 
 export default defineConfig({
   testDir: './e2e',
@@ -62,6 +64,11 @@ export default defineConfig({
       name: 'research',
       testMatch: /research\.spec\.ts/,
       use: { baseURL: `http://localhost:${RESEARCH_PORT}` },
+    },
+    {
+      name: 'editor',
+      testMatch: /(^|\/)editor\.spec\.ts$/,
+      use: { baseURL: `http://localhost:${EDITOR_PORT}` },
     },
   ],
   webServer: [
@@ -110,6 +117,13 @@ export default defineConfig({
     {
       command: `npx vite --port ${RESEARCH_PORT} --strictPort`,
       url: `http://localhost:${RESEARCH_PORT}`,
+      env: { VITE_MOCK_AUTH: '1' },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `npx vite --port ${EDITOR_PORT} --strictPort`,
+      url: `http://localhost:${EDITOR_PORT}`,
       env: { VITE_MOCK_AUTH: '1' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

@@ -260,9 +260,10 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
           </Stack>
         }
         actions={
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: { xs: 'flex-start', sm: 'flex-end' }, rowGap: 1 }}>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', alignItems: 'center', justifyContent: { xs: 'flex-start', sm: 'flex-end' }, rowGap: 1 }}>
             <Button
               variant="outlined"
+              size="small"
               startIcon={busy === 'save' ? <CircularProgress size={16} /> : <SaveOutlined />}
               disabled={busy !== null || (!dirty && saved !== null)}
               onClick={() => void save()}
@@ -271,12 +272,12 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
               Lưu
             </Button>
             {canSchedule && (
-              <Button variant="outlined" startIcon={<ScheduleSendOutlined />} disabled={busy !== null} onClick={() => { setDialogError(null); setDialog('schedule') }} sx={{ bgcolor: 'common.white' }}>
+              <Button variant="outlined" size="small" startIcon={<ScheduleSendOutlined />} disabled={busy !== null} onClick={() => { setDialogError(null); setDialog('schedule') }} sx={{ bgcolor: 'common.white' }}>
                 Lên lịch
               </Button>
             )}
             {canPublish && (
-              <Button variant="contained" startIcon={<SendOutlined />} disabled={busy !== null} onClick={() => { setDialogError(null); setDialog('publish') }}>
+              <Button variant="contained" size="small" startIcon={<SendOutlined />} disabled={busy !== null} onClick={() => { setDialogError(null); setDialog('publish') }}>
                 Đăng ngay
               </Button>
             )}

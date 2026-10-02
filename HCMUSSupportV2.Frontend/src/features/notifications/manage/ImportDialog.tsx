@@ -192,7 +192,7 @@ export function ReportView({ report }: { report: ImportReport }) {
       {report.rowsWithoutCode > 0 && <Alert severity="warning">{formatNumber(report.rowsWithoutCode)} dòng không có mã số nên bị bỏ qua.</Alert>}
       {report.missingInFile.length > 0 && (
         <Alert severity="warning">
-          Nội dung dùng biến mà tệp không có cột: <b>{report.missingInFile.join(', ')}</b>. Giá trị sẽ hiển thị “—”.
+          Nội dung dùng biến nhưng tệp thiếu cột tương ứng: <b>{report.missingInFile.join(', ')}</b>. Giá trị sẽ hiển thị “—”.
         </Alert>
       )}
       {report.unusedColumns.length > 0 && <Alert severity="info">Cột chưa được dùng trong nội dung: {report.unusedColumns.join(', ')}.</Alert>}
