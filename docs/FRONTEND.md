@@ -321,7 +321,7 @@ stubbed by `e2e/adminFixtures.ts`) covers every page; screenshots in `docs/scree
   `appsettings.Development.local.json` (DB; created and migrated on first start; `Auth:DevLogin:Enabled=true`) and the
   dev roster. Covers: T0001 sees the shell, name and admin nav; T0003 has no editor/admin nav and gets the 403 card on
   `/quan-tri`; unknown MSCB; unsafe call without `X-XSRF-TOKEN` -> 400 (with it -> 204); logout clears the cookie;
-  switching user; `/login?error=` redirect; and the D08 inbox flow (T0001 publishes to T0003, badge and row, open, ack; the post is archived afterwards). Existing servers on those ports are reused locally (not in CI).
+  switching user; `/login?error=` redirect; and the D08 inbox flow (T0001 publishes to T0003, badge and row, open, ack; the post is archived afterwards). Existing servers on those ports are reused locally (not in CI). The config lifts the backend's `auth` rate limit (`RateLimiting__Auth__PermitLimit=1000`): the suite signs in more than the default 20 times a minute and would get 429.
 - The specs write screenshots to `docs/screenshots/d02/` (1440x900 and 375x812: shell, drawer, account menu, view-as bar,
   login). Commit them when the look changes. The login shots are taken in dev, where the "Đăng nhập thử (dev)" panel shows: `git checkout docs/screenshots` after a run unless the login page itself changed.
 - `e2e/admin.spec.ts` (project `admin`, port 5393, mock auth, `/api/**` stubbed): see "Admin and group pages (D14b)". The ports are fixed in `playwright.config.ts`; two agents running Playwright at once share them and reuse each other's vite servers, so run one suite at a time per machine.
