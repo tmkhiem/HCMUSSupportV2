@@ -109,14 +109,25 @@ public record InnovationsDto(InnovationStatsDto Stats, IReadOnlyList<InnovationE
 
 // ---- Giảng dạy
 
-public record TeachingEntryDto(long Id, string? CourseCode, string CourseName, string? ClassCode, string? Level, int Periods, decimal StandardHours);
+public record TeachingEntryDto(
+    long Id, string? CourseCode, string CourseName, string? ClassCode, string? Track, string? Activity, int Periods, decimal StandardHours, string? Module);
 
 public record TeachingTermDto(int Term, IReadOnlyList<TeachingEntryDto> Items);
 
+/// <summary>A học phần / chuyên đề group of a postgraduate program. <c>Module</c> null = rows with no module recorded.</summary>
+public record TeachingModuleDto(string? Module, IReadOnlyList<TeachingEntryDto> Items);
+
 public record TeachingStatsDto(decimal TotalStandardHours, int Classes, int Courses);
 
+/// <summary>
+/// One training program: <c>Program</c> is <c>dai_hoc</c>, <c>cao_hoc</c> or <c>tien_si</c>. Only <c>dai_hoc</c> fills <c>Terms</c> (by học kỳ);
+/// only the postgraduate programs fill <c>Modules</c>. The other list is empty.
+/// </summary>
+public record TeachingProgramDto(
+    string Program, TeachingStatsDto Stats, IReadOnlyList<TeachingTermDto> Terms, IReadOnlyList<TeachingModuleDto> Modules);
+
 public record TeachingDto(
-    string? AcademicYear, TeachingStatsDto Stats, IReadOnlyList<TeachingTermDto> Terms, string? SourceCaption, DateTimeOffset? SourceUpdatedAt);
+    string? AcademicYear, TeachingStatsDto Stats, IReadOnlyList<TeachingProgramDto> Programs, string? SourceCaption, DateTimeOffset? SourceUpdatedAt);
 
 // ---- NCKH
 

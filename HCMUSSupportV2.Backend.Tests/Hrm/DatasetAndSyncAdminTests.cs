@@ -64,7 +64,7 @@ public class DatasetAndSyncAdminTests : IAsyncLifetime
         return new MultipartFormDataContent { { file, "file", fileName } };
     }
 
-    private static readonly string[] TeachingHeaders = ["MSCB", "Năm học", "Học kỳ", "Mã môn học", "Tên môn học", "Mã lớp", "Bậc", "Số tiết", "Số giờ chuẩn"];
+    private static readonly string[] TeachingHeaders = ["MSCB", "Năm học", "Bậc đào tạo", "Học kỳ", "Học phần/chuyên đề", "Mã môn", "Tên môn", "Mã lớp", "Hệ", "Loại hoạt động", "Số tiết", "Giờ chuẩn"];
 
     private async Task<JsonElement> ImportAsync(string dataset, byte[] bytes, HttpStatusCode expected = HttpStatusCode.OK)
     {
@@ -95,7 +95,7 @@ public class DatasetAndSyncAdminTests : IAsyncLifetime
     // ------------------------------------------------------------ templates
 
     [Theory]
-    [InlineData("teaching", "MSCB", "Số giờ chuẩn")]
+    [InlineData("teaching", "MSCB", "Giờ chuẩn")]
     [InlineData("research", "Mã đề tài", "Vai trò")]
     [InlineData("publications", "DOI", "MSCB tác giả")]
     public async Task Templates_download_as_xlsx_with_vietnamese_headers(string dataset, string firstHeader, string lastHeader)
@@ -120,20 +120,20 @@ public class DatasetAndSyncAdminTests : IAsyncLifetime
         await _factory.WithDbAsync(async db =>
         {
             db.Set<TeachingLoad>().AddRange(
-                new TeachingLoad { EmployeeCode = "T0901", AcademicYear = "2023-2024", Term = 1, CourseCode = "OLD1", CourseName = "Giữ lại", ClassCode = "A", Periods = 10, StandardHours = 10 },
-                new TeachingLoad { EmployeeCode = "T0901", AcademicYear = "2024-2025", Term = 1, CourseCode = "GONE", CourseName = "Sẽ bị xóa", ClassCode = "A", Periods = 10, StandardHours = 10 },
-                new TeachingLoad { EmployeeCode = "T0902", AcademicYear = "2024-2025", Term = 1, CourseCode = "MTH1", CourseName = "Giải tích cũ", ClassCode = "A", Periods = 10, StandardHours = 10 });
+                new TeachingLoad { EmployeeCode = "T0901", AcademicYear = "2023-2024", Program = TeachingPrograms.DaiHoc, Term = 1, CourseCode = "OLD1", CourseName = "Giữ lại", ClassCode = "A", Periods = 10, StandardHours = 10 },
+                new TeachingLoad { EmployeeCode = "T0901", AcademicYear = "2024-2025", Program = TeachingPrograms.DaiHoc, Term = 1, Track = "CQ", Activity = "LYTHUYET", CourseCode = "GONE", CourseName = "Sẽ bị xóa", ClassCode = "A", Periods = 10, StandardHours = 10 },
+                new TeachingLoad { EmployeeCode = "T0902", AcademicYear = "2024-2025", Program = TeachingPrograms.DaiHoc, Term = 1, Track = "CQ", Activity = "LYTHUYET", CourseCode = "MTH1", CourseName = "Giải tích cũ", ClassCode = "A", Periods = 10, StandardHours = 10 });
             await db.SaveChangesAsync();
             return 0;
         });
 
         // 1) bad values and an unknown MSCB: rejected, nothing applied.
         var bad = await ImportAsync("teaching", Workbook(TeachingHeaders,
-            ["T0901", "2024-2025", 1, "MTH1", "Giải tích", "A", "dh", 45, 45.5],
-            ["T0901", "2024-2025", 7, "MTH2", "Đại số", "A", "dh", 30, 30],        // bad term
-            ["T0901", "2024/2025", 1, "MTH3", "Xác suất", "A", "dh", 30, 30],      // bad year
-            ["T9999", "2024-2025", 1, "MTH4", "Của người lạ", "A", "dh", 30, 30],  // unknown MSCB
-            ["T0902", "2024-2025", 2, "MTH5", "Thống kê", "B", "dh", "x", 30]));    // bad periods
+            ["T0901", "2024-2025", "Đại học", 1, null, "MTH1", "Giải tích", "A", "CQ", "lythuyet", 45, 45.5],
+            ["T0901", "2024-2025", "Đại học", 7, null, "MTH2", "Đại số", "A", "CQ", "lythuyet", 30, 30],        // bad term
+            ["T0901", "2024/2025", "Đại học", 1, null, "MTH3", "Xác suất", "A", "CQ", "lythuyet", 30, 30],      // bad year
+            ["T9999", "2024-2025", "Đại học", 1, null, "MTH4", "Của người lạ", "A", "CQ", "lythuyet", 30, 30],  // unknown MSCB
+            ["T0902", "2024-2025", "Đại học", 2, null, "MTH5", "Thống kê", "B", "CQ", "lythuyet", "x", 30]));    // bad periods
         Assert.Equal("rejected", bad.GetProperty("status").GetString());
         Assert.Equal(3, bad.GetProperty("badValues").GetArrayLength());
         Assert.Equal("T9999", bad.GetProperty("unknownMscbs")[0].GetString());
@@ -142,10 +142,10 @@ public class DatasetAndSyncAdminTests : IAsyncLifetime
 
         // 2) a clean file: validated with a diff report; the dataset is still untouched.
         var good = await ImportAsync("teaching", Workbook(TeachingHeaders,
-            ["T0901", "2024-2025", 1, "MTH1", "Giải tích", "A", "dh", 45, 45.5],
-            ["T0902", "2024-2025", 1, "MTH1", "Giải tích", "A", "dh", 45, 45.5],
-            ["T0902", "2024-2025", 2, "MTH2", "Đại số", "B", "dh", 30, 30],
-            ["T9999", "2024-2025", 1, "MTH4", "Của người lạ", "A", "dh", 30, 30]));
+            ["T0901", "2024-2025", "Đại học", 1, null, "MTH1", "Giải tích", "A", "CQ", "lythuyet", 45, 45.5],
+            ["T0902", "2024-2025", "Đại học", 1, null, "MTH1", "Giải tích", "A", "CQ", "lythuyet", 45, 45.5],
+            ["T0902", "2024-2025", "Đại học", 2, null, "MTH2", "Đại số", "B", "CQ", "lythuyet", 30, 30],
+            ["T9999", "2024-2025", "Đại học", 1, null, "MTH4", "Của người lạ", "A", "CQ", "lythuyet", 30, 30]));
         Assert.Equal("validated", good.GetProperty("status").GetString());
         Assert.Equal(4, good.GetProperty("totalRows").GetInt32());
         Assert.Equal(2, good.GetProperty("newRows").GetInt32());       // T0901 MTH1 and T0902 MTH2

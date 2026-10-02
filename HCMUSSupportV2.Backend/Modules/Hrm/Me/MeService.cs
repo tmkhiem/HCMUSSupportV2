@@ -231,20 +231,43 @@ public class MeService(AppDbContext db, TimeProvider time)
     public async Task<TeachingDto> TeachingAsync(string code, string? year, CancellationToken ct)
     {
         year ??= (await TeachingYearsAsync(code, ct)).FirstOrDefault();
-        if (year is null) return new TeachingDto(null, new TeachingStatsDto(0, 0, 0), [], null, null);
+        if (year is null) return new TeachingDto(null, TeachingStats([]), [], null, null);
 
         var rows = await db.Set<TeachingLoad>().AsNoTracking()
             .Where(t => t.EmployeeCode == code && t.AcademicYear == year)
-            .OrderBy(t => t.Term).ThenBy(t => t.CourseName).ThenBy(t => t.Id).ToListAsync(ct);
-        var terms = rows.GroupBy(r => r.Term)
-            .Select(g => new TeachingTermDto(g.Key, g.Select(r => new TeachingEntryDto(r.Id, r.CourseCode, r.CourseName, r.ClassCode, r.Level, r.Periods, r.StandardHours)).ToList()))
-            .ToList();
-        var stats = new TeachingStatsDto(rows.Sum(r => r.StandardHours),
+            .OrderBy(t => t.Term).ThenBy(t => t.Module).ThenBy(t => t.CourseName).ThenBy(t => t.Id).ToListAsync(ct);
+
+        static TeachingEntryDto Entry(TeachingLoad r) =>
+            new(r.Id, r.CourseCode, r.CourseName, r.ClassCode, r.Track, r.Activity, r.Periods, r.StandardHours, r.Module);
+
+        var programs = new List<TeachingProgramDto>();
+        foreach (var program in TeachingPrograms.All)
+        {
+            var own = rows.Where(r => r.Program == program).ToList();
+            if (own.Count == 0) continue;
+            IReadOnlyList<TeachingTermDto> terms = [];
+            IReadOnlyList<TeachingModuleDto> modules = [];
+            if (program == TeachingPrograms.DaiHoc)
+            {
+                terms = own.GroupBy(r => r.Term ?? 0).OrderBy(g => g.Key)
+                    .Select(g => new TeachingTermDto(g.Key, g.Select(Entry).ToList())).ToList();
+            }
+            else
+            {
+                // Named modules first (alphabetical), the "no module" group last.
+                modules = own.GroupBy(r => r.Module).OrderBy(g => g.Key is null).ThenBy(g => g.Key, StringComparer.CurrentCultureIgnoreCase)
+                    .Select(g => new TeachingModuleDto(g.Key, g.Select(Entry).ToList())).ToList();
+            }
+            programs.Add(new TeachingProgramDto(program, TeachingStats(own), terms, modules));
+        }
+        var updated = rows.Count == 0 ? (DateTimeOffset?)null : rows.Max(r => r.UpdatedAt);
+        return new TeachingDto(year, TeachingStats(rows), programs, rows.Count == 0 ? null : $"Nguồn: Phòng Đào tạo, năm học {year}", updated);
+    }
+
+    private static TeachingStatsDto TeachingStats(IReadOnlyCollection<TeachingLoad> rows) =>
+        new(rows.Sum(r => r.StandardHours),
             rows.Select(r => r.ClassCode ?? r.CourseCode ?? r.CourseName).Distinct().Count(),
             rows.Select(r => r.CourseCode ?? r.CourseName).Distinct().Count());
-        var updated = rows.Count == 0 ? (DateTimeOffset?)null : rows.Max(r => r.UpdatedAt);
-        return new TeachingDto(year, stats, terms, rows.Count == 0 ? null : $"Nguồn: Phòng Đào tạo, năm học {year}", updated);
-    }
 
     // ---------------------------------------------------------------- research
 

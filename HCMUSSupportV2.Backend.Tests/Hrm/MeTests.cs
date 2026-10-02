@@ -119,10 +119,13 @@ public class MeTests : IAsyncLifetime
         await _factory.WithDbAsync(async db =>
         {
             db.Set<TeachingLoad>().AddRange(
-                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2023-2024", Term = 1, CourseCode = "MTH101", CourseName = "Giải tích", ClassCode = "23A1", Level = "dh", Periods = 45, StandardHours = 45 },
-                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2023-2024", Term = 2, CourseCode = "MTH102", CourseName = "Đại số", ClassCode = "23A1", Level = "dh", Periods = 30, StandardHours = 30.5m },
-                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2022-2023", Term = 1, CourseCode = "MTH101", CourseName = "Giải tích", ClassCode = "22A1", Level = "dh", Periods = 45, StandardHours = 45 },
-                new TeachingLoad { EmployeeCode = Bob, AcademicYear = "2024-2025", Term = 1, CourseCode = "PHY1", CourseName = "Của Bob", ClassCode = "B", Level = "dh", Periods = 10, StandardHours = 10 });
+                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2023-2024", Term = 1, CourseCode = "MTH101", CourseName = "Giải tích", ClassCode = "23A1", Program = TeachingPrograms.DaiHoc, Track = "CQ", Activity = "LYTHUYET", Periods = 45, StandardHours = 45 },
+                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2023-2024", Term = 2, CourseCode = "MTH102", CourseName = "Đại số", ClassCode = "23A1", Program = TeachingPrograms.DaiHoc, Track = "CQ", Activity = "LYTHUYET", Periods = 30, StandardHours = 30.5m },
+                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2022-2023", Term = 1, CourseCode = "MTH101", CourseName = "Giải tích", ClassCode = "22A1", Program = TeachingPrograms.DaiHoc, Track = "CQ", Activity = "LYTHUYET", Periods = 45, StandardHours = 45 },
+                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2023-2024", Program = TeachingPrograms.CaoHoc, Module = "Học phần 3", CourseCode = "MTH601", CourseName = "Giải tích nâng cao", ClassCode = "CH23", Track = "CH", Activity = "LYTHUYET", Periods = 30, StandardHours = 20 },
+                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2023-2024", Program = TeachingPrograms.CaoHoc, CourseCode = "MTH602", CourseName = "Chuyên đề không rõ học phần", ClassCode = "CH23", Activity = "SEMINARTN", Periods = 15, StandardHours = 5 },
+                new TeachingLoad { EmployeeCode = Alice, AcademicYear = "2023-2024", Program = TeachingPrograms.TienSi, Module = "CĐTS", CourseName = "Chuyên đề tiến sĩ", Activity = "CHUANBI", Periods = 15, StandardHours = 7.5m },
+                new TeachingLoad { EmployeeCode = Bob, AcademicYear = "2024-2025", Term = 1, CourseCode = "PHY1", CourseName = "Của Bob", ClassCode = "B", Program = TeachingPrograms.DaiHoc, Track = "CQ", Activity = "LYTHUYET", Periods = 10, StandardHours = 10 });
             var p1 = new ResearchProject { Code = "DT-ALICE", Title = "Đề tài của Alice", Level = "Cơ sở", ResearchType = "Cơ bản", Funding = 50_000_000m, PeriodText = "2022-2023", Result = "Đạt" };
             var p2 = new ResearchProject { Code = "DT-BOB", Title = "Đề tài của Bob", Level = "Bộ" };
             db.Set<ResearchProject>().AddRange(p1, p2);
@@ -278,12 +281,33 @@ public class MeTests : IAsyncLifetime
         Assert.Equal(["2023-2024", "2022-2023"], (await GetJsonAsync(alice, "/api/me/teaching/years")).EnumerateArray().Select(y => y.GetString()).ToArray());
         var teaching = await GetJsonAsync(alice, "/api/me/teaching");   // defaults to the latest year
         Assert.Equal("2023-2024", teaching.GetProperty("academicYear").GetString());
-        Assert.Equal(75.5m, teaching.GetProperty("stats").GetProperty("totalStandardHours").GetDecimal());
-        Assert.Equal(2, teaching.GetProperty("terms").GetArrayLength());
+        Assert.Equal(108m, teaching.GetProperty("stats").GetProperty("totalStandardHours").GetDecimal());   // across all programs
+        Assert.False(teaching.TryGetProperty("terms", out _));
+        var programs = teaching.GetProperty("programs").EnumerateArray().ToList();
+        Assert.Equal(["dai_hoc", "cao_hoc", "tien_si"], programs.Select(p => p.GetProperty("program").GetString()).ToArray());
+        var dh = programs[0];
+        Assert.Equal(75.5m, dh.GetProperty("stats").GetProperty("totalStandardHours").GetDecimal());
+        Assert.Equal(2, dh.GetProperty("terms").GetArrayLength());
+        Assert.Equal(0, dh.GetProperty("modules").GetArrayLength());
+        var firstTerm = dh.GetProperty("terms")[0];
+        Assert.Equal(1, firstTerm.GetProperty("term").GetInt32());
+        var entry = firstTerm.GetProperty("items")[0];
+        Assert.Equal("CQ", entry.GetProperty("track").GetString());
+        Assert.Equal("LYTHUYET", entry.GetProperty("activity").GetString());
+        Assert.Equal(JsonValueKind.Null, entry.GetProperty("module").ValueKind);
+        var ch = programs[1];
+        Assert.Equal(25m, ch.GetProperty("stats").GetProperty("totalStandardHours").GetDecimal());
+        Assert.Equal(0, ch.GetProperty("terms").GetArrayLength());
+        var modules = ch.GetProperty("modules").EnumerateArray().ToList();
+        Assert.Equal(2, modules.Count);
+        Assert.Equal("Học phần 3", modules[0].GetProperty("module").GetString());
+        Assert.Equal(JsonValueKind.Null, modules[1].GetProperty("module").ValueKind);   // the "no module" group comes last
+        Assert.Equal("CĐTS", programs[2].GetProperty("modules")[0].GetProperty("module").GetString());
         var older = await GetJsonAsync(alice, "/api/me/teaching?year=2022-2023");
         Assert.Equal(45m, older.GetProperty("stats").GetProperty("totalStandardHours").GetDecimal());
+        Assert.Single(older.GetProperty("programs").EnumerateArray().ToList());
         var none = await GetJsonAsync(alice, "/api/me/teaching?year=1999-2000");
-        Assert.Equal(0, none.GetProperty("terms").GetArrayLength());
+        Assert.Equal(0, none.GetProperty("programs").GetArrayLength());
 
         var projects = await GetJsonAsync(alice, "/api/me/research/projects");
         var project = Assert.Single(projects.GetProperty("items").EnumerateArray().ToList());

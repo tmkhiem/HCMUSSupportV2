@@ -122,15 +122,21 @@ public class TeachingLoadConfiguration : IEntityTypeConfiguration<TeachingLoad>
 {
     public void Configure(EntityTypeBuilder<TeachingLoad> b)
     {
-        b.ToTable("teaching_loads", t => t.HasCheckConstraint("ck_teaching_loads_term", "term BETWEEN 1 AND 3"));
+        b.ToTable("teaching_loads", t =>
+        {
+            t.HasCheckConstraint("ck_teaching_loads_program", "program IN ('dai_hoc','cao_hoc','tien_si')");
+            t.HasCheckConstraint("ck_teaching_loads_term",
+                "(program = 'dai_hoc' AND term IS NOT NULL AND term BETWEEN 1 AND 3) OR (program <> 'dai_hoc' AND term IS NULL)");
+        });
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).UseIdentityAlwaysColumn();
         b.Property(x => x.EmployeeCode).IsRequired().HasMaxLength(50);
         b.Property(x => x.AcademicYear).IsRequired().HasMaxLength(9);
+        b.Property(x => x.Program).IsRequired().HasMaxLength(10);
         b.Property(x => x.CourseName).IsRequired();
         b.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
         b.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
-        b.HasIndex(x => new { x.EmployeeCode, x.AcademicYear, x.Term });
+        b.HasIndex(x => new { x.EmployeeCode, x.AcademicYear, x.Program, x.Term });
         b.HasIndex(x => x.AcademicYear);
         b.HasOne<Employee>().WithMany().HasForeignKey(x => x.EmployeeCode).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<DatasetImport>().WithMany().HasForeignKey(x => x.SourceImportId).OnDelete(DeleteBehavior.SetNull);

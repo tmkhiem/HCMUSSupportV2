@@ -209,17 +209,34 @@ public class Innovation : IHrmRow
 
 // ---- Admin Excel datasets (teaching, research, publications) ----
 
+public static class TeachingPrograms
+{
+    public const string DaiHoc = "dai_hoc";
+    public const string CaoHoc = "cao_hoc";
+    public const string TienSi = "tien_si";
+    /// <summary>Display order.</summary>
+    public static readonly string[] All = [DaiHoc, CaoHoc, TienSi];
+}
+
 public class TeachingLoad
 {
     public long Id { get; set; }
     public string EmployeeCode { get; set; } = "";
     /// <summary>"2024-2025".</summary>
     public string AcademicYear { get; set; } = "";
-    public int Term { get; set; }
+    /// <summary><see cref="TeachingPrograms"/>: <c>dai_hoc</c>, <c>cao_hoc</c> or <c>tien_si</c>.</summary>
+    public string Program { get; set; } = TeachingPrograms.DaiHoc;
+    /// <summary>Học kỳ 1..3. Only undergraduate teaching has a term; it is null for the postgraduate programs.</summary>
+    public int? Term { get; set; }
+    /// <summary>Học phần / chuyên đề (postgraduate only: "Học phần 3", "CĐTS", "HPTS", or a chuyên ngành). Null for <c>dai_hoc</c>.</summary>
+    public string? Module { get; set; }
     public string? CourseCode { get; set; }
     public string CourseName { get; set; } = "";
     public string? ClassCode { get; set; }
-    public string? Level { get; set; }
+    /// <summary>Hệ / program type (CQ, CLC, ...), free text.</summary>
+    public string? Track { get; set; }
+    /// <summary>v1-style activity code (LYTHUYET, THUCHANH, BAITAP, TROGIANG, CHUANBI, KHOALUANTN, SEMINARTN, ...), free text.</summary>
+    public string? Activity { get; set; }
     public int Periods { get; set; }
     [Column(TypeName = "numeric(7,2)")] public decimal StandardHours { get; set; }
     public Guid? SourceImportId { get; set; }

@@ -50,13 +50,16 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
     [
         new("mscb", "MSCB", true, "Mã số cán bộ"),
         new("year", "Năm học", true, "Ví dụ 2024-2025"),
-        new("term", "Học kỳ", true, "1, 2 hoặc 3"),
-        new("course_code", "Mã môn học", false, ""),
-        new("course_name", "Tên môn học", true, ""),
+        new("program", "Bậc đào tạo", true, "Đại học, Cao học hoặc Tiến sĩ"),
+        new("term", "Học kỳ", false, "1, 2 hoặc 3: bắt buộc với bậc Đại học, phải để trống với Cao học và Tiến sĩ"),
+        new("module", "Học phần/chuyên đề", false, "Chỉ dùng cho Cao học và Tiến sĩ, ví dụ Học phần 3, CĐTS, HPTS; để trống với bậc Đại học"),
+        new("course_code", "Mã môn", false, ""),
+        new("course_name", "Tên môn", true, ""),
         new("class_code", "Mã lớp", false, ""),
-        new("level", "Bậc", false, "dh, sdh, ..."),
+        new("track", "Hệ", false, "Loại chương trình, ví dụ CQ, CLC"),
+        new("activity", "Loại hoạt động", false, "Ví dụ LYTHUYET, THUCHANH, BAITAP, TROGIANG, CHUANBI, KHOALUANTN, SEMINARTN"),
         new("periods", "Số tiết", false, "Số nguyên"),
-        new("hours", "Số giờ chuẩn", true, "Số thập phân"),
+        new("hours", "Giờ chuẩn", true, "Số thập phân"),
     ];
 
     private static readonly Column[] ResearchColumns =
@@ -122,7 +125,7 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
         }
         help.Cell(columns.Length + 4, 1).Value = dataset switch
         {
-            DatasetNames.Teaching => "Khi áp dụng, dữ liệu của từng năm học có trong tệp sẽ được thay thế hoàn toàn.",
+            DatasetNames.Teaching => "Khi áp dụng, dữ liệu của từng cặp (năm học, bậc đào tạo) có trong tệp sẽ được thay thế hoàn toàn; các bậc khác của cùng năm học được giữ nguyên.",
             _ => "Khi áp dụng, toàn bộ dữ liệu hiện có của bộ dữ liệu này sẽ được thay thế bằng nội dung tệp.",
         };
         help.Columns().AdjustToContents();
@@ -134,11 +137,6 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
 
     // ------------------------------------------------------------------ parsed rows
 
-    private sealed record TeachingRowData(int Row, string Mscb, string Year, int Term, string? CourseCode, string CourseName, string? ClassCode, string? Level, int Periods, decimal Hours)
-    {
-        public string Key => string.Join('|', Mscb, Year, Term, CourseCode ?? "", ClassCode ?? "");
-    }
-
     private sealed record ResearchRowData(int Row, string Code, string Title, string? Level, string? Type, decimal? Funding, string? Period, DateOnly? Accepted, string? Result, string? Mscb, string Role);
 
     private sealed record PublicationRowData(int Row, string? Doi, string? Eid, string Title, string? Venue, int? Year, string? Details, string? Url, IReadOnlyList<string> Authors)
@@ -149,7 +147,7 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
     private sealed class Parsed
     {
         public List<ImportIssueDto> Bad { get; } = [];
-        public List<TeachingRowData> Teaching { get; } = [];
+        public List<TeachingLoadRow> Teaching { get; } = [];
         public List<ResearchRowData> Research { get; } = [];
         public List<PublicationRowData> Publications { get; } = [];
     }
@@ -223,19 +221,20 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
     private static void ParseTeaching(IXLRow row, int r, Func<IXLRow, string, string?> text, Action<int, string, string> bad, Parsed parsed)
     {
         var errors = parsed.Bad.Count;
-        var mscb = text(row, "mscb");
-        if (mscb is null) bad(r, "mscb", "Thiếu MSCB.");
-        var year = text(row, "year");
-        if (year is null || !System.Text.RegularExpressions.Regex.IsMatch(year, @"^\d{4}-\d{4}$") || int.Parse(year[5..]) != int.Parse(year[..4]) + 1)
-            bad(r, "year", "Năm học phải có dạng 2024-2025.");
-        if (!int.TryParse(text(row, "term"), out var term) || term is < 1 or > 3) bad(r, "term", "Học kỳ phải là 1, 2 hoặc 3.");
-        var name = text(row, "course_name");
-        if (name is null) bad(r, "course_name", "Thiếu tên môn học.");
+        int? term = null;
+        if (text(row, "term") is { } t)
+        {
+            if (int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ti)) term = ti;
+            else bad(r, "term", TeachingLoadRules.TermMessage);
+        }
         var periods = 0;
         if (text(row, "periods") is { } p && (!int.TryParse(p, NumberStyles.Integer, CultureInfo.InvariantCulture, out periods) || periods < 0)) bad(r, "periods", "Số tiết phải là số nguyên không âm.");
-        if (!TryDecimal(text(row, "hours"), out var hours) || hours < 0 || hours > 99999) bad(r, "hours", "Số giờ chuẩn phải là số không âm.");
-        if (parsed.Bad.Count == errors)
-            parsed.Teaching.Add(new TeachingRowData(r, mscb!, year!, term, text(row, "course_code"), name!, text(row, "class_code"), text(row, "level"), periods, hours));
+        if (!TryDecimal(text(row, "hours"), out var hours) || hours < 0 || hours > 99999) bad(r, "hours", "Giờ chuẩn phải là số không âm.");
+        if (parsed.Bad.Count > errors) return;
+
+        var raw = new TeachingLoadRow(text(row, "mscb") ?? "", text(row, "year") ?? "", text(row, "program") ?? "", term, text(row, "module"),
+            text(row, "course_code"), text(row, "course_name") ?? "", text(row, "class_code"), text(row, "track"), text(row, "activity"), periods, hours);
+        if (TeachingLoadRules.TryNormalize(raw, r, parsed.Bad, out var normalized)) parsed.Teaching.Add(normalized);
     }
 
     private static void ParseResearch(IXLRow row, int r, Func<IXLRow, string, string?> text, Action<int, string, string> bad, Parsed parsed, IXLWorksheet ws)
@@ -360,22 +359,7 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
         {
             case DatasetNames.Teaching:
             {
-                total = parsed.Teaching.Count;
-                var known = await KnownCodesAsync(parsed.Teaching.Select(t => t.Mscb), ct);
-                foreach (var dup in parsed.Teaching.GroupBy(t => t.Key).Where(g => g.Count() > 1))
-                    bad.Add(new(dup.Skip(1).First().Row, "MSCB", $"Dòng trùng với dòng {dup.First().Row} (cùng MSCB, năm học, học kỳ, môn, lớp)."));
-                var ok = parsed.Teaching.Where(t => known.Contains(t.Mscb)).ToList();
-                foreach (var t in parsed.Teaching.Where(t => !known.Contains(t.Mscb))) unknown.Add(t.Mscb);
-                years = parsed.Teaching.Select(t => t.Year).Distinct().OrderByDescending(y => y).ToList();
-                var existing = await db.Set<TeachingLoad>().AsNoTracking().Where(t => years.Contains(t.AcademicYear)).ToListAsync(ct);
-                var existingByKey = existing.GroupBy(e => TeachingKey(e)).ToDictionary(g => g.Key, g => g.First());
-                var fileKeys = ok.Select(t => t.Key).ToHashSet();
-                foreach (var t in ok.DistinctBy(t => t.Key))
-                {
-                    if (!existingByKey.TryGetValue(t.Key, out var e)) added++;
-                    else if (e.CourseName != t.CourseName || e.Level != t.Level || e.Periods != t.Periods || e.StandardHours != t.Hours) updated++;
-                }
-                removed = existing.Count(e => !fileKeys.Contains(TeachingKey(e)));
+                (total, added, updated, removed, years) = await BuildTeachingReportAsync(parsed.Teaching, bad, unknown, ct);
                 break;
             }
             case DatasetNames.Research:
@@ -427,7 +411,33 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
             unknown.ToList(), bad.OrderBy(b => b.Row).ToList(), years);
     }
 
-    private static string TeachingKey(TeachingLoad t) => string.Join('|', t.EmployeeCode, t.AcademicYear, t.Term, t.CourseCode ?? "", t.ClassCode ?? "");
+    /// <summary>
+    /// Diff of already-validated teaching rows against the stored ones: duplicate and unknown-MSCB findings are appended to
+    /// <paramref name="bad"/> and <paramref name="unknown"/>. Reusable for any row source (xlsx today, the legacy JSON endpoint later).
+    /// </summary>
+    public async Task<(int Total, int New, int Updated, int Removed, IReadOnlyList<string> Years)> BuildTeachingReportAsync(
+        IReadOnlyList<TeachingLoadRow> rows, ICollection<ImportIssueDto> bad, ISet<string> unknown, CancellationToken ct)
+    {
+        var known = await KnownCodesAsync(rows.Select(t => t.EmployeeCode), ct);
+        foreach (var dup in rows.GroupBy(t => t.Key).Where(g => g.Count() > 1))
+            bad.Add(new(dup.Skip(1).First().SourceRow, "MSCB", $"Dòng trùng với dòng {dup.First().SourceRow} (cùng MSCB, năm học, bậc đào tạo, học kỳ, học phần, môn, lớp, hệ, loại hoạt động)."));
+        var ok = rows.Where(t => known.Contains(t.EmployeeCode)).ToList();
+        foreach (var t in rows.Where(t => !known.Contains(t.EmployeeCode))) unknown.Add(t.EmployeeCode);
+        var years = rows.Select(t => t.AcademicYear).Distinct().OrderByDescending(y => y).ToList();
+        var scopes = rows.Select(t => (t.AcademicYear, t.Program)).Distinct().ToList();
+        var existing = (await db.Set<TeachingLoad>().AsNoTracking().Where(t => years.Contains(t.AcademicYear)).ToListAsync(ct))
+            .Where(e => scopes.Contains((e.AcademicYear, e.Program))).ToList();
+        var existingByKey = existing.GroupBy(e => TeachingLoadRow.KeyOf(e)).ToDictionary(g => g.Key, g => g.First());
+        var fileKeys = ok.Select(t => t.Key).ToHashSet();
+        int added = 0, updated = 0;
+        foreach (var t in ok.DistinctBy(t => t.Key))
+        {
+            if (!existingByKey.TryGetValue(t.Key, out var e)) added++;
+            else if (e.CourseName != t.CourseName || e.Periods != t.Periods || e.StandardHours != t.StandardHours) updated++;
+        }
+        var removed = existing.Count(e => !fileKeys.Contains(TeachingLoadRow.KeyOf(e)));
+        return (rows.Count, added, updated, removed, years);
+    }
 
     private static string PublicationKey(Publication p) =>
         !string.IsNullOrEmpty(p.Doi) ? "doi:" + p.Doi.ToLowerInvariant() : !string.IsNullOrEmpty(p.Eid) ? "eid:" + p.Eid.ToLowerInvariant() : $"title:{p.Title.ToLowerInvariant()}|{p.Year}";
@@ -465,15 +475,22 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
         return report;
     }
 
-    private async Task ApplyTeachingAsync(Parsed parsed, Guid importId, CancellationToken ct)
+    private Task ApplyTeachingAsync(Parsed parsed, Guid importId, CancellationToken ct) => ApplyTeachingRowsAsync(parsed.Teaching, importId, ct);
+
+    /// <summary>
+    /// Replaces the teaching rows of every (academic year, program) present in <paramref name="rows"/> (other programs and
+    /// years are untouched), skipping unknown MSCBs. Callers wrap it in a transaction.
+    /// </summary>
+    public async Task ApplyTeachingRowsAsync(IReadOnlyList<TeachingLoadRow> rows, Guid? importId, CancellationToken ct)
     {
-        var known = await KnownCodesAsync(parsed.Teaching.Select(t => t.Mscb), ct);
-        var years = parsed.Teaching.Select(t => t.Year).Distinct().ToList();
-        await db.Set<TeachingLoad>().Where(t => years.Contains(t.AcademicYear)).ExecuteDeleteAsync(ct);
-        db.Set<TeachingLoad>().AddRange(parsed.Teaching.Where(t => known.Contains(t.Mscb)).Select(t => new TeachingLoad
+        var known = await KnownCodesAsync(rows.Select(t => t.EmployeeCode), ct);
+        foreach (var (year, program) in rows.Select(t => (t.AcademicYear, t.Program)).Distinct())
+            await db.Set<TeachingLoad>().Where(t => t.AcademicYear == year && t.Program == program).ExecuteDeleteAsync(ct);
+        db.Set<TeachingLoad>().AddRange(rows.Where(t => known.Contains(t.EmployeeCode)).Select(t => new TeachingLoad
         {
-            EmployeeCode = t.Mscb, AcademicYear = t.Year, Term = t.Term, CourseCode = t.CourseCode, CourseName = t.CourseName,
-            ClassCode = t.ClassCode, Level = t.Level, Periods = t.Periods, StandardHours = t.Hours, SourceImportId = importId,
+            EmployeeCode = t.EmployeeCode, AcademicYear = t.AcademicYear, Program = t.Program, Term = t.Term, Module = t.Module,
+            CourseCode = t.CourseCode, CourseName = t.CourseName, ClassCode = t.ClassCode, Track = t.Track, Activity = t.Activity,
+            Periods = t.Periods, StandardHours = t.StandardHours, SourceImportId = importId,
         }));
         await db.SaveChangesAsync(ct);
     }
@@ -515,5 +532,88 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
             }
         }
         await db.SaveChangesAsync(ct);
+    }
+}
+
+/// <summary>
+/// One teaching-load line, the single row model behind the admin xlsx import and the (future) legacy JSON endpoint
+/// <c>POST /api/integration/v1/legacy/datasets/teaching</c>. JSON shape: <c>{employeeCode, academicYear, program, term, module,
+/// courseCode, courseName, classCode, track, activity, periods, standardHours}</c>.
+/// </summary>
+public record TeachingLoadRow(
+    string EmployeeCode, string AcademicYear, string Program, int? Term, string? Module, string? CourseCode, string CourseName,
+    string? ClassCode, string? Track, string? Activity, int Periods, decimal StandardHours)
+{
+    /// <summary>1-based spreadsheet row (or JSON array index + 1) for report messages; not part of the identity.</summary>
+    public int SourceRow { get; init; }
+
+    /// <summary>Identity (and replace) key: reimporting the same rows is idempotent and other programs are never matched.</summary>
+    public string Key => KeyOf(EmployeeCode, AcademicYear, Program, Term, Module, CourseCode, ClassCode, Track, Activity);
+
+    public static string KeyOf(TeachingLoad t) => KeyOf(t.EmployeeCode, t.AcademicYear, t.Program, t.Term, t.Module, t.CourseCode, t.ClassCode, t.Track, t.Activity);
+
+    private static string KeyOf(string mscb, string year, string program, int? term, string? module, string? course, string? cls, string? track, string? activity) =>
+        string.Join('|', mscb, year, program, term?.ToString(CultureInfo.InvariantCulture) ?? "", module ?? "", course ?? "", cls ?? "", track ?? "", activity ?? "");
+}
+
+/// <summary>Validation and normalisation of one <see cref="TeachingLoadRow"/>; shared by the xlsx and JSON feeds.</summary>
+public static class TeachingLoadRules
+{
+    public const string TermMessage = "Học kỳ phải là 1, 2 hoặc 3.";
+
+    /// <summary>Maps "Đại học", "cao hoc", "TIẾN SĨ", "dai_hoc", ... to the stored program code, or null.</summary>
+    public static string? ParseProgram(string? text)
+    {
+        if (text is null) return null;
+        var sb = new StringBuilder();
+        foreach (var c in text.Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
+            if (c is 'đ' or 'Đ') { sb.Append('d'); continue; }
+            if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+        }
+        return sb.ToString() switch
+        {
+            "daihoc" => TeachingPrograms.DaiHoc,
+            "caohoc" => TeachingPrograms.CaoHoc,
+            "tiensi" => TeachingPrograms.TienSi,
+            _ => null,
+        };
+    }
+
+    private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    /// <summary>
+    /// Validates <paramref name="raw"/> (its <c>Program</c> may be free text) and returns the normalised row; problems are appended
+    /// to <paramref name="bad"/> as Vietnamese messages naming the xlsx column.
+    /// </summary>
+    public static bool TryNormalize(TeachingLoadRow raw, int sourceRow, ICollection<ImportIssueDto> bad, out TeachingLoadRow normalized)
+    {
+        var errors = 0;
+        void Fail(string column, string message) { bad.Add(new(sourceRow, column, message)); errors++; }
+
+        var mscb = Clean(raw.EmployeeCode);
+        if (mscb is null) Fail("MSCB", "Thiếu MSCB.");
+        var year = Clean(raw.AcademicYear);
+        if (year is null || !System.Text.RegularExpressions.Regex.IsMatch(year, @"^\d{4}-\d{4}$") || int.Parse(year[5..]) != int.Parse(year[..4]) + 1)
+            Fail("Năm học", "Năm học phải có dạng 2024-2025.");
+        var program = ParseProgram(raw.Program);
+        if (program is null) Fail("Bậc đào tạo", "Bậc đào tạo phải là Đại học, Cao học hoặc Tiến sĩ.");
+        var module = Clean(raw.Module);
+        if (program == TeachingPrograms.DaiHoc)
+        {
+            if (raw.Term is null or < 1 or > 3) Fail("Học kỳ", "Học kỳ phải là 1, 2 hoặc 3 đối với bậc Đại học.");
+            if (module is not null) Fail("Học phần/chuyên đề", "Học phần/chuyên đề chỉ dùng cho bậc Cao học và Tiến sĩ; hãy để trống với bậc Đại học.");
+        }
+        else if (program is not null && raw.Term is not null) Fail("Học kỳ", "Học kỳ phải để trống đối với bậc Cao học và Tiến sĩ.");
+        var name = Clean(raw.CourseName);
+        if (name is null) Fail("Tên môn", "Thiếu tên môn.");
+        if (raw.Periods < 0) Fail("Số tiết", "Số tiết phải là số nguyên không âm.");
+        if (raw.StandardHours is < 0 or > 99999) Fail("Giờ chuẩn", "Giờ chuẩn phải là số không âm.");
+
+        normalized = errors > 0 ? raw : new TeachingLoadRow(mscb!, year!, program!, program == TeachingPrograms.DaiHoc ? raw.Term : null,
+            program == TeachingPrograms.DaiHoc ? null : module, Clean(raw.CourseCode), name!, Clean(raw.ClassCode), Clean(raw.Track),
+            Clean(raw.Activity)?.ToUpperInvariant(), raw.Periods, raw.StandardHours) { SourceRow = sourceRow };
+        return errors == 0;
     }
 }
