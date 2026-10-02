@@ -7,7 +7,8 @@ import { alpha } from '@mui/material/styles'
 import AcrylicCard from '../../../ui/AcrylicCard'
 import SectionLabel from '../../../ui/SectionLabel'
 import type { CommendationGroup } from '../careerApi'
-import { academicYearLabel, formatCommendationDate } from '../careerFormat'
+import { formatPartialDate } from '../../../lib/partialDate'
+import { academicYearLabel } from '../careerFormat'
 
 export type CommendationKind = 'award' | 'title'
 
@@ -58,7 +59,7 @@ export default function CommendationGroups({
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     {item.decisionNo ? `QĐ ${item.decisionNo}` : 'Chưa có số quyết định'}
                     {' · '}
-                    {formatCommendationDate(item.decidedOn)}
+                    {formatPartialDate(item.decidedOn)}
                   </Typography>
                 </Box>
               </AcrylicCard>

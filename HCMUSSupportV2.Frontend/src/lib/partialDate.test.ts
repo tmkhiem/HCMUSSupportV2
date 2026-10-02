@@ -14,6 +14,7 @@ describe('formatPartialDate', () => {
   })
   it('gives a dash when missing or unparseable', () => {
     expect(formatPartialDate(null)).toBe('—')
+    expect(formatPartialDate(undefined)).toBe('—')
     expect(formatPartialDate({ date: null, precision: 'day' })).toBe('—')
     expect(formatPartialDate({ date: 'not a date', precision: 'year' })).toBe('—')
   })

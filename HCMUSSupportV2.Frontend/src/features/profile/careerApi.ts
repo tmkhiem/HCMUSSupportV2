@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { http } from '../../api/http'
+import { meClient } from '../../api/clients'
 import { MOCK_AUTH } from '../../auth/useMe'
+import type { PartialDate } from '../../lib/partialDate'
+import { toCommendations, toPositions, toSalary } from './meMappers'
 
 /*
- * Hồ sơ: Quá trình lương, Chức vụ, Khen thưởng (D11). The NSwag client has no Hrm endpoints yet, so these are
- * hand-written against `HCMUSSupportV2.Backend/Modules/Hrm/Me/MeDtos.cs` (camelCase on the wire, `DateOnly` as
- * `yyyy-MM-dd`) through the shared `http` layer. Under `VITE_MOCK_AUTH` they return synthetic data, no network.
+ * Hồ sơ: Quá trình lương, Chức vụ, Khen thưởng (D11). The view-model types below are what the pages use; responses come
+ * from the generated `meClient` and are mapped by `meMappers.ts` (dates as `yyyy-MM-dd` strings, `null` for missing).
+ * Under `VITE_MOCK_AUTH` in dev the hooks return synthetic data (`careerMock.ts`), no network; production builds drop it.
  */
 
 // ---- Lương
@@ -64,17 +66,11 @@ export interface Positions {
 
 // ---- Khen thưởng
 
-/** A decision date whose day or month may be unknown (`PartialDateDto`). */
-export interface CommendationDate {
-  date?: string | null
-  precision?: string | null
-}
-
 export interface CommendationEntry {
   id: number
   name: string
   decisionNo: string | null
-  decidedOn: CommendationDate
+  decidedOn: PartialDate
 }
 
 /** `academicYear` is null for entries without one (listed last). */
@@ -91,25 +87,26 @@ export interface Commendations {
 }
 
 const mock = () => import('./careerMock')
+// `import.meta.env.DEV && MOCK_AUTH` is written out at every use (like the inbox): the bundler folds it to `false`
+// and drops the dynamic import, so the synthetic data never ships in a production build.
 
 export function useSalary() {
   return useQuery({
     queryKey: ['me', 'salary'],
-    queryFn: async () => (MOCK_AUTH ? (await mock()).loadMockSalary() : http.get<Salary>('/api/me/salary')),
+    queryFn: async () => (import.meta.env.DEV && MOCK_AUTH ? (await mock()).loadMockSalary() : toSalary(await meClient.salary())),
   })
 }
 
 export function usePositions() {
   return useQuery({
     queryKey: ['me', 'positions'],
-    queryFn: async () => (MOCK_AUTH ? (await mock()).loadMockPositions() : http.get<Positions>('/api/me/positions')),
+    queryFn: async () => (import.meta.env.DEV && MOCK_AUTH ? (await mock()).loadMockPositions() : toPositions(await meClient.positions())),
   })
 }
 
 export function useCommendations() {
   return useQuery({
     queryKey: ['me', 'commendations'],
-    queryFn: async () =>
-      MOCK_AUTH ? (await mock()).loadMockCommendations() : http.get<Commendations>('/api/me/commendations'),
+    queryFn: async () => (import.meta.env.DEV && MOCK_AUTH ? (await mock()).loadMockCommendations() : toCommendations(await meClient.commendations())),
   })
 }

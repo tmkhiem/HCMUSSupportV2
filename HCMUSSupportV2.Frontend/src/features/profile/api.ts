@@ -1,12 +1,14 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { http } from '../../api/http'
+import { meClient } from '../../api/clients'
+import { RevealRequest } from '../../api/generated-client'
 import { MOCK_AUTH } from '../../auth/useMe'
 import type { PartialDate } from '../../lib/partialDate'
+import { toDetailed, toGeneral, toOverview } from './meMappers'
 
 /*
- * Hồ sơ cá nhân: the three reads of D10 and the audited reveal. The NSwag client has no Hrm endpoints yet, so these
- * are hand-written against `HCMUSSupportV2.Backend/Modules/Hrm/Me/MeDtos.cs` (camelCase on the wire) through the
- * shared `http` layer (cookies, XSRF, ApiError). Under `VITE_MOCK_AUTH` they return synthetic data, no network.
+ * Hồ sơ cá nhân: the three reads of D10 and the audited reveal. The view-model types below are what the pages use;
+ * responses come from the generated `meClient` and are mapped by `meMappers.ts` (dates as `yyyy-MM-dd` strings, `null` for
+ * missing). Under `VITE_MOCK_AUTH` in dev the hooks return synthetic data (`mockData.ts`), no network; production builds drop it.
  */
 
 // ---- Overview
@@ -114,11 +116,13 @@ export const profileKeys = {
 }
 
 const mock = () => import('./mockData')
+// `import.meta.env.DEV && MOCK_AUTH` is written out at every use (like the inbox): the bundler folds it to `false`
+// and drops the dynamic import, so the synthetic data never ships in a production build.
 
 export function useProfileOverview() {
   return useQuery({
     queryKey: profileKeys.overview,
-    queryFn: async () => (MOCK_AUTH ? (await mock()).mockOverview : http.get<ProfileOverview>('/api/me/profile/overview')),
+    queryFn: async () => (import.meta.env.DEV && MOCK_AUTH ? (await mock()).mockOverview : toOverview(await meClient.overview())),
     retry: false,
   })
 }
@@ -126,7 +130,7 @@ export function useProfileOverview() {
 export function useGeneralProfile() {
   return useQuery({
     queryKey: profileKeys.general,
-    queryFn: async () => (MOCK_AUTH ? (await mock()).mockGeneral : http.get<GeneralProfile>('/api/me/profile/general')),
+    queryFn: async () => (import.meta.env.DEV && MOCK_AUTH ? (await mock()).mockGeneral : toGeneral(await meClient.general())),
     retry: false,
   })
 }
@@ -134,16 +138,16 @@ export function useGeneralProfile() {
 export function useDetailedProfile() {
   return useQuery({
     queryKey: profileKeys.detailed,
-    queryFn: async () => (MOCK_AUTH ? (await mock()).mockDetailed : http.get<DetailedProfile>('/api/me/profile/detailed')),
+    queryFn: async () => (import.meta.env.DEV && MOCK_AUTH ? (await mock()).mockDetailed : toDetailed(await meClient.detailed())),
     retry: false,
   })
 }
 
 /** `POST /api/me/profile/sensitive/reveal`: the backend audits first, and refuses with 403 during view-as. */
 export async function revealSensitive(field: SensitiveField): Promise<string> {
-  if (MOCK_AUTH) return (await mock()).mockReveal(field)
-  const res = await http.post<{ field: string; value: string }>('/api/me/profile/sensitive/reveal', { field })
-  return res.value
+  if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).mockReveal(field)
+  const res = await meClient.reveal(new RevealRequest({ field }))
+  return res.value ?? ''
 }
 
 export function useRevealSensitive() {

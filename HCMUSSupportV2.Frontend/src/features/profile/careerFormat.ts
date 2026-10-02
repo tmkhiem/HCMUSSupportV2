@@ -1,6 +1,5 @@
-import { DASH, formatDate, formatDecimal } from '../../lib/format'
-import type { DatePrecision } from '../../lib/format'
-import type { CommendationDate, SalaryEntry } from './careerApi'
+import { DASH, formatDecimal } from '../../lib/format'
+import type { SalaryEntry } from './careerApi'
 
 /** "3 năm 2 tháng", "5 tháng", "2 năm"; `—` when the backend sent no tenure. Negative parts count as zero. */
 export function formatTenure(years: number | null | undefined, months: number | null | undefined): string {
@@ -19,14 +18,6 @@ export function formatMonthsToRaise(months: number | null | undefined): string {
   if (months === 0) return 'trong tháng này'
   if (months < 0) return `quá hạn ${-months} tháng`
   return `còn ${months} tháng`
-}
-
-/** Date with possibly unknown day/month, as `PartialDateDto`; unknown precision is read as `day`. */
-export function formatCommendationDate(value: CommendationDate | null | undefined): string {
-  if (!value?.date) return DASH
-  const p = value.precision?.toLowerCase()
-  const precision: DatePrecision = p === 'year' || p === 'month' ? p : 'day'
-  return formatDate(value.date, precision)
 }
 
 /** "Năm học 2023-2024" (the value is shown as stored); "Chưa rõ năm học" for the null group. */

@@ -3,7 +3,6 @@ import type { SalaryEntry } from './careerApi'
 import {
   academicYearLabel,
   coefficientPoints,
-  formatCommendationDate,
   formatMonthsToRaise,
   formatTenure,
   salaryStepLabel,
@@ -47,18 +46,6 @@ describe('formatMonthsToRaise', () => {
     expect(formatMonthsToRaise(0)).toBe('trong tháng này')
     expect(formatMonthsToRaise(-2)).toBe('quá hạn 2 tháng')
     expect(formatMonthsToRaise(null)).toBe('—')
-  })
-})
-
-describe('formatCommendationDate', () => {
-  it('honours precision', () => {
-    expect(formatCommendationDate({ date: '2024-09-20', precision: 'day' })).toBe('20/09/2024')
-    expect(formatCommendationDate({ date: '2022-07-01', precision: 'month' })).toBe('07/2022')
-    expect(formatCommendationDate({ date: '2020-01-01', precision: 'year' })).toBe('2020')
-  })
-  it('shows a dash without a date', () => {
-    expect(formatCommendationDate({ date: null, precision: 'year' })).toBe('—')
-    expect(formatCommendationDate(undefined)).toBe('—')
   })
 })
 
