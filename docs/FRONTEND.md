@@ -220,9 +220,9 @@ client has no Hrm endpoints), a `*Format.ts` (tested), a `*Mock.ts` and its page
 
 Code in `src/features/profile/`: `salary/` (`SalaryPage`, `SalaryChart`, `SalaryTimeline`), `positions/` (`PositionsPage`,
 `PositionTimeline`), `commendations/` (`CommendationsPage`, `CommendationGroups`), plus `careerApi.ts` (types and the
-TanStack Query hooks `useSalary`, `usePositions`, `useCommendations`; hand-written over `http.get('/api/me/...')` because the
-NSwag client has no Hrm endpoints yet), `careerFormat.ts` (`formatTenure` "3 năm 2 tháng", `formatMonthsToRaise` "còn N tháng",
-`coefficientPoints` for the chart, partial dates, năm học labels; tested in `careerFormat.test.ts`), `careerMock.ts`
+TanStack Query hooks `useSalary`, `usePositions`, `useCommendations`; they call the generated `meClient` (`api/clients.ts`) and
+map the response with `meMappers.ts`), `careerFormat.ts` (`formatTenure` "3 năm 2 tháng", `formatMonthsToRaise` "còn N tháng",
+`coefficientPoints` for the chart, năm học labels; tested in `careerFormat.test.ts`; partial dates use `lib/partialDate.ts`), `careerMock.ts`
 (synthetic data) and `CareerBreadcrumb` ("Hồ sơ cá nhân / page", links to `/ho-so`).
 
 - `/ho-so/luong`: five `StatCard`s (ngạch, bậc, hệ số, vượt khung %, next raise as a countdown; the card turns warm at 3 months
@@ -259,17 +259,21 @@ Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `Summa
 `api.ts` (hooks + types), `mockData.ts` and `ProfileFields.tsx` (layout only: `SectionCard`, `FieldList`, `FieldRow`,
 `BackToProfile`). Routes: `/ho-so`, `/ho-so/thong-tin-chung`, `/ho-so/thong-tin-chi-tiet`.
 
-- **API.** The NSwag client did not include the Hrm `me/*` endpoints when D10 was built, so `api.ts` calls
-  `GET /api/me/profile/{overview,general,detailed}` and `POST /api/me/profile/sensitive/reveal` through the shared `http`
-  layer, with hand-written types mirroring `Modules/Hrm/Me/MeDtos.cs`. Swap them for the generated `MeClient` once it is
-  regenerated. Query keys: `['profile', 'overview' | 'general' | 'detailed']` (dropped on user switch by `clearUserData`).
+- **API.** `api.ts` (and `careerApi.ts` for D11) call the generated `MeClient` (`meClient` in `api/clients.ts`): `overview()`,
+  `general()`, `detailed()` and `reveal(new RevealRequest({ field }))`. The generated DTOs are all-optional classes with `Date`s
+  (`DateOnly` arrives as UTC midnight), so `meMappers.ts` is the only place that knows them: it maps each response to the view-model
+  types in `api.ts` / `careerApi.ts` (required fields, `null` for missing, dates as `yyyy-MM-dd`; `dayString` reads the UTC day so it is
+  right in every time zone; tested in `meMappers.test.ts`). Query keys: `['profile', 'overview' | 'general' | 'detailed']` (dropped on user switch by `clearUserData`).
 - **Overview.** Hero (photo from the profile, else `me.photoUrl` only when not viewing as someone else, else initials) and
   eight cards in a 3 / 2 / 1 column grid. `GeneralCard` and `DetailedCard` load their own queries (independent loads), the
   other six read `ProfileOverview`. A 404 or `hasProfile: false` is the empty state, not an error.
 - **Partial dates.** `lib/partialDate.ts` `formatPartialDate({date, precision})` -> `dd/MM/yyyy`, `MM/yyyy` or `yyyy`; `—` when missing.
+  It is the only partial-date formatter (D11's `formatCommendationDate` was removed; `CommendationEntry.decidedOn` is a `PartialDate`).
 - **Reveal.** Only the masked tail is ever in the query cache. `useReveal` fetches one field at a time (each call is audited
   server-side), keeps the value in component state only, and "Ẩn" drops it. A 403 (view-as) shows "Không thể xem khi đang xem thử".
-- **Mock mode.** With `VITE_MOCK_AUTH` the hooks return `mockData.ts` (synthetic T0001) without a network call.
+- **Mock mode.** With `VITE_MOCK_AUTH` the hooks return `mockData.ts` (synthetic T0001) without a network call. Every use is written
+  `import.meta.env.DEV && MOCK_AUTH ? (await mock()).… : …` so the bundler folds it away and the dynamic `import('./mockData')`
+  (and `careerMock`, `inboxMock`) never ends up in a production build (checked: `npm run build` emits no mock chunk).
 - **Tests.** `src/features/profile/profile.test.tsx`, `src/lib/partialDate.test.ts`; Playwright project `profile`
   (`e2e/profile.spec.ts`, mock server) writes screenshots to `docs/screenshots/d10/`.
 
@@ -282,9 +286,7 @@ Code: `src/features/admin/` (Quản trị `AdminHomePage`, `RolesPage`, `ViewAsP
   `nhom` is one lazy route with two empty child routes, so the same `GroupsPage` stays mounted while a group is picked (the list keeps its
   search and filters; the page reads the id with `useMatch`). Below `md` it shows either the list or the detail.
 - **Clients.** `features/admin/clients.ts` instantiates the generated `RolesClient`, `ViewAsClient`, `AdminEmployeesClient`,
-  `DashboardClient`, `AuditClient`, `GroupsClient`. The D04 endpoints (`sync-runs`, `sync-issues`, `datasets`) are **not** in the generated
-  client yet, so `features/admin/hrmApi.ts` has typed hand-written calls on `http`; swap them for generated clients after the next
-  `generate-api` run.
+  `DashboardClient`, `AuditClient`, `GroupsClient`, `SyncAdminClient` (sync runs and issues) and `DatasetsClient`.
 - **Lists** use keyset paging (`useInfiniteQuery`, `nextCursor`, "Tải thêm"). Search inputs are debounced 300 ms.
 - **Phân quyền.** Search (q, role filter), row opens a drawer with editor and admin switches; Lưu = `PUT admin/roles/{code}`; the server's 409
   (last admin) message is shown in the drawer. Role changes apply at once on the server.
@@ -322,6 +324,7 @@ stubbed by `e2e/adminFixtures.ts`) covers every page; screenshots in `docs/scree
   switching user; `/login?error=` redirect; and the D08 inbox flow (T0001 publishes to T0003, badge and row, open, ack; the post is archived afterwards). Existing servers on those ports are reused locally (not in CI).
 - The specs write screenshots to `docs/screenshots/d02/` (1440x900 and 375x812: shell, drawer, account menu, view-as bar,
   login). Commit them when the look changes. The login shots are taken in dev, where the "Đăng nhập thử (dev)" panel shows: `git checkout docs/screenshots` after a run unless the login page itself changed.
+- `e2e/admin.spec.ts` (project `admin`, port 5393, mock auth, `/api/**` stubbed): see "Admin and group pages (D14b)". The ports are fixed in `playwright.config.ts`; two agents running Playwright at once share them and reuse each other's vite servers, so run one suite at a time per machine.
 - `e2e/markdown.spec.ts` (project `markdown`, port 5373, mock auth) drives `/dev/markdown`: placeholder chips, source/diff mode, typed and pasted text, tables, the raw-HTML fallback, image upload. Screenshots go to `docs/screenshots/d07a/`. `src/features/notifications/` has the renderer tests and `mdxRoundTrip.test.tsx`.
 - `e2e/inbox.spec.ts` (project `inbox`, port 5483, mock auth): list markers, infinite scroll, URL-backed filters, detail over the list and as a deep link, read-on-open, ack, read-all, view-as, mobile 375. Screenshots go to `docs/screenshots/d08/`.
 - Feature deliveries add a Playwright smoke test per page against synthetic data (PLAN §8).

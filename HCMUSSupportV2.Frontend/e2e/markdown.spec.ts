@@ -156,8 +156,14 @@ test.describe('MDXEditor spike (D07a)', () => {
     await page.keyboard.press('Shift+Control+ArrowLeft')
     await page.getByRole('radio', { name: 'In đậm' }).click()
     await expect.poll(() => emitted(page)).toBe('abc def **ghi**')
+    // Let the editor settle (it restores focus and the selection after a toolbar click), and make sure the keys go to it.
+    await page.waitForTimeout(300)
+    await editor(page).focus()
     await page.keyboard.press('Home')
     await page.keyboard.press('Shift+Control+ArrowRight')
+    // Lexical learns about the new selection from an async `selectionchange`; Ctrl+B before that would act on the old one.
+    await expect.poll(() => page.evaluate(() => String(getSelection()))).toBe('abc ')
+    await page.waitForTimeout(250)
     await page.keyboard.press('Control+b')
     await expect.poll(() => emitted(page)).toBe('**abc** def **ghi**')
   })

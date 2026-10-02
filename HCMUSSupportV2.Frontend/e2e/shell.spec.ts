@@ -77,7 +77,7 @@ test.describe('desktop shell', () => {
       '/nckh/bai-bao': 'Bài báo khoa học',
       '/quan-ly/thong-bao/xyz': 'Soạn thông báo',
       '/quan-ly/nhan-su': 'Nhân sự & email',
-      '/quan-ly/nhom/1': 'Chi tiết nhóm',
+      '/quan-ly/nhom/1': 'Nhóm', // master-detail: the detail pane sits beside the list under the same heading
       '/quan-tri': 'Quản trị',
       '/quan-tri/phan-quyen': 'Phân quyền',
       '/quan-tri/xem-thu': 'Xem thử',

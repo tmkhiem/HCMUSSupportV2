@@ -3,6 +3,7 @@ import {
   CommendationsDto,
   DetailedProfileDto,
   GeneralProfileDto,
+  PartialDateDto,
   PositionsDto,
   ProfileOverviewDto,
   SalaryDto,
@@ -26,7 +27,7 @@ describe('dayString', () => {
 
 describe('toPartialDate', () => {
   it('keeps the precision and the day, and formats like the old hand-written type did', () => {
-    const p = toPartialDate({ date: new Date('1985-03-01'), precision: 'month' })
+    const p = toPartialDate(PartialDateDto.fromJS({ date: '1985-03-01', precision: 'month' }))
     expect(p).toEqual({ date: '1985-03-01', precision: 'month' })
     expect(formatPartialDate(p)).toBe('03/1985')
     expect(toPartialDate(undefined)).toEqual({ date: null, precision: null })

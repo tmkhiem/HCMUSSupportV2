@@ -301,7 +301,8 @@ test.describe('desktop 1440', () => {
     await expect(dialog(page).getByText(/Đã xác nhận lúc \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)).toBeVisible()
     await expect(ack).toHaveCount(0)
 
-    await page.keyboard.press('Escape')
+    // The button that had focus is gone, so focus sits on <body> and a page-level Escape never reaches the dialog.
+    await dialog(page).press('Escape')
     await expect(dialog(page)).toHaveCount(0)
     await expect(row(page, SALARY_2026)).not.toContainText('Cần xác nhận')
     await expect(row(page, SALARY_2026)).toHaveAttribute('data-unread', 'false')
