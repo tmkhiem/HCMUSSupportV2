@@ -92,7 +92,9 @@ public record LegacyIssueDto(int Row, string Column, string Message);
 
 /// <summary>
 /// Result of a dataset step. <c>Applied</c> is false for a dry run and for a no-op. <c>Skipped</c> lists scopes left alone
-/// because an admin import already owns them (the legacy migration never overwrites those).
+/// because an admin import already owns them (the legacy migration never overwrites those). <c>NormalizedMscbCount</c> counts
+/// distinct v1 ids that were not an MSCB as typed but became one after removing a leading underscore or quote (Excel text) or
+/// padding a short number to four digits (Excel dropped the zero).
 /// </summary>
 public record LegacyDatasetReportDto(
     string Dataset,
@@ -105,6 +107,7 @@ public record LegacyDatasetReportDto(
     IReadOnlyList<string> UnknownMscbs,
     int UnknownMscbCount,
     int DroppedMemberRows,
+    int NormalizedMscbCount,
     IReadOnlyList<LegacyIssueDto> Bad,
     int BadCount,
     IReadOnlyList<string> Skipped,

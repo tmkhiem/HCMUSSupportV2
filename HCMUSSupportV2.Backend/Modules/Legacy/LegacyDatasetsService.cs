@@ -35,6 +35,10 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
                 rows.Add(normalized with { StandardHours = Math.Round(normalized.StandardHours, 2) });
         }
 
+        // v1 ids typed by hand in Excel: "_0246" and "408" are the MSCBs "0246" and "0408".
+        var (codeMap, normalizedCount) = await ResolveAsync(rows.Select(t => t.EmployeeCode), ct);
+        rows = rows.Select(t => codeMap.TryGetValue(t.EmployeeCode, out var c) && c != t.EmployeeCode ? t with { EmployeeCode = c } : t).ToList();
+
         // Scopes an admin import owns are left alone.
         var skipped = new List<string>();
         var scopes = rows.Select(t => (t.AcademicYear, t.Program)).Distinct().ToList();
@@ -77,7 +81,7 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
             await audit.LogAsync("legacy.dataset_imported", "dataset", DatasetNames.Teaching,
                 new { total, added, updated, removed, scopes = scopes.Count - skipped.Count }, ct);
         }
-        return Report(DatasetNames.Teaching, dryRun, applied, total, added, updated, removed, unknown, 0, bad, skipped, reportYears);
+        return Report(DatasetNames.Teaching, dryRun, applied, total, added, updated, removed, unknown, 0, normalizedCount, bad, skipped, reportYears);
     }
 
     private static string Signature(TeachingLoadRow t) =>
@@ -97,6 +101,7 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
         var members = new Dictionary<(string Code, string Mscb), string>();
         var index = 0;
         var memberLines = new List<(string Code, string Mscb, string Role)>();
+        var (codeMap, normalizedCount) = await ResolveAsync((request.Rows ?? []).Select(r => Clean(r.Mscb)).OfType<string>(), ct);
         foreach (var r in request.Rows ?? [])
         {
             index++;
@@ -119,7 +124,7 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
                 if (first != key) bad.Add(new(index, "Mã đề tài", $"Cùng mã đề tài nhưng thông tin khác dòng đầu tiên của đề tài."));
             }
             else projects[code] = key;
-            if (Clean(r.Mscb) is { } mscb) memberLines.Add((code, mscb, role));
+            if (Clean(r.Mscb) is { } mscb) memberLines.Add((code, codeMap.GetValueOrDefault(mscb, mscb), role));
         }
         foreach (var m in memberLines)
             if (!members.TryAdd((m.Code, m.Mscb), m.Role) && m.Role == "chu_nhiem") members[(m.Code, m.Mscb)] = "chu_nhiem"; // a repeated line keeps the stronger role
@@ -174,7 +179,7 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
             applied = true;
             await audit.LogAsync("legacy.dataset_imported", "dataset", DatasetNames.Research, new { projects = projects.Count, added, updated, removed, dropped }, ct);
         }
-        return Report(DatasetNames.Research, dryRun, applied, projects.Count, added, updated, removed, unknown, dropped, bad, skipped, []);
+        return Report(DatasetNames.Research, dryRun, applied, projects.Count, added, updated, removed, unknown, dropped, normalizedCount, bad, skipped, []);
     }
 
     // ------------------------------------------------------------------ publications
@@ -187,12 +192,13 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
         var bad = new List<ImportIssueDto>();
         var pubs = new Dictionary<string, (LegacyPublicationDto P, string Title, List<string> Authors)>(StringComparer.Ordinal);
         var index = 0;
+        var (codeMap, normalizedCount) = await ResolveAsync((request.Rows ?? []).SelectMany(p => p.Authors ?? []).Select(a => a?.Trim() ?? ""), ct);
         foreach (var p in request.Rows ?? [])
         {
             index++;
             var title = p.Title?.Trim() ?? "";
             if (title.Length == 0) { bad.Add(new(index, "Tên bài báo", "Thiếu tên bài báo.")); continue; }
-            var authors = (p.Authors ?? []).Select(a => a?.Trim() ?? "").Where(a => a.Length > 0).Distinct(StringComparer.Ordinal).ToList();
+            var authors = (p.Authors ?? []).Select(a => a?.Trim() ?? "").Where(a => a.Length > 0).Select(a => codeMap.GetValueOrDefault(a, a)).Distinct(StringComparer.Ordinal).ToList();
             if (authors.Count == 0) { bad.Add(new(index, "MSCB tác giả", "Cần ít nhất một MSCB tác giả.")); continue; }
             var key = PublicationKey(Clean(p.Doi), Clean(p.Eid), title, p.Year);
             if (!pubs.TryAdd(key, (p, title, authors))) bad.Add(new(index, "DOI", "Bài báo trùng với một dòng trước (cùng DOI/EID hoặc tên và năm)."));
@@ -247,7 +253,7 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
             applied = true;
             await audit.LogAsync("legacy.dataset_imported", "dataset", DatasetNames.Publications, new { publications = pubs.Count, added, updated, removed, dropped }, ct);
         }
-        return Report(DatasetNames.Publications, dryRun, applied, pubs.Count, added, updated, removed, unknown, dropped, bad, skipped, []);
+        return Report(DatasetNames.Publications, dryRun, applied, pubs.Count, added, updated, removed, unknown, dropped, normalizedCount, bad, skipped, []);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -258,10 +264,36 @@ public class LegacyDatasetsService(AppDbContext db, DatasetImportService dataset
         return (await db.Set<Employee>().AsNoTracking().Where(e => distinct.Contains(e.Code)).Select(e => e.Code).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
     }
 
+    /// <summary>
+    /// Maps v1 ids that are not an MSCB as typed to the MSCB they stand for, when exactly that fixes them: a leading underscore or
+    /// quote removed ("_0246"), a short number padded to four digits ("408" to "0408"). Ids that are already known, and ids that
+    /// stay unknown, map to themselves. Returns the map and how many distinct ids were changed.
+    /// </summary>
+    private async Task<(Dictionary<string, string> Map, int Normalized)> ResolveAsync(IEnumerable<string> raw, CancellationToken ct)
+    {
+        var distinct = raw.Select(c => c.Trim()).Where(c => c.Length > 0).Distinct(StringComparer.Ordinal).ToList();
+        var candidates = distinct.ToDictionary(c => c, Candidates, StringComparer.Ordinal);
+        var all = candidates.Values.SelectMany(c => c).Distinct().ToArray();
+        var known = (await db.Set<Employee>().AsNoTracking().Where(e => all.Contains(e.Code)).Select(e => e.Code).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (code, options) in candidates)
+            map[code] = options.FirstOrDefault(known.Contains) ?? code;
+        return (map, map.Count(m => m.Key != m.Value));
+    }
+
+    private static IEnumerable<string> Candidates(string code)
+    {
+        yield return code;
+        var stripped = code.TrimStart('_', '\'', '`', ' ');
+        if (stripped.Length > 0 && stripped != code) yield return stripped;
+        var digits = stripped.Length > 0 ? stripped : code;
+        if (digits.All(char.IsDigit) && digits.Length < 4) yield return digits.PadLeft(4, '0');
+    }
+
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
     private static LegacyDatasetReportDto Report(string dataset, bool dryRun, bool applied, int total, int added, int updated, int removed,
-        IReadOnlyCollection<string> unknown, int dropped, IReadOnlyCollection<ImportIssueDto> bad, IReadOnlyList<string> skipped, IReadOnlyList<string> years) =>
-        new(dataset, dryRun, applied, total, added, updated, removed, unknown.Take(ListCap).ToList(), unknown.Count, dropped,
+        IReadOnlyCollection<string> unknown, int dropped, int normalized, IReadOnlyCollection<ImportIssueDto> bad, IReadOnlyList<string> skipped, IReadOnlyList<string> years) =>
+        new(dataset, dryRun, applied, total, added, updated, removed, unknown.Take(ListCap).ToList(), unknown.Count, dropped, normalized,
             bad.OrderBy(b => b.Row).Take(50).Select(b => new LegacyIssueDto(b.Row, b.Column, b.Message)).ToList(), bad.Count, skipped, years);
 }

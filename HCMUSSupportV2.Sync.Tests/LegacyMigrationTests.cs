@@ -105,6 +105,15 @@ public class LegacyMigrationTests
         Assert.Equal(3, r.Rows.Count);
     }
 
+    [Fact]
+    public void Teaching_skips_rows_listed_under_an_empty_mscb()
+    {
+        var one = Row("CSC10001-A", "L", "Đại học (CQ), HK1", "5");
+        var r = TeachingParser.Parse(Root(TeachingFile("năm học 2023-2024", ("T1", [one]), ("", [one, one]))));
+        Assert.Single(r.Rows);
+        Assert.Equal(2, r.MissingMscb);
+    }
+
     // ------------------------------------------------------------------ research and papers
 
     private static string ResearchFile(params Dictionary<string, string>[] rows) =>

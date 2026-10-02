@@ -149,7 +149,7 @@ public sealed class LegacyMigrator(ILegacyApi api, TextWriter output)
         {
             using var doc = JsonDocument.Parse(File.ReadAllText(file).TrimStart('﻿'));
             var parsed = TeachingParser.Parse(doc.RootElement);
-            output.WriteLine($"[teaching] {Path.GetFileName(file)}: {parsed.AcademicYear} tableRows={parsed.TableRows} parsed={parsed.Rows.Count} badHours={parsed.BadHours} unparsed={parsed.UnparsedPatterns.Values.Sum()}");
+            output.WriteLine($"[teaching] {Path.GetFileName(file)}: {parsed.AcademicYear} tableRows={parsed.TableRows} parsed={parsed.Rows.Count} badHours={parsed.BadHours} noMscb={parsed.MissingMscb} unparsed={parsed.UnparsedPatterns.Values.Sum()}");
             foreach (var (pattern, n) in parsed.UnparsedPatterns.OrderByDescending(p => p.Value).Take(10)) output.WriteLine($"    unparsed x{n}: {pattern}");
             var r = await api.PostAsync("datasets/teaching", new { rows = parsed.Rows }, !apply, ct);
             PrintDataset("teaching", r, fail);
@@ -182,7 +182,7 @@ public sealed class LegacyMigrator(ILegacyApi api, TextWriter output)
     {
         var bad = Int(r, "badCount");
         output.WriteLine($"[{name}] total={Int(r, "total")} new={Int(r, "newCount")} updated={Int(r, "updatedCount")} removed={Int(r, "removedCount")} applied={Bool(r, "applied")} " +
-                         $"unknownMscb={Int(r, "unknownMscbCount")} droppedMemberRows={Int(r, "droppedMemberRows")} bad={bad}");
+                         $"unknownMscb={Int(r, "unknownMscbCount")} normalizedMscb={Int(r, "normalizedMscbCount")} droppedMemberRows={Int(r, "droppedMemberRows")} bad={bad}");
         foreach (var s in r.GetProperty("skipped").EnumerateArray()) output.WriteLine($"[{name}]   skipped (an admin import owns it): {s.GetString()}");
         var unknown = r.GetProperty("unknownMscbs").EnumerateArray().Select(x => x.GetString()).Take(ListCap).ToList();
         if (unknown.Count > 0) output.WriteLine($"[{name}]   unknown MSCB: {string.Join(", ", unknown)}{(Int(r, "unknownMscbCount") > unknown.Count ? ", ..." : "")}");

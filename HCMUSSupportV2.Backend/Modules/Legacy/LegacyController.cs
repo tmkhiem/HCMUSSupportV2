@@ -14,6 +14,7 @@ namespace HCMUSSupportV2.Backend.Modules.Legacy;
 /// <c>?dryRun=false</c></b>, and every step is idempotent: running it again reports nothing to do. Bodies may be gzip.
 /// </summary>
 [ApiController]
+[ApiExplorerSettings(IgnoreApi = true)] // one-off tooling: not part of the generated frontend client
 [Route("api/integration/v1/legacy")]
 [Authorize(Policy = HrmModule.ImportLegacyPolicy, AuthenticationSchemes = ApiKeyDefaults.Scheme)]
 [EnableRateLimiting(InfrastructureExtensions.IntegrationRateLimitPolicy)]

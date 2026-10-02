@@ -41,11 +41,12 @@ public class LegacyMigrationTests(PostgresFixture database) : IAsyncLifetime
                 DELETE FROM legacy_import_marks;
                 DELETE FROM role_assignments WHERE employee_code LIKE 'T05%';
                 DELETE FROM employee_emails WHERE employee_code LIKE 'T05%';
+                DELETE FROM employees WHERE code = '0409';
                 """);
             return 0;
         });
         _ingest = await CreateIngestClientAsync(_factory);
-        await SeedEmployeesAsync(_ingest, Codes);
+        await SeedEmployeesAsync(_ingest, [.. Codes, "0409"]);
         _legacy = await CreateIngestClientAsync(_factory, [ApiScopes.LegacyImport]);
     }
 
@@ -439,6 +440,42 @@ public class LegacyMigrationTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(2, (int)report["badCount"]!);
         Assert.False((bool)report["applied"]!);
         Assert.Equal(0, await _factory.WithDbAsync(db => db.Set<TeachingLoad>().CountAsync(t => t.EmployeeCode.StartsWith("T05"))));
+    }
+
+    [Fact]
+    public async Task Hand_typed_v1_ids_are_normalised_when_that_makes_them_known()
+    {
+        // Excel artefacts in v1: "_T0501" (text marker) and "409" (the leading zero of "0409" was dropped). Unknown stays unknown.
+        var rows = new[]
+        {
+            Teach("_T0501", "2023-2024", "dai_hoc", 1, "Gạch dưới", hours: 1m),
+            Teach("409", "2023-2024", "dai_hoc", 1, "Mất số 0", hours: 2m),
+            Teach("T0501", "2023-2024", "dai_hoc", 1, "Đúng sẵn", hours: 3m),
+            Teach("999", "2023-2024", "dai_hoc", 1, "Không có", hours: 4m),
+        };
+        var report = await PostAsync("datasets/teaching", new { rows });
+        Assert.Equal(2, (int)report["normalizedMscbCount"]!);
+        Assert.Equal(1, (int)report["unknownMscbCount"]!);
+        Assert.Equal(3, (int)report["total"]!);
+        var stored = await _factory.WithDbAsync(db => db.Set<TeachingLoad>().AsNoTracking().Where(t => t.AcademicYear == "2023-2024" && (t.EmployeeCode == "T0501" || t.EmployeeCode == "0409"))
+            .OrderBy(t => t.CourseName).Select(t => t.EmployeeCode + ":" + t.CourseName).ToListAsync());
+        Assert.Equal(new[] { "0409:Mất số 0", "T0501:Gạch dưới", "T0501:Đúng sẵn" }.Order(StringComparer.Ordinal).ToArray(), stored.Order(StringComparer.Ordinal).ToArray());
+
+        var again = await PostAsync("datasets/teaching", new { rows });
+        Assert.False((bool)again["applied"]!);
+
+        var research = await PostAsync("datasets/research", new
+        {
+            rows = new object[]
+            {
+                new { code = "T2022-09", title = "Đề tài", level = (string?)null, type = (string?)null, funding = (decimal?)null, period = (string?)null, acceptedOn = (string?)null, result = (string?)null, mscb = "_T0502", role = "thanh_vien" },
+                new { code = "T2022-09", title = "Đề tài", level = (string?)null, type = (string?)null, funding = (decimal?)null, period = (string?)null, acceptedOn = (string?)null, result = (string?)null, mscb = "T0502", role = "chu_nhiem" },
+            },
+        });
+        Assert.Equal(1, (int)research["normalizedMscbCount"]!);
+        var members = await _factory.WithDbAsync(db => db.Set<ResearchProjectMember>().AsNoTracking().ToListAsync());
+        var member = Assert.Single(members);
+        Assert.Equal(("T0502", "chu_nhiem"), (member.EmployeeCode, member.Role)); // the two lines are one person, the stronger role wins
     }
 
     [Fact]

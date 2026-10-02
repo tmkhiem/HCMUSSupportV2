@@ -104,6 +104,8 @@ public static partial class TeachingParser
         public int TableRows { get; set; }
         public Dictionary<string, int> UnparsedPatterns { get; } = new(StringComparer.Ordinal);
         public int BadHours { get; set; }
+        /// <summary>Rows listed under an empty MSCB key (a v1 data defect): skipped.</summary>
+        public int MissingMscb { get; set; }
         public string? AcademicYear { get; set; }
     }
 
@@ -140,6 +142,7 @@ public static partial class TeachingParser
         foreach (var (mscb, row) in LegacyReaders.EnvelopeRows(root))
         {
             if (!row.TryGetValue("rows", out var html)) continue;
+            if (mscb.Length == 0) { result.MissingMscb += RowPattern().Matches(html).Count; continue; }
             foreach (Match tr in RowPattern().Matches(html))
             {
                 result.TableRows++;

@@ -484,13 +484,13 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/quan-tri/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.
 
 ### D15 · Legacy migration (one-off, idempotent)
-- [ ] Roster and emails: `config/users.json` → `employee_emails`. Report emails that conflict with HRM or point to an unknown MSCB.
-- [ ] Roles: the repo owner becomes `admin`. `privileged.users.json` (ViewAs/Lookup) is **listed for the user to decide** rather than auto-granted, because v2 has only editor and admin.
-- [ ] News: `tools/legacy-news` (Node and TypeScript, using `turndown` + `turndown-plugin-gfm`) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns the baked HTML (Word/Outlook inline styles, entities) into GFM Markdown, `{col}` placeholders into `:var[col]`, and `values` rows into `vars`. It reports any post whose layout didn't survive the conversion, such as merged-cell tables. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
-- [ ] The HRM categories come from `sync legacy-git` (D05) or a live `sync hrm`.
-- [ ] Datasets: teaching-stats (parse the `{rows}` HTML tables into `teaching_loads`), research-stats → `research_projects` and members, paper-details → `publications`.
-- [ ] The request-update-info banner and the v1 Google Form links become a pinned `audience_all` notification. `apps.json` is not migrated.
-- **Done when:** a re-run is a no-op, and for 5 sampled real employees the v2 inbox and pages carry the same facts as v1 (checked in D18).
+- [x] Roster and emails: `config/users.json` → `employee_emails` (`sync legacy-migrate`, step `roster`; additive, dry run by default). Reports emails that conflict with HRM or point to an unknown MSCB. See [MIGRATION.md](MIGRATION.md).
+- [x] Roles: the two repo owners become `admin` (identities passed as `--admin email:mscb` or `Sync:Legacy:Admins`, idempotent). `privileged.users.json` (ViewAs/Lookup) is **listed for the user to decide** rather than auto-granted, because v2 has only editor and admin.
+- [x] News: `tools/legacy-news` (Node and TypeScript, using `turndown` + `turndown-plugin-gfm`) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns the baked HTML (Word/Outlook inline styles, entities) into GFM Markdown, `{col}` placeholders into `:var[col]`, and `values` rows into `vars`. It reports any post whose layout didn't survive the conversion, such as merged-cell tables. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
+- [x] The HRM categories come from `sync legacy-git` (D05) or a live `sync hrm` (run first; verified end to end in D15).
+- [x] Datasets: teaching-stats (parse the `{rows}` HTML tables into `teaching_loads`), research-stats → `research_projects` and members, paper-details → `publications`.
+- [x] The request-update-info banner and the v1 Google Form links become a pinned `audience_all` notification. `apps.json` is not migrated.
+- **Done when:** a re-run is a no-op (proven end to end against the real data on a temporary database, see [MIGRATION.md](MIGRATION.md)), and for 5 sampled real employees the v2 inbox and pages carry the same facts as v1 (checked in D18).
 
 ### D16 · Deployment kit (independent; **do not touch the live server**)
 The owner will upgrade the running server (`support.hcmus.edu.vn`) to current versions **after v2 is complete**. Until then,
@@ -543,7 +543,7 @@ nothing is installed, changed or deployed there; read-only inspection is the mos
 | Q2 | Hosting | **Decided:** the existing server is upgraded in place by the owner after v2 is complete (local PG 17, off-box dumps). **No deployment to the live server before then.** |
 | Q3 | Which machine runs the nightly HRM sync? (The box that makes today's 22:30 "HRM-Database" commit isn't documented in any repo.) | The same internal Windows box, on Task Scheduler. |
 | Q4 | Who can sign in | **Decided:** only mapped emails in `employee_emails`, seeded once from `D:\git\SupportHCMUSData\config\users.json` (1,925 people) and maintained by editors from then on. HRM emails are not auto-mapped. |
-| Q5 | What happens to the 8 v1 ViewAs/Lookup holders? | Not auto-granted. D15 lists them and the user picks editors and admins. |
+| Q5 | What happens to the 8 v1 ViewAs/Lookup holders? | **Decided:** the two repo owners become `admin`, which covers view-as and lookup in v2. Nobody else is auto-granted; D15 lists the other holders for the owner to decide. |
 | Q6 | Email or Web Push on publish? | Not in v2.0. Deliveries and jobs make it an additive outbox later. |
 | Q7 | Google OAuth client | **Decided:** reuse the existing v1 web client. Client id and secret go only in `appsettings.*.local.json` or env (never committed); the v1 values are in `D:\git\hcmus-portal-fe\.env` (id) and `D:\git\SupportHCMUS\HRBackend\Helper\Oauth.cs` (secret). The owner adds the v2 redirect URIs (`http://localhost:5161/api/auth/callback`, later the production one) in Google Cloud Console, and rotates the secret at cutover (D17). |
 
