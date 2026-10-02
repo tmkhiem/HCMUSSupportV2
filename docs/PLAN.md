@@ -460,7 +460,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** the pages render synthetic data, handle empty data and errors, show masked values revealed one at a time, and the PR includes screenshots.
 
 ### D11 · Hồ sơ: Quá trình lương, Chức vụ, Khen thưởng
-- [ ] The three bespoke pages in §7.3: salary stats, step chart and timeline; position timeline with tenure; award and title tabs grouped by năm học.
+- [x] The three bespoke pages in §7.3: salary stats, step chart and timeline; position timeline with tenure; award and title tabs grouped by năm học.
 
 ### D12 · Hồ sơ: Quá trình đào tạo, Bồi dưỡng, Đi công tác
 - [ ] The three bespoke pages in §7.3: diploma cards; a training table grouped by year with sticky dividers; business trips with stats and a year filter.
