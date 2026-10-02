@@ -219,3 +219,152 @@ test('inbox: a post published by T0001 reaches T0003, the badge counts it, openi
     await employee.dispose()
   }
 })
+
+test('admin pages: T0001 grants editor to T0004 on Phân quyền, T0004 then sees Quản lý thông báo', async ({ page, playwright, baseURL }) => {
+  test.setTimeout(120_000)
+  const admin = await apiSession(playwright, baseURL!, 'T0001')
+  const revoke = () => admin.put('/api/admin/roles/T0004', { roles: [] })
+  try {
+    expect((await revoke()).ok()).toBe(true) // known starting point (also clears a previous failed run)
+
+    await devLogin(page, 'T0004')
+    await expect(nav(page).getByRole('link', { name: 'Quản lý thông báo' })).toHaveCount(0)
+    expect((await page.request.post('/api/auth/logout', { headers: await xsrfHeader(page) })).status()).toBe(204)
+
+    // T0001 grants the editor role through the page.
+    await devLogin(page, 'T0001', '/quan-tri/phan-quyen')
+    await expect(page.getByRole('heading', { level: 1, name: 'Phân quyền' })).toBeVisible()
+    await page.getByLabel('Tìm cán bộ').fill('T0004')
+    await page.getByRole('button', { name: /^Mở / }).filter({ hasText: 'T0004' }).click()
+    const drawer = page.getByRole('presentation').filter({ hasText: 'Chi tiết phân quyền' })
+    await expect(drawer.getByText(/^T0004 · /)).toBeVisible()
+    await drawer.getByRole('switch', { name: /Biên tập viên/ }).check()
+    await drawer.getByRole('button', { name: 'Lưu' }).click()
+    await expect(drawer.getByText('Đã lưu phân quyền')).toBeVisible()
+    // The grant is in the server's own view of T0004 and shows up in the list's role chips.
+    const detail = (await (await admin.get('/api/admin/roles/T0004')).json()) as { roles: string[] }
+    expect(detail.roles).toContain('editor')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('row').filter({ hasText: 'T0004' })).toContainText('Biên tập viên')
+
+    // T0004 signs in (the role applies at once) and sees the editor nav, but still not the admin one.
+    expect((await page.request.post('/api/auth/logout', { headers: await xsrfHeader(page) })).status()).toBe(204)
+    await devLogin(page, 'T0004')
+    await expect(nav(page).getByRole('link', { name: 'Quản lý thông báo' })).toBeVisible()
+    await expect(nav(page).getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
+    await page.goto('/quan-ly/nhom')
+    await expect(page.getByRole('heading', { level: 1, name: 'Nhóm' })).toBeVisible()
+    await page.goto('/quan-tri')
+    await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
+  } finally {
+    await revoke()
+    await admin.dispose()
+  }
+})
+
+test('admin pages: T0001 starts and stops view-as as T0003; both are audited', async ({ page, playwright, baseURL }) => {
+  test.setTimeout(120_000)
+  const admin = await apiSession(playwright, baseURL!, 'T0001')
+  try {
+    await devLogin(page, 'T0001', '/quan-tri/xem-thu')
+    await expect(page.getByRole('heading', { level: 1, name: 'Xem thử' })).toBeVisible()
+    await page.getByLabel('Cán bộ cần xem').fill('T0003')
+    await page.getByRole('option', { name: /T0003/ }).click()
+    await page.getByRole('button', { name: 'Bắt đầu xem thử' }).click()
+
+    // The session was refreshed: we land on Tin tức with the warning bar. `me` still describes T0001 (the nav keeps its
+    // admin items); `actingAs` names the viewed employee.
+    await expect(page).toHaveURL(/\/tin-tuc$/)
+    const bar = page.getByRole('status').filter({ hasText: 'Đang xem với tư cách' })
+    await expect(bar).toContainText('T0003')
+    const acting = (await (await page.request.get('/api/auth/me')).json()) as { code: string; actingAs: { code: string } | null }
+    expect(acting.code).toBe('T0001')
+    expect(acting.actingAs?.code).toBe('T0003')
+
+    // "Thoát" calls DELETE admin/view-as and reloads me.
+    const deleted = page.waitForRequest((r) => r.method() === 'DELETE' && r.url().endsWith('/api/admin/view-as'))
+    await bar.getByRole('button', { name: 'Thoát' }).click()
+    await deleted
+    await expect(bar).toHaveCount(0)
+    const after = (await (await page.request.get('/api/auth/me')).json()) as { actingAs: unknown }
+    expect(after.actingAs).toBeNull()
+
+    // Both ends are in the audit log, and the Nhật ký page shows them.
+    for (const action of ['viewas.started', 'viewas.stopped']) {
+      const res = await admin.get(`/api/admin/audit?action=${action}&limit=5`)
+      expect(res.ok(), action).toBe(true)
+      const body = (await res.json()) as { items: { actorCode?: string }[] }
+      expect(body.items.some((i) => i.actorCode === 'T0001'), action).toBe(true)
+    }
+    await page.goto('/quan-tri/nhat-ky')
+    const table = page.getByRole('table', { name: 'Nhật ký thao tác' })
+    await expect(table.getByText('Bắt đầu xem thử').first()).toBeVisible()
+    await expect(table.getByText('Kết thúc xem thử').first()).toBeVisible()
+  } finally {
+    await admin.dispose()
+  }
+})
+
+test('groups: T0001 creates a rule group (live preview, computed members) and a static group (typeahead add), then archives both', async ({ page }) => {
+  test.setTimeout(120_000)
+  const stamp = Date.now()
+  await devLogin(page, 'T0001', '/quan-ly/nhom')
+  await expect(page.getByRole('heading', { level: 1, name: 'Nhóm' })).toBeVisible()
+  const list = page.getByRole('list', { name: 'Danh sách nhóm' })
+
+  // Rule group: everybody with an email.
+  await page.getByRole('button', { name: 'Tạo nhóm' }).click()
+  let dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Tên nhóm').fill(`E2E quy tắc ${stamp}`)
+  await dialog.getByRole('radio', { name: /Quy tắc/ }).check()
+  await dialog.getByRole('group', { name: 'Điều kiện 1' }).getByLabel('Trường').click()
+  await page.getByRole('option', { name: 'Có email', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Tạo nhóm' }).click()
+  await expect(page).toHaveURL(/\/quan-ly\/nhom\/\d+$/)
+  await expect(page.getByText(/\d+ cán bộ khớp quy tắc/)).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Thành viên' }).getByRole('row').nth(1)).toBeVisible()
+  await page.getByRole('button', { name: 'Lưu trữ' }).click()
+  await expect(page).toHaveURL(/\/quan-ly\/nhom$/)
+  await expect(list.getByText(`E2E quy tắc ${stamp}`)).toHaveCount(0)
+
+  // Static group: add T0003 through the employee typeahead.
+  await page.getByRole('button', { name: 'Tạo nhóm' }).click()
+  dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Tên nhóm').fill(`E2E tĩnh ${stamp}`)
+  await dialog.getByRole('button', { name: 'Tạo nhóm' }).click()
+  await expect(page).toHaveURL(/\/quan-ly\/nhom\/\d+$/)
+  await page.getByRole('combobox', { name: 'Thêm thành viên' }).fill('T0003')
+  await page.getByRole('option', { name: /T0003/ }).click()
+  await page.getByRole('button', { name: 'Thêm 1 người' }).click()
+  await expect(page.getByRole('table', { name: 'Thành viên' }).getByText('T0003')).toBeVisible()
+  await page.getByRole('button', { name: 'Lưu trữ' }).click()
+  await expect(page).toHaveURL(/\/quan-ly\/nhom$/)
+})
+
+test('admin pages: every Quản trị page loads real data without an error', async ({ page }) => {
+  test.setTimeout(120_000)
+  await devLogin(page, 'T0001', '/quan-tri')
+  const h1 = (name: string) => page.getByRole('heading', { level: 1, name })
+  await expect(h1('Quản trị')).toBeVisible()
+  await expect(page.getByText('Hoạt động gần đây')).toBeVisible()
+  await expect(page.getByRole('progressbar')).toHaveCount(0)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+
+  for (const [path, title] of [
+    ['/quan-tri/phan-quyen', 'Phân quyền'],
+    ['/quan-tri/nhat-ky', 'Nhật ký'],
+    ['/quan-tri/dong-bo', 'Đồng bộ'],
+    ['/quan-tri/du-lieu', 'Dữ liệu'],
+    ['/quan-ly/nhom', 'Nhóm'],
+  ]) {
+    await page.goto(path)
+    await expect(h1(title)).toBeVisible()
+    await expect(page.getByRole('progressbar')).toHaveCount(0)
+    await expect(page.getByRole('alert'), `${path} shows no error`).toHaveCount(0)
+  }
+  // Audit rows exist (the dev-logins above are audited) and the role list has the dev roster.
+  await page.goto('/quan-tri/nhat-ky')
+  await expect(page.getByRole('table', { name: 'Nhật ký thao tác' }).getByRole('row').nth(1)).toBeVisible()
+  await page.goto('/quan-tri/phan-quyen')
+  await expect(page.getByRole('button', { name: /^Mở / }).filter({ hasText: 'T0002' })).toBeVisible()
+})
