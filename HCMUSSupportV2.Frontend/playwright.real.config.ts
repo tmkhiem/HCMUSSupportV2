@@ -6,12 +6,12 @@ import { defineConfig, devices } from '@playwright/test'
  * `Auth:DevLogin:Enabled=true`. The backend runs on 5261 (not the default 5161, so it can sit next to a
  * developer's own backend) and a dedicated vite on 5275 proxies `/api` to it.
  */
-const API_PORT = 5261
-const WEB_PORT = 5275
+const API_PORT = Number(process.env.E2E_API_PORT ?? 5261)
+const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 5275)
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: /real(\.[\w-]+)?\.spec\.ts/,
+  testMatch: /real([.-][\w-]+)?\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],

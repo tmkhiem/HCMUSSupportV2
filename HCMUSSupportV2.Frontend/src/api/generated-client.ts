@@ -338,6 +338,102 @@ export class NotificationsClient {
     }
 }
 
+export class AudienceLookupClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    estimate(request: AudienceEstimateRequest): Promise<AudienceEstimateDto> {
+        let url_ = this.baseUrl + "/api/manage/notifications/audience-estimate";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEstimate(_response);
+        });
+    }
+
+    protected processEstimate(response: Response): Promise<AudienceEstimateDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AudienceEstimateDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AudienceEstimateDto>(null as any);
+    }
+
+    employees(q: string | null | undefined, limit: number | undefined): Promise<EmployeeLookupDto[]> {
+        let url_ = this.baseUrl + "/api/manage/notifications/employees?";
+        if (q !== undefined && q !== null)
+            url_ += "q=" + encodeURIComponent("" + q) + "&";
+        if (limit === null)
+            throw new globalThis.Error("The parameter 'limit' cannot be null.");
+        else if (limit !== undefined)
+            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEmployees(_response);
+        });
+    }
+
+    protected processEmployees(response: Response): Promise<EmployeeLookupDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(EmployeeLookupDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EmployeeLookupDto[]>(null as any);
+    }
+}
+
 export class ManageNotificationsClient {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -5312,6 +5408,154 @@ export interface ISeriesPreviousDto {
     id?: string;
     title?: string;
     publishedAt?: Date | undefined;
+}
+
+export class AudienceEstimateDto implements IAudienceEstimateDto {
+    count?: number;
+
+    constructor(data?: IAudienceEstimateDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.count = _data["count"];
+        }
+    }
+
+    static fromJS(data: any): AudienceEstimateDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AudienceEstimateDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["count"] = this.count;
+        return data;
+    }
+}
+
+export interface IAudienceEstimateDto {
+    count?: number;
+}
+
+export class AudienceEstimateRequest implements IAudienceEstimateRequest {
+    audienceAll?: boolean;
+    groupIds?: number[] | undefined;
+    employeeCodes?: string[] | undefined;
+    importId?: string | undefined;
+
+    constructor(data?: IAudienceEstimateRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.audienceAll = _data["audienceAll"];
+            if (Array.isArray(_data["groupIds"])) {
+                this.groupIds = [] as any;
+                for (let item of _data["groupIds"])
+                    this.groupIds!.push(item);
+            }
+            if (Array.isArray(_data["employeeCodes"])) {
+                this.employeeCodes = [] as any;
+                for (let item of _data["employeeCodes"])
+                    this.employeeCodes!.push(item);
+            }
+            this.importId = _data["importId"];
+        }
+    }
+
+    static fromJS(data: any): AudienceEstimateRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AudienceEstimateRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["audienceAll"] = this.audienceAll;
+        if (Array.isArray(this.groupIds)) {
+            data["groupIds"] = [];
+            for (let item of this.groupIds)
+                data["groupIds"].push(item);
+        }
+        if (Array.isArray(this.employeeCodes)) {
+            data["employeeCodes"] = [];
+            for (let item of this.employeeCodes)
+                data["employeeCodes"].push(item);
+        }
+        data["importId"] = this.importId;
+        return data;
+    }
+}
+
+export interface IAudienceEstimateRequest {
+    audienceAll?: boolean;
+    groupIds?: number[] | undefined;
+    employeeCodes?: string[] | undefined;
+    importId?: string | undefined;
+}
+
+export class EmployeeLookupDto implements IEmployeeLookupDto {
+    code?: string;
+    fullName?: string;
+    unit?: string | undefined;
+    status?: string;
+
+    constructor(data?: IEmployeeLookupDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.unit = _data["unit"];
+            this.status = _data["status"];
+        }
+    }
+
+    static fromJS(data: any): EmployeeLookupDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EmployeeLookupDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["unit"] = this.unit;
+        data["status"] = this.status;
+        return data;
+    }
+}
+
+export interface IEmployeeLookupDto {
+    code?: string;
+    fullName?: string;
+    unit?: string | undefined;
+    status?: string;
 }
 
 export class PageOfManageNotificationListItem implements IPageOfManageNotificationListItem {

@@ -82,6 +82,8 @@ targeting it). Archived and expired posts are not backfilled. Removing someone f
 | `GET notifications/{id}/revisions` | newest first |
 | `GET notifications/{id}/stats` | `{recipientCount, readCount, ackCount, readPercent, ackPercent, requiresAck, readsByDay[{date, reads, cumulativeReads, cumulativePercent}]}` (days in Asia/Ho_Chi_Minh) |
 | `GET notifications/{id}/preview-vars?employee=&importId=` | `{employeeCode, fullName, employeeExists, source applied/pending/none, importId, rows, inAudience, audienceReasons[all, group:Name, employee, import], inPendingImport}`. `pending` = the latest validated, not yet applied import |
+| `POST notifications/audience-estimate` | D09. Body `{audienceAll, groupIds[], employeeCodes[], importId?}` -> `{count}`: the number of **active** employees the unsaved choices would reach (the fan-out union: everyone with an email, active group members, the named employees, the MSCBs of an import sheet that is not rejected). Writes nothing; drives the live recipient count of the targeting panel |
+| `GET notifications/employees?q&limit=20` | D09. Employee lookup for the "Nhân sự" picker and "Xem trước với tư cách…": `[{code, fullName, unit, status}]`, matched by MSCB prefix or by name with accents ignored, active first (limit up to 50). D14c will bring the full `manage/employees` directory; this one only serves the editor |
 | `POST notifications/{id}/recipients/import` (multipart `file`, xlsx or csv) | validation report, see below |
 | `GET notifications/{id}/imports/{importId}` | the report again |
 | `POST notifications/{id}/imports/{importId}/apply` | merges new columns into `variables`, makes the sheet the import audience (replacing an earlier one, which becomes `rejected`), returns the notification |

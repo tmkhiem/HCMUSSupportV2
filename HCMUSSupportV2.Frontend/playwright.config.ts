@@ -20,6 +20,8 @@ const RESEARCH_PORT = 5593
 const ADMIN_PORT = 5393
 /** D14c Nhân sự & email on the mock editor/admin. */
 const EMPLOYEES_PORT = 5693
+/** D09 notification editor (Quản lý thông báo) on the mock user and a stateful fake of `/api/manage/*` (e2e/editorFake.ts). */
+const EDITOR_PORT = 5683
 
 export default defineConfig({
   testDir: './e2e',
@@ -78,6 +80,11 @@ export default defineConfig({
       name: 'employees',
       testMatch: /employees\.spec\.ts/,
       use: { baseURL: `http://localhost:${EMPLOYEES_PORT}` },
+    },
+    {
+      name: 'editor',
+      testMatch: /(^|\/)editor\.spec\.ts$/,
+      use: { baseURL: `http://localhost:${EDITOR_PORT}` },
     },
   ],
   webServer: [
@@ -140,6 +147,13 @@ export default defineConfig({
     {
       command: `npx vite --port ${EMPLOYEES_PORT} --strictPort`,
       url: `http://localhost:${EMPLOYEES_PORT}`,
+      env: { VITE_MOCK_AUTH: '1' },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `npx vite --port ${EDITOR_PORT} --strictPort`,
+      url: `http://localhost:${EDITOR_PORT}`,
       env: { VITE_MOCK_AUTH: '1' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
