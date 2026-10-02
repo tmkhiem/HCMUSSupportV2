@@ -336,9 +336,9 @@ git push -> keep the v1 backup archive until the PII history decision (D17) is m
 - `activate.sh` with stubbed `systemctl`/`curl`: first deploy, second deploy, failed health check with automatic rollback, manual
   rollback (and refusal of a path outside `releases/`), pruning.
 - `deploy.ps1 -WhatIf` prints the plan; `dotnet tool restore`, the frontend build and `dotnet publish -r linux-x64` were run locally
-  (the publish output contains `wwwroot/index.html`); `dotnet ef migrations bundle --self-contained -r linux-x64` was proven on a
-  scratch project (it needs the Debug configuration: with `-c Release` the backend csproj excludes the EF Tools runtime assets and the
-  bundle fails with "Could not load Microsoft.EntityFrameworkCore.Design").
+  (the publish output contains `wwwroot/index.html`); `dotnet ef migrations bundle --self-contained -r linux-x64` was proven
+  on a scratch project and later on the backend itself in both Debug and Release (the Design package stays in the build output but is
+  stripped from `dotnet publish`; the bundle build needs a dummy `ConnectionStrings__Default`, no database).
 
 Not validated (needs a real Debian host): `server-bootstrap.sh` end to end, the Microsoft and PGDG feeds, certbot issuance, and the
 hardening options of the units at runtime (`systemd-analyze security` needs a booted systemd). Rehearse the bootstrap on a throwaway
