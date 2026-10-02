@@ -171,9 +171,9 @@ public class LegacyEmailImportTests(PostgresFixture database) : IAsyncLifetime
     [Fact]
     public async Task A_second_run_is_all_unchanged()
     {
-        var a = await _host.EmployeeAsync(fullName: "Võ Thị Hoa");
+        var a = await _host.EmployeeAsync(fullName: "Nhân Viên Mẫu Ba");
         var b = await _host.EmployeeAsync();
-        var payload = new { users = new[] { User(a, "Vo Thi Hoa", NewEmail(), NewEmail()), User(b, null, NewEmail()), User(NewCode(), null, NewEmail()) } };
+        var payload = new { users = new[] { User(a, "Nhan Vien Mau Ba", NewEmail(), NewEmail()), User(b, null, NewEmail()), User(NewCode(), null, NewEmail()) } };
 
         var first = await _host.PostOkAsync("emails", payload);
         Assert.Equal(3, (int)first["inserted"]!);

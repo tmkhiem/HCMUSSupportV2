@@ -478,12 +478,16 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/quan-tri/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.
 
 ### D15 · Legacy migration (one-off, idempotent)
-- [ ] Roster and emails: `config/users.json` → `employee_emails`. Report emails that conflict with HRM or point to an unknown MSCB.
-- [ ] Roles: the repo owner becomes `admin`. `privileged.users.json` (ViewAs/Lookup) is **listed for the user to decide** rather than auto-granted, because v2 has only editor and admin.
-- [ ] News: `tools/legacy-news` (Node and TypeScript, using `turndown` + `turndown-plugin-gfm`) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns the baked HTML (Word/Outlook inline styles, entities) into GFM Markdown, `{col}` placeholders into `:var[col]`, and `values` rows into `vars`. It reports any post whose layout didn't survive the conversion, such as merged-cell tables. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
-- [ ] The HRM categories come from `sync legacy-git` (D05) or a live `sync hrm`.
-- [ ] Datasets: teaching-stats (parse the `{rows}` HTML tables into `teaching_loads`), research-stats → `research_projects` and members, paper-details → `publications`.
-- [ ] The request-update-info banner and the v1 Google Form links become a pinned `audience_all` notification. `apps.json` is not migrated.
+- [x] Roster and emails: `config/users.json` → `employee_emails`. Report emails that conflict with HRM or point to an unknown MSCB.
+- [ ] Roles: the repo owner becomes `admin` (open: needs the owner's email in `Admin:BootstrapEmails`).
+  - [x] The v1 holders are listed by `sync legacy-emails`. `privileged.users.json` (ViewAs/Lookup) is **listed for the user to decide** rather than auto-granted, because v2 has only editor and admin.
+- [x] News: `tools/legacy-news` (Node and TypeScript, using `turndown` + `turndown-plugin-gfm`) converts the 56 `notifications/news/*.json` files. It ignores `.old` and `backup/`, and turns the baked HTML (Word/Outlook inline styles, entities) into GFM Markdown, `{col}` placeholders into `:var[col]`, and `values` rows into `vars`. It reports any post whose layout didn't survive the conversion, such as merged-cell tables. It posts them through an admin import endpoint as published posts with `published_at = datestr`. Files that cover the whole active roster become `audience_all`. Series and tags are guessed from the titles and listed for review.
+- [x] The HRM categories come from `sync legacy-git` (D05) or a live `sync hrm`.
+- [x] Datasets: teaching-stats (parse the `{rows}` HTML tables into `teaching_loads`), research-stats → `research_projects` and members, paper-details → `publications`.
+- [x] The request-update-info banner (with its Google Form link) becomes a pinned `audience_all` notification. `apps.json` is not migrated.
+  The Google Form links hard-coded in the v1 frontend (Sáng kiến card, NCKH) are not migrated, because the v1 frontend sources aren't on the migration machine.
+> D15 note: everything runs through `tools/legacy-migrate.ps1` ([LEGACY-MIGRATION.md](LEGACY-MIGRATION.md)). A re-run is verified a no-op, and a 5-employee spot check of news, research and teaching matches v1. The full check is D18.
+
 - **Done when:** a re-run is a no-op, and for 5 sampled real employees the v2 inbox and pages carry the same facts as v1 (checked in D18).
 
 ### D16 · Deployment kit (independent; **do not touch the live server**)

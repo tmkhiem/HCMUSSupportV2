@@ -28,6 +28,7 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 
 | Branch / worktree | State |
 |---|---|
+| `feat/d15-legacy-migration` (**pushed**, secondary machine, 2026-10-02) | D15 legacy migration is done and verified but not merged into `main`. Backend `legacy/*` endpoints (scope `legacy.import`), Sync `legacy-emails`/`legacy-datasets`, `tools/legacy-news`, `tools/legacy-migrate.ps1`. Tests: backend 392, sync 165, legacy-news 177. The shared `hcmus_support_dev` on 10.0.0.11 is seeded from v1 (copy of `hcmus_support_dev_d15`). No migration. Open decisions are in LEGACY-MIGRATION.md (teaching without a term, the owner admin). |
 | `feat/d14b-admin-pages` (**pushed to origin**) | Part A (admin pages) is in two commits ("finish D14b pages" and "real-backend e2e"). The agent was stopped before its final report, so Part A is not verified either. Part B (frontend leftovers 7, 11, 12) is an unverified WIP commit on top. Work stopped at the owner's request (offloaded). The next machine finishes, verifies and merges it. |
 
 ## Not started
@@ -35,7 +36,6 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 - **D09**: notification editor UI (MDXEditor component from D07a, targeting, import, preview-as-MSCB).
 - **D12**: Hồ sơ pages for Đào tạo, Bồi dưỡng and Công tác.
 - **D13**: Sáng kiến, Giảng dạy and NCKH pages.
-- **D15**: legacy migration. The users.json emails, the 56 news posts (HTML → Markdown) and the datasets aren't imported yet. The HRM data itself can already come in through `sync legacy-git`.
 - **D18**: parity check and cutover.
 - **Gap found:** nobody owns the backend for the **MSCB ↔ email mapping** (PLAN §5 `manage/employees`, email add/remove, bulk import with dry-run). It needs its own delivery (proposed: **D14c**) before the Nhân sự & email page can be built.
 
