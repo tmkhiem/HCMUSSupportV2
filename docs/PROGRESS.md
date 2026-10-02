@@ -28,7 +28,7 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 
 | Branch / worktree | State |
 |---|---|
-| `feat/d14b-admin-pages` (**pushed to origin**) | Part A (admin pages) is committed and the agent reported it finished. Part B (frontend leftovers 7, 11, 12) is an unverified WIP commit on top. Work stopped at the owner's request (offloaded). The next machine finishes, verifies and merges it. |
+| `feat/d14b-admin-pages` (**pushed to origin**) | Part A (admin pages) is in two commits ("finish D14b pages" and "real-backend e2e"). The agent was stopped before its final report, so Part A is not verified either. Part B (frontend leftovers 7, 11, 12) is an unverified WIP commit on top. Work stopped at the owner's request (offloaded). The next machine finishes, verifies and merges it. |
 
 ## Not started
 
