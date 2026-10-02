@@ -1,0 +1,10 @@
+node_modules/
+out/
+dist/
+*.log
+# Converted output and reports contain PII: never commit them.
+*.payload.json
+*.preview.md
+report.json
+report.md
+post-report.json

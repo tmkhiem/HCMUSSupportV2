@@ -1,0 +1,29 @@
+{
+  "name": "hcmus-support-legacy-news",
+  "version": "1.0.0",
+  "private": true,
+  "description": "D15: converts the v1 news posts (baked HTML) into v2 Markdown posts and sends them to the legacy import endpoint.",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "convert": "tsx src/convert-cli.ts",
+    "post": "tsx src/post-cli.ts",
+    "all": "tsx src/all-cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mixmark-io/domino": "^2.2.0",
+    "markdown-it": "^14.1.0",
+    "turndown": "^7.2.0",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^24.0.0",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

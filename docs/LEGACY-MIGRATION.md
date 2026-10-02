@@ -15,7 +15,7 @@ emails, go to a report directory outside the repo (default `%LOCALAPPDATA%\HCMUS
 | 1 | HRM categories (org units, employees, profiles, salary, …) | `HCMUSSupportV2.Sync sync legacy-git --path <data>` (D05) | `POST /api/integration/v1/{dataset}` |
 | 2 | `config/users.json` → email mapping | `HCMUSSupportV2.Sync sync legacy-emails --path <data>` | `POST …/legacy/emails` |
 | 3 | teaching-stats, research-stats, paper-details | `HCMUSSupportV2.Sync sync legacy-datasets --path <data>` | `POST …/legacy/datasets/{dataset}` |
-| 4 | `notifications/news/*.json` and the request-update-info banner | `tools/legacy-news` (Node + TS, turndown) | `POST …/legacy/notifications` |
+| 4 | `notifications/news/*.json` and the request-update-info banner | `tools/legacy-news`: `npm run convert -- --path <data>`, then `npm run post -- --api <url> [--dry-run]` (or `npm run all`), with `LEGACY_API_TOKEN` set. See its README. | `POST …/legacy/notifications` |
 | 5 | `config/privileged.users.json` (ViewAs/Lookup) | listed in the step 2 report **for the owner to decide** | none (roles are granted by hand) |
 
 Step 1 must run first, because every other step looks up employees. Step 2 must run before step 4 because `audienceAll`
