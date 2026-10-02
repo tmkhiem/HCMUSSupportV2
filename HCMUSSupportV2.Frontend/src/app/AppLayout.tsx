@@ -9,6 +9,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useMatches } from 'react-router-dom'
 import { useAuth } from '../auth/authContext'
+import { useRefreshUnreadOnNavigation } from '../features/notifications/inbox/inboxQueries'
 import AccountMenu from './AccountMenu'
 import SidebarNav from './SidebarNav'
 import ViewAsBar from './ViewAsBar'
@@ -26,6 +27,16 @@ function useRouteTitle(): string | undefined {
   return undefined
 }
 
+/** Routes that share a scroll position (a list and the dialog over it) declare the same `handle.scrollGroup`. */
+function useScrollKey(pathname: string): string {
+  const matches = useMatches()
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const group = (matches[i].handle as { scrollGroup?: string } | undefined)?.scrollGroup
+    if (group) return group
+  }
+  return pathname
+}
+
 /**
  * The signed-in shell (PLAN §7.2). `lg`+: permanent 288 px sidebar and a floating avatar. Below `lg`: 64 px top bar
  * and a 90 vw (max 450) drawer over a dark acrylic scrim. The page scrolls inside `<main>`, not the body.
@@ -39,15 +50,17 @@ export default function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const title = useRouteTitle()
+  const scrollKey = useScrollKey(pathname)
+  useRefreshUnreadOnNavigation(pathname)
 
   useEffect(() => {
     document.title = title ? `${title} · ${APP_NAME}` : APP_NAME
   }, [title])
 
-  // New page -> back to the top of the content pane.
+  // New page -> back to the top of the content pane (not when a dialog opens over its list).
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 })
-  }, [pathname])
+  }, [scrollKey])
 
   return (
     <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.default' }}>

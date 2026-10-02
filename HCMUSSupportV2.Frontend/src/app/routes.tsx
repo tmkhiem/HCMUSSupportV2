@@ -54,9 +54,20 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <Navigate to="/tin-tuc" replace /> },
 
-      // Tin tức (landing)
-      page('tin-tuc', 'Tin tức'),
-      page('tin-tuc/:id', 'Chi tiết thông báo'),
+      // Tin tức (landing). The detail is a nested route whose Dialog opens over the list (InboxPage renders the Outlet);
+      // `scrollGroup` keeps the list's scroll position when it opens (AppLayout scrolls to the top on other navigations).
+      {
+        path: 'tin-tuc',
+        lazy: () => import('../features/notifications/inbox/InboxPage'),
+        handle: { title: 'Tin tức', scrollGroup: 'tin-tuc' },
+        children: [
+          {
+            path: ':id',
+            lazy: () => import('../features/notifications/inbox/NotificationDialog'),
+            handle: { title: 'Chi tiết thông báo', scrollGroup: 'tin-tuc' },
+          },
+        ],
+      },
 
       // Hồ sơ cá nhân
       page('ho-so', 'Hồ sơ cá nhân', () => import('../features/profile/overview/OverviewPage')),

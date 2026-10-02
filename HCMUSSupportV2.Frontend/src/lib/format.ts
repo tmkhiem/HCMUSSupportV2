@@ -108,3 +108,24 @@ export function dayKey(value: Maybe<string | Date | number>): string | null {
   const d = parseDate(value)
   return d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : null
 }
+
+/** `dd/MM/yyyy HH:mm` (local time). `—` if unparseable. */
+export function formatDateTime(value: Maybe<string | Date | number>): string {
+  const d = parseDate(value)
+  if (!d) return DASH
+  return `${formatDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** `512 B`, `1,5 KB`, `2,0 MB` (decimal comma, 1024 steps). `—` when missing. */
+export function formatBytes(value: Maybe<number>): string {
+  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) return DASH
+  if (value < 1024) return `${Math.round(value)} B`
+  const units = ['KB', 'MB', 'GB']
+  let n = value / 1024
+  let i = 0
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024
+    i++
+  }
+  return `${new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)} ${units[i]}`
+}

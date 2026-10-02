@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   DASH,
   dayKey,
+  formatBytes,
   formatDate,
+  formatDateTime,
   formatDecimal,
   formatMoney,
   formatNumber,
@@ -131,5 +133,25 @@ describe('dayKey', () => {
     expect(dayKey(new Date(2024, 0, 2, 23, 30))).toBe('2024-01-02')
     expect(dayKey('02/01/2024')).toBe('2024-01-02')
     expect(dayKey('xx')).toBeNull()
+  })
+})
+
+describe('formatDateTime', () => {
+  it('formats dd/MM/yyyy HH:mm in local time', () => {
+    expect(formatDateTime(new Date(2026, 8, 5, 7, 3))).toBe('05/09/2026 07:03')
+    expect(formatDateTime('nope')).toBe(DASH)
+  })
+})
+
+describe('formatBytes', () => {
+  it('scales to KB, MB and GB with a decimal comma', () => {
+    expect(formatBytes(512)).toBe('512 B')
+    expect(formatBytes(1536)).toBe('1,5 KB')
+    expect(formatBytes(2 * 1024 * 1024)).toBe('2,0 MB')
+    expect(formatBytes(3 * 1024 ** 3)).toBe('3,0 GB')
+  })
+  it('shows a dash for missing values', () => {
+    expect(formatBytes(null)).toBe(DASH)
+    expect(formatBytes(-1)).toBe(DASH)
   })
 })

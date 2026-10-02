@@ -1,11 +1,13 @@
+import { useUnreadCount } from '../features/notifications/inbox/inboxQueries'
 import type { NavEntry } from './nav'
 
 export type NavBadges = Partial<Record<NonNullable<NavEntry['badge']>, number>>
 
 /**
- * Counts shown on nav entries. D08 (Tin tức UI) replaces the body with the live unread count
- * (`GET /api/notifications/unread-count` + SSE); until then there are no badges.
+ * Counts shown on nav entries: the unread notification count (`GET /api/notifications/unread-count`, refreshed on route
+ * changes, window focus and after read/ack/read-all). Absent until the first answer, so no badge flashes in.
  */
 export function useNavBadges(): NavBadges {
-  return {}
+  const { data } = useUnreadCount()
+  return data === undefined ? {} : { unread: data }
 }
