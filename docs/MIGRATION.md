@@ -145,7 +145,7 @@ Against the real data repo: `sync legacy-git` (every dataset `status=success`), 
 (Đại học 50,387, Cao học 1,830, Tiến sĩ 240; 12 + 58 ids normalised); research **2,215** projects with **6,381** members; **1** publication. `legacy-news --apply`:
 **56** posts created (0 rejected; 3 with `audience_all`: two surveys and the banner), 17,525 deliveries. A **second run of everything reported nothing to do**
 (roster `unchanged`, roles `already`, datasets `applied=False` with 0 new/updated/removed, news `unchanged=56`).
-The comparison of sampled employees against v1 (counts and key fields) is D18.
+The comparison of employees against v1 (counts and key fields) is D18: [PARITY.md](PARITY.md).
 
 ## Not done / for the owner
 

@@ -524,14 +524,16 @@ nothing is installed, changed or deployed there; read-only inspection is the mos
 - [ ] After cutover, a decision on the PII-laden SupportHCMUSData history: archive it read-only, or purge it.
 
 ### D18 · Parity & cutover
-- [ ] A parity script, run per category for N sampled MSCBs: v1 `/api/viewas` versus v2 `me/*` (through admin view-as). Counts and key fields must match, apart from documented fixes.
-- [ ] A one-week soak on a non-production host (or locally) with nightly `sync hrm`. Then the owner upgrades the live server (D16 runbook), deploys v2 and stops the v1 git push.
-- [ ] Google OAuth client: add the production, staging and `http://localhost:5173` redirect URIs. Rotate the secret.
-- [ ] Cutover:
+- [x] A parity script, run per category for N sampled MSCBs: v1 data against v2 `me/*` and the inbox, through admin view-as: `tools/parity-check/parity.mjs` (dependency free; counts and MSCBs only on screen). Counts and key fields match, apart from the documented differences. See [PARITY.md](PARITY.md).
+  - Rehearsed on a temporary database built from the real data repo (D15 run, then a second no-op run): 5 sampled real employees plus the edge cases plus all 1,917 other roster people with an email: 0 mismatches.
+- [ ] A one-week soak on a non-production host (or locally) with nightly `sync hrm`. Then the owner upgrades the live server (D16 runbook), deploys v2 and stops the v1 git push. (Owner: [CUTOVER.md](CUTOVER.md) Phase A and C; needs a week and the HRM box.)
+- [ ] Google OAuth client: add the production, staging and `http://localhost:5173` redirect URIs. Rotate the secret. (Owner: [CUTOVER.md](CUTOVER.md) Phase B.)
+- [ ] Cutover (written as the runbook [CUTOVER.md](CUTOVER.md), not run):
   - [ ] keep a full backup of v1 (`/root/backend`, the nginx config, the static html) before the in-place upgrade
   - [ ] remove the `/tchc` remnants and the v1 tmux process after the switch
   - [ ] tell the KHCN and Documents owners that the v1 user-dump endpoint has gone
 - **Done when:** the parity report is clean and real staff can sign in and see their data in production.
+  The report is clean (rehearsal); production sign-in is the owner's part.
 
 ---
 

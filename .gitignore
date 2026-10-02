@@ -85,3 +85,7 @@ App_Data/
 # Legacy migration reports hold emails and names (D15): never commit
 *.legacy-report.json
 legacy-report*.json
+
+# Parity check output (counts and MSCBs only in the summary; the detail file holds personal data)
+*.parity-detail.json
+*.parity-report.json
