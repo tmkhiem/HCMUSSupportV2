@@ -15,18 +15,18 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 | D06 | Groups engine: static, org-unit and rule groups, preview, recompute, import | ✓ |
 | D07 | Notifications engine: Markdig validator, editor API, recipient import, fan-out, inbox, FTS, SSE | ✓ (after fixing the same view-as test helper) |
 | D07a | Markdown contract + MDXEditor spike (passed, `:var[Key]` kept), `NotificationBody` renderer, editor component | ✓ |
+| D10 | Hồ sơ: overview (hero + 8 summary cards), Thông tin chung, Thông tin chi tiết (masked + reveal) | ✓ (Playwright 7) |
 | D11 | Hồ sơ: Quá trình lương, Chức vụ, Khen thưởng pages | ✓ (vitest 163, Playwright `career`) |
 | D14a | Admin backend: roles, view-as (read-only + audited), audit query, dashboard | ✓ |
 | D16 | Deployment kit (systemd, nginx, backup/restore, `deploy.ps1`, OPERATIONS.md). Validated in Docker only | ✓ |
 | D17 | Security checklist + read-only HRM SQL login template | n/a |
 
-Before D07 was merged, `main` passed 122 backend tests and 63 frontend vitest tests. The D07 branch, rebased onto `main` with D04 and D06 in it, passed 352 of 353 backend tests. The one failure was the outdated view-as test helper, which I then fixed, and the notifications tests passed 142/142. The full backend suite has not been re-run on `main` since the D07 merge.
+`main` at the time of writing passes **353 backend**, **50 sync** and **175 frontend (vitest)** tests.
 
 ## Interrupted (the usage limit cut the agents off at ~04:25)
 
 | Branch / worktree | State |
 |---|---|
-| `feat/d10-profile-pages` (`.claude/worktrees/d10`) | Hồ sơ overview, Thông tin chung and Thông tin chi tiết are committed as "unverified WIP". The agent's last message says its 7 Playwright tests passed, but the final edits and screenshots are uncommitted. It needs a verify pass, then commit and merge. |
 | `feat/d14b-admin-pages` (`.claude/worktrees/d14b`) | Admin and editor pages were in progress (it stopped in the middle of the rule builder). **Nothing is committed**; all the work is uncommitted files in the worktree. It needs finishing, verifying and committing. |
 
 ## Not started
