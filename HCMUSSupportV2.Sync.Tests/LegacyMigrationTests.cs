@@ -168,11 +168,11 @@ public class LegacyMigrationTests
     [Fact]
     public void Admin_identity_needs_an_email_and_an_mscb()
     {
-        Assert.Equal(new AdminIdentity("a@b.vn", "0300"), AdminIdentity.TryParse("a@b.vn:0300"));
-        Assert.Equal(new AdminIdentity("a@b.vn", "0300"), AdminIdentity.TryParse(" a@b.vn : 0300 "));
-        Assert.Null(AdminIdentity.TryParse("0300"));
+        Assert.Equal(new AdminIdentity("a@b.vn", "0900"), AdminIdentity.TryParse("a@b.vn:0900"));
+        Assert.Equal(new AdminIdentity("a@b.vn", "0900"), AdminIdentity.TryParse(" a@b.vn : 0900 "));
+        Assert.Null(AdminIdentity.TryParse("0900"));
         Assert.Null(AdminIdentity.TryParse("a@b.vn:"));
-        Assert.Null(AdminIdentity.TryParse("nobody:0300"));
+        Assert.Null(AdminIdentity.TryParse("nobody:0900"));
         Assert.Null(AdminIdentity.TryParse(null));
     }
 
