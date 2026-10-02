@@ -142,7 +142,8 @@ idempotent, so re-running after an interruption is safe.
    backup scripts; enable the backup timer; install the nginx site and issue/expand the certificate for apex **and www**.
 4. Edit `/etc/hcmus-support/env`: add the Google client id and secret (Q7: the existing v1 web client; add
    `https://support.hcmus.edu.vn/api/auth/callback` to its redirect URIs in Google Cloud Console) and anything else the app
-   needs. The key names in `deploy/env.example` are placeholders: **match them to the merged backend's configuration**.
+   needs. `deploy/env.example` lists every key the backend reads (required ones uncommented); also set `Admin__BootstrapEmails__0`
+   to the first administrator's email. The key names match `docs/BACKEND.md` (Configure a dev machine, key table).
 5. Recommended hardening (not done by the script): `apt install unattended-upgrades fail2ban`, `PasswordAuthentication no` and
    `PermitRootLogin prohibit-password` in sshd, a cloud firewall allowing only 22/80/443.
 6. Check:
@@ -350,12 +351,13 @@ Debian 13 VM or droplet before the real window.
 - Listens on `ASPNETCORE_URLS=http://127.0.0.1:5080` and serves the SPA from `wwwroot` with the index.html fallback; sends no CORS
   headers and no CSP of its own.
 - `GET /healthz` returns 200 without authentication (used by `activate.sh`, `deploy.ps1`, nginx and external monitors).
-- Configuration keys in `deploy/env.example`: `ConnectionStrings__Default` (confirmed pattern in the scaffold comments) is
-  used by `activate.sh` for the bundle; the Google and file-store keys are guesses.
+- Configuration keys in `deploy/env.example` match the backend (`Auth__Google__*`, `Admin__BootstrapEmails__0`, `Storage__LocalRoot`,
+  `Logging__File__Path`, ...); `ConnectionStrings__Default` is also used by `activate.sh` for the bundle.
 - The EF migrations assembly is the Backend project (the bundle is built from `HCMUSSupportV2.Backend`) and at least one migration
   exists; the schema needs the extensions `citext`, `unaccent`, `pg_trgm`, `pgcrypto` (created by bootstrap and `restore.sh`;
   add others in both places if a later migration needs them, e.g. `pg_stat_statements` also needs `shared_preload_libraries`).
-- The file store is `/var/lib/hcmus-support/files`, writable by `hcmus-support`; Serilog writes its file under `/var/log/hcmus-support`.
+- The file store is `/var/lib/hcmus-support/files` (`Storage__LocalRoot`), writable by `hcmus-support`; Serilog writes its file under
+  `/var/log/hcmus-support` (`Logging__File__Path`). Both are set in the env file because the app directory is read-only.
 - SSE heartbeats arrive at least every few minutes (nginx allows 1 hour of silence on the stream).
 - `/api/auth/*` and `/api/integration/*` are the route prefixes the rate limits attach to.
 - The Sync tool's API-client auth is compatible with the 25 MB body cap and the 300 s read timeout on `/api/integration/`.
