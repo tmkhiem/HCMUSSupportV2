@@ -1,8 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { formatHours, orderedTerms, pickYear, sourceCaption, termLabel, termSummary } from './teachingFormat'
+import type { TeachingEntry, TeachingProgram } from './teachingApi'
+import {
+  activityLabel,
+  formatHours,
+  groupSummary,
+  moduleLabel,
+  orderedModules,
+  orderedPrograms,
+  orderedTerms,
+  pickYear,
+  programLabel,
+  sourceCaption,
+  termLabel,
+  termSummary,
+} from './teachingFormat'
 
-const item = (id: number, standardHours: number) => ({
-  id, courseCode: null, courseName: 'M', classCode: null, level: null, periods: 45, standardHours,
+const item = (id: number, standardHours: number): TeachingEntry => ({
+  id, courseCode: null, courseName: 'M', classCode: null, track: null, activity: null, periods: 45, standardHours, module: null,
+})
+
+const stats = { totalStandardHours: 0, classes: 0, courses: 0 }
+const program = (p: TeachingProgram['program'], terms: TeachingProgram['terms'], modules: TeachingProgram['modules']): TeachingProgram => ({
+  program: p, stats, terms, modules,
 })
 
 describe('teaching format', () => {
@@ -14,14 +33,47 @@ describe('teaching format', () => {
     expect(formatHours(Number.NaN)).toBe('—')
   })
 
-  it('labels and summarises terms', () => {
+  it('labels and summarises terms and groups', () => {
     expect(termLabel(2)).toBe('Học kỳ 2')
     expect(termSummary({ term: 1, items: [item(1, 72), item(2, 73.5)] })).toBe('2 lớp · 145,5 giờ quy đổi')
+    expect(groupSummary([item(1, 10)])).toBe('1 lớp · 10 giờ quy đổi')
   })
 
   it('orders terms ascending and drops empty ones', () => {
     const terms = [{ term: 2, items: [item(1, 1)] }, { term: 3, items: [] }, { term: 1, items: [item(2, 1)] }]
     expect(orderedTerms(terms).map((t) => t.term)).toEqual([1, 2])
+  })
+
+  it('names programs and orders them Đại học, Cao học, Tiến sĩ, dropping empty ones', () => {
+    expect(programLabel('dai_hoc')).toBe('Đại học')
+    expect(programLabel('cao_hoc')).toBe('Cao học')
+    expect(programLabel('tien_si')).toBe('Tiến sĩ')
+    const ordered = orderedPrograms([
+      program('tien_si', [], [{ module: 'CĐTS', items: [item(1, 1)] }]),
+      program('cao_hoc', [], []),
+      program('dai_hoc', [{ term: 1, items: [item(2, 1)] }], []),
+    ])
+    expect(ordered.map((p) => p.program)).toEqual(['dai_hoc', 'tien_si'])
+  })
+
+  it('groups postgraduate lines by module with "Chưa rõ học phần" for a missing one, last', () => {
+    expect(moduleLabel(null)).toBe('Chưa rõ học phần')
+    expect(moduleLabel('  ')).toBe('Chưa rõ học phần')
+    expect(moduleLabel(' Học phần 3 ')).toBe('Học phần 3')
+    const modules = [
+      { module: null, items: [item(1, 1)] },
+      { module: 'HPTS', items: [item(2, 1)] },
+      { module: 'CĐTS', items: [] },
+      { module: 'Học phần 3', items: [item(3, 1)] },
+    ]
+    expect(orderedModules(modules).map((m) => m.module)).toEqual(['Học phần 3', 'HPTS', null])
+  })
+
+  it('shows readable activity names and falls back to the raw code', () => {
+    expect(activityLabel('LYTHUYET')).toBe('Lý thuyết')
+    expect(activityLabel('seminartn')).toBe('Seminar TN')
+    expect(activityLabel('XYZ')).toBe('XYZ')
+    expect(activityLabel(null)).toBe('—')
   })
 
   it('builds the source caption from what is known', () => {

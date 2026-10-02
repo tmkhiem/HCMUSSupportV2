@@ -204,12 +204,12 @@ client has no Hrm endpoints), a `*Format.ts` (tested), a `*Mock.ts` and its page
 | Folder | Route | What it does |
 |---|---|---|
 | `innovation/` | `/sang-kien` | `InnovationStats` (total + one `StatCard` per type, 1/2/3 columns at xs/sm/md; always the employee's totals), a debounced search that uses the server's `q`, keyset "Tải thêm" (`useInfiniteQuery`, `keepPreviousData`), `InnovationDialog` (code, type, decision, ngày/năm công nhận, năm học; full screen below `sm`) |
-| `teaching/` | `/giang-day` | `YearSelect` = the §4.6 pill select fed by `teaching/years` (newest preselected), three stat cards (giờ quy đổi, lớp, môn), one `TermGroup` per học kỳ (divider + table), and the caption "Nguồn: …, cập nhật …" (each half dropped when unknown). Below `sm` the Lớp column folds under the course name, below `md` Bậc is hidden |
+| `teaching/` | `/giang-day` | `YearSelect` = the §4.6 pill select fed by `teaching/years` (newest preselected). The page groups by program (`ProgramSection`: Đại học, Cao học, Tiến sĩ, those with rows), each with its own three stat cards (giờ quy đổi, lớp, môn). Đại học has one `TeachingGroup` per học kỳ; Cao học and Tiến sĩ have no học kỳ and group by học phần / chuyên đề (a missing module is "Chưa rõ học phần", listed last). Hệ and activity show as chips (columns from `md`, under the course name below). Caption "Nguồn: …, cập nhật …" (each half dropped when unknown). Below `sm` the Lớp column folds under the course name |
 | `research/` | `/nckh/de-tai`, `/nckh/bai-bao` | `ResearchSwitcher`: the skewed pill (`skewX(-15deg)` parallelogram under the active link; two route links, labels shorten below `sm`). `ProjectsPage` rows with a role chip (`chu_nhiem` -> Chủ nhiệm, else Thành viên), level and funding, `ProjectDialog` with the members (chủ nhiệm first; the signed-in employee is tagged "Bạn"). `PublicationsPage` rows with `venue · year`, the DOI as `https://doi.org/…` (external link; only http(s) URLs are ever linked) and the co-authors |
 
-- **Sticky học kỳ dividers.** `TermGroup` is a `<section>` whose divider is a block with `position: sticky; top: 0`, so the browser
+- **Sticky group dividers (học kỳ, học phần).** `TeachingGroup` is a `<section>` whose divider is a block with `position: sticky; top: 0`, so the browser
   pushes it off when the next section arrives. This avoids `useStickyGroupPush` because sticky does not work on table cells
-  and the groups are not rows of one table (each học kỳ has its own small table).
+  and the groups are not rows of one table (each group has its own small table).
 - **Members are not links.** The app has no page for another employee's profile, so members appear as name, MSCB and role.
 - **Tests.** vitest: `innovationFormat.test.ts`, `teachingFormat.test.ts`, `researchFormat.test.ts`. Playwright project `research`
   (`e2e/research.spec.ts`, port 5593, mock auth): every page at 1440 and 375 px (no horizontal scroll at 375), search, the detail

@@ -21,7 +21,7 @@ import { toReport } from './datasetReport'
 import type { DatasetName, DatasetReport } from './datasetReport'
 
 const DATASETS: { id: DatasetName; label: string; note: string }[] = [
-  { id: 'teaching', label: 'Giảng dạy', note: 'Dữ liệu giảng dạy được thay thế theo từng năm học có trong tệp.' },
+  { id: 'teaching', label: 'Giảng dạy', note: 'Dữ liệu giảng dạy được thay thế theo từng cặp (năm học, bậc đào tạo) có trong tệp; các bậc khác của cùng năm học được giữ nguyên.' },
   { id: 'research', label: 'Đề tài nghiên cứu', note: 'Toàn bộ danh sách đề tài được thay thế bằng nội dung tệp.' },
   { id: 'publications', label: 'Bài báo khoa học', note: 'Toàn bộ danh sách bài báo được thay thế bằng nội dung tệp.' },
 ]

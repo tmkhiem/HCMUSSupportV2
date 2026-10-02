@@ -10017,7 +10017,7 @@ export interface IInnovationEntryDto {
 export class TeachingDto implements ITeachingDto {
     academicYear?: string | undefined;
     stats?: TeachingStatsDto;
-    terms?: TeachingTermDto[];
+    programs?: TeachingProgramDto[];
     sourceCaption?: string | undefined;
     sourceUpdatedAt?: Date | undefined;
 
@@ -10034,10 +10034,10 @@ export class TeachingDto implements ITeachingDto {
         if (_data) {
             this.academicYear = _data["academicYear"];
             this.stats = _data["stats"] ? TeachingStatsDto.fromJS(_data["stats"]) : undefined as any;
-            if (Array.isArray(_data["terms"])) {
-                this.terms = [] as any;
-                for (let item of _data["terms"])
-                    this.terms!.push(TeachingTermDto.fromJS(item));
+            if (Array.isArray(_data["programs"])) {
+                this.programs = [] as any;
+                for (let item of _data["programs"])
+                    this.programs!.push(TeachingProgramDto.fromJS(item));
             }
             this.sourceCaption = _data["sourceCaption"];
             this.sourceUpdatedAt = _data["sourceUpdatedAt"] ? new Date(_data["sourceUpdatedAt"].toString()) : undefined as any;
@@ -10055,10 +10055,10 @@ export class TeachingDto implements ITeachingDto {
         data = typeof data === 'object' ? data : {};
         data["academicYear"] = this.academicYear;
         data["stats"] = this.stats ? this.stats.toJSON() : undefined as any;
-        if (Array.isArray(this.terms)) {
-            data["terms"] = [];
-            for (let item of this.terms)
-                data["terms"].push(item ? item.toJSON() : undefined as any);
+        if (Array.isArray(this.programs)) {
+            data["programs"] = [];
+            for (let item of this.programs)
+                data["programs"].push(item ? item.toJSON() : undefined as any);
         }
         data["sourceCaption"] = this.sourceCaption;
         data["sourceUpdatedAt"] = this.sourceUpdatedAt ? this.sourceUpdatedAt.toISOString() : undefined as any;
@@ -10069,7 +10069,7 @@ export class TeachingDto implements ITeachingDto {
 export interface ITeachingDto {
     academicYear?: string | undefined;
     stats?: TeachingStatsDto;
-    terms?: TeachingTermDto[];
+    programs?: TeachingProgramDto[];
     sourceCaption?: string | undefined;
     sourceUpdatedAt?: Date | undefined;
 }
@@ -10116,6 +10116,70 @@ export interface ITeachingStatsDto {
     totalStandardHours?: number;
     classes?: number;
     courses?: number;
+}
+
+export class TeachingProgramDto implements ITeachingProgramDto {
+    program?: string;
+    stats?: TeachingStatsDto;
+    terms?: TeachingTermDto[];
+    modules?: TeachingModuleDto[];
+
+    constructor(data?: ITeachingProgramDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.program = _data["program"];
+            this.stats = _data["stats"] ? TeachingStatsDto.fromJS(_data["stats"]) : undefined as any;
+            if (Array.isArray(_data["terms"])) {
+                this.terms = [] as any;
+                for (let item of _data["terms"])
+                    this.terms!.push(TeachingTermDto.fromJS(item));
+            }
+            if (Array.isArray(_data["modules"])) {
+                this.modules = [] as any;
+                for (let item of _data["modules"])
+                    this.modules!.push(TeachingModuleDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TeachingProgramDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TeachingProgramDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["program"] = this.program;
+        data["stats"] = this.stats ? this.stats.toJSON() : undefined as any;
+        if (Array.isArray(this.terms)) {
+            data["terms"] = [];
+            for (let item of this.terms)
+                data["terms"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.modules)) {
+            data["modules"] = [];
+            for (let item of this.modules)
+                data["modules"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ITeachingProgramDto {
+    program?: string;
+    stats?: TeachingStatsDto;
+    terms?: TeachingTermDto[];
+    modules?: TeachingModuleDto[];
 }
 
 export class TeachingTermDto implements ITeachingTermDto {
@@ -10171,9 +10235,11 @@ export class TeachingEntryDto implements ITeachingEntryDto {
     courseCode?: string | undefined;
     courseName?: string;
     classCode?: string | undefined;
-    level?: string | undefined;
+    track?: string | undefined;
+    activity?: string | undefined;
     periods?: number;
     standardHours?: number;
+    module?: string | undefined;
 
     constructor(data?: ITeachingEntryDto) {
         if (data) {
@@ -10190,9 +10256,11 @@ export class TeachingEntryDto implements ITeachingEntryDto {
             this.courseCode = _data["courseCode"];
             this.courseName = _data["courseName"];
             this.classCode = _data["classCode"];
-            this.level = _data["level"];
+            this.track = _data["track"];
+            this.activity = _data["activity"];
             this.periods = _data["periods"];
             this.standardHours = _data["standardHours"];
+            this.module = _data["module"];
         }
     }
 
@@ -10209,9 +10277,11 @@ export class TeachingEntryDto implements ITeachingEntryDto {
         data["courseCode"] = this.courseCode;
         data["courseName"] = this.courseName;
         data["classCode"] = this.classCode;
-        data["level"] = this.level;
+        data["track"] = this.track;
+        data["activity"] = this.activity;
         data["periods"] = this.periods;
         data["standardHours"] = this.standardHours;
+        data["module"] = this.module;
         return data;
     }
 }
@@ -10221,9 +10291,59 @@ export interface ITeachingEntryDto {
     courseCode?: string | undefined;
     courseName?: string;
     classCode?: string | undefined;
-    level?: string | undefined;
+    track?: string | undefined;
+    activity?: string | undefined;
     periods?: number;
     standardHours?: number;
+    module?: string | undefined;
+}
+
+export class TeachingModuleDto implements ITeachingModuleDto {
+    module?: string | undefined;
+    items?: TeachingEntryDto[];
+
+    constructor(data?: ITeachingModuleDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.module = _data["module"];
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(TeachingEntryDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TeachingModuleDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TeachingModuleDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["module"] = this.module;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ITeachingModuleDto {
+    module?: string | undefined;
+    items?: TeachingEntryDto[];
 }
 
 export class PageDtoOfResearchProjectDto implements IPageDtoOfResearchProjectDto {

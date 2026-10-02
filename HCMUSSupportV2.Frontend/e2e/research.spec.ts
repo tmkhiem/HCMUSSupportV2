@@ -73,15 +73,31 @@ for (const [label, viewport, suffix] of [
       await expect(page.getByText('Không tìm thấy sáng kiến nào khớp với')).toBeVisible()
     })
 
-    test('Giảng dạy: year pill, stats, học kỳ groups, source caption', async ({ page }) => {
+    test('Giảng dạy: year pill, program sections with stats, học kỳ and học phần groups, source caption', async ({ page }) => {
       await page.goto('/giang-day')
       await expect(h1(page, 'Giảng dạy')).toBeVisible()
-      const stats = page.getByTestId('teaching-stats')
-      await expect(stats).toContainText('331,5')
-      await expect(stats).toContainText('Tổng giờ quy đổi')
-      await expect(page.getByTestId('term-1')).toContainText('3 lớp · 198 giờ quy đổi')
-      await expect(page.getByTestId('term-2')).toContainText('2 lớp · 133,5 giờ quy đổi')
-      await expect(page.getByTestId('term-1').getByRole('heading', { level: 2 })).toHaveText('Học kỳ 1')
+      const programs = page.getByTestId('teaching-programs').getByRole('heading', { level: 2 })
+      await expect(programs).toHaveText(['Đại học', 'Cao học', 'Tiến sĩ'])
+
+      // Đại học: học kỳ groups.
+      const dh = page.getByTestId('program-dai_hoc')
+      await expect(page.getByTestId('program-dai_hoc-stats')).toContainText('279')
+      await expect(page.getByTestId('program-dai_hoc-stats')).toContainText('Giờ quy đổi')
+      await expect(dh.getByTestId('term-1')).toContainText('3 lớp · 198 giờ quy đổi')
+      await expect(dh.getByTestId('term-2')).toContainText('2 lớp · 81 giờ quy đổi')
+      await expect(dh.getByTestId('term-1').getByRole('heading', { level: 3 })).toHaveText('Học kỳ 1')
+      await expect(dh.getByTestId('term-1')).toContainText('CLC')
+      await expect(dh.getByTestId('term-1')).toContainText('Lý thuyết')
+
+      // Cao học and Tiến sĩ: no học kỳ, grouped by học phần / chuyên đề; a missing module goes last.
+      const ch = page.getByTestId('program-cao_hoc')
+      await expect(page.getByTestId('program-cao_hoc-stats')).toContainText('187,5')
+      await expect(ch.getByRole('heading', { level: 3 })).toHaveText(['Hệ thống thông tin', 'Học phần 3', 'Chưa rõ học phần'])
+      await expect(ch.getByText('Học kỳ')).toHaveCount(0)
+      const ts = page.getByTestId('program-tien_si')
+      await expect(page.getByTestId('program-tien_si-stats')).toContainText('90')
+      await expect(ts.getByRole('heading', { level: 3 })).toHaveText(['CĐTS', 'HPTS'])
+
       await expect(page.getByTestId('teaching-source')).toHaveText(
         'Nguồn: Phòng Đào tạo (dữ liệu thử nghiệm), cập nhật 28/09/2026',
       )
@@ -90,7 +106,9 @@ for (const [label, viewport, suffix] of [
 
       await page.getByTestId('year-select').getByRole('combobox').click()
       await page.getByRole('option', { name: '2022-2023' }).click()
-      await expect(page.getByTestId('teaching-stats')).toContainText('126')
+      await expect(page.getByTestId('program-dai_hoc-stats')).toContainText('126')
+      await expect(page.getByTestId('program-cao_hoc')).toHaveCount(0)
+      await expect(page.getByTestId('program-tien_si')).toHaveCount(0)
       await expect(page.getByTestId('term-1')).toHaveCount(0)
       await expect(page.getByTestId('term-2')).toBeVisible()
       await expect(page.getByTestId('teaching-source')).toHaveCount(0)

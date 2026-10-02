@@ -406,6 +406,36 @@ included** (view-as is read-only and must not expose secrets), and the audit nev
 **Admin.** `GET/POST /api/admin/datasets/...` (policy `ManageDatasets`, admin only) and `GET /api/admin/sync-runs`,
 `GET /api/admin/sync-issues?resolved=`, `PUT /api/admin/sync-issues/{id}/resolve` (policy `Admin`).
 
+**Teaching programs (D13b).** `teaching_loads` rows belong to a `program`: `dai_hoc` (Đại học), `cao_hoc` (Cao học) or `tien_si`
+(Tiến sĩ). Only `dai_hoc` has a `term` (1..3); the other programs have `term` NULL (CHECK `ck_teaching_loads_term`, plus
+`ck_teaching_loads_program`). `module` is the học phần / chuyên đề of the postgraduate programs ("Học phần 3", "CĐTS", "HPTS", or a
+chuyên ngành) and NULL for `dai_hoc`. `activity` (was `level`) is a free-text uppercase v1 code (LYTHUYET, THUCHANH, BAITAP, TROGIANG,
+CHUANBI, KHOALUANTN, SEMINARTN, …) and `track` the program type (CQ, CLC, …). Index `(employee_code, academic_year, program, term)`.
+
+`GET /api/me/teaching?year=` returns `TeachingDto { academicYear, stats (overall totals across programs), programs: [ { program,
+stats {totalStandardHours, classes, courses}, terms: [ { term, items } ] (dai_hoc only, ascending), modules: [ { module, items } ]
+(cao_hoc / tien_si only, named modules alphabetical, module null = no module last) } ] (ordered dai_hoc, cao_hoc, tien_si; programs
+without rows are omitted), sourceCaption, sourceUpdatedAt }`. An item is `TeachingEntryDto { id, courseCode, courseName, classCode,
+track, activity, periods, standardHours, module }`. `teaching/years` is unchanged.
+
+**Teaching dataset import.** The xlsx columns are `MSCB | Năm học | Bậc đào tạo | Học kỳ | Học phần/chuyên đề | Mã môn | Tên môn | Mã lớp | Hệ |
+Loại hoạt động | Số tiết | Giờ chuẩn`. Bậc đào tạo accepts Đại học / Cao học / Tiến sĩ (case and accents tolerant). Học kỳ is required (1..3)
+for Đại học and must be empty for the others; Học phần/chuyên đề is for the postgraduate programs only; Loại hoạt động is upper-cased. The
+identity key is MSCB + năm học + program + term + module + course + class + track + activity, so reimporting a file is idempotent. Apply
+replaces the rows of each (năm học, program) present in the file; other programs and years are untouched. All of this lives in the
+shared `DatasetImportService` over one public row model, `TeachingLoadRow`, with `TeachingLoadRules.TryNormalize` (validation),
+`BuildTeachingReportAsync` (the diff report) and `ApplyTeachingRowsAsync` (the replace), so the legacy JSON endpoint can feed it.
+
+JSON row shape for the future `POST /api/integration/v1/legacy/datasets/teaching`:
+
+```json
+{ "employeeCode": "T0001", "academicYear": "2024-2025", "program": "dai_hoc|cao_hoc|tien_si", "term": 1,
+  "module": null, "courseCode": "CSC10004", "courseName": "…", "classCode": "23CLC1", "track": "CLC",
+  "activity": "LYTHUYET", "periods": 60, "standardHours": 72 }
+```
+
+`term` is an int for `dai_hoc` and null otherwise; `module` is null for `dai_hoc`. `program` also accepts the Vietnamese names.
+
 **Testing.** `Tests/Hrm/HrmTestSupport` clears the HRM tables and run history (`ResetAsync`, needed because the truncation
 guard compares with earlier runs), creates API clients (`CreateIngestClientAsync`) and posts snapshots (`PostOkAsync`).
 `HrmTestSignInController` (`POST /api/test/hrm/sign-in/{code}?actingAs=`) simulates the `acting_as` claim; use a factory with

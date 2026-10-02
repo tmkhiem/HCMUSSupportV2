@@ -113,8 +113,11 @@ academic_degrees      id · hrm_id · employee_code · degree_type · major · i
 trainings             id · hrm_id · employee_code · content · place · training_form · start_on · end_on
 business_trips        id · hrm_id · employee_code · from_on · to_on · place · purpose · transport · decision_no · decided_on · note
 innovations           id · hrm_id · employee_code · code · title · type · decision_no · recognized_on · academic_year NULL
-teaching_loads        id · employee_code · academic_year ('2024-2025') · term (1|2|3) · course_code · course_name · class_code
-                      · level (dh|sdh|…) · periods int · standard_hours numeric(7,2) · source_import_id → imports
+teaching_loads        id · employee_code · academic_year ('2024-2025') · program ('dai_hoc'|'cao_hoc'|'tien_si') · term int NULL
+                      · module NULL · course_code · course_name · class_code · track NULL (CQ, CLC, …) · activity NULL (LYTHUYET, …)
+                      · periods int · standard_hours numeric(7,2) · source_import_id → imports
+                      (D13b: only dai_hoc has a học kỳ: CHECK (dai_hoc AND term 1..3) OR (other AND term IS NULL); module is the
+                      học phần / chuyên đề of cao_hoc and tien_si, NULL for dai_hoc; activity is the renamed `level`)
 research_projects     id · code UNIQUE · title · level · research_type · funding numeric(14,0) NULL · period_text · accepted_on NULL · result
 research_project_members  project_id → research_projects · employee_code · role (chu_nhiem|thanh_vien|…) · PK(project_id, employee_code)
 publications          id · doi UNIQUE NULL · eid UNIQUE NULL · title · venue · year · details · url NULL
@@ -402,6 +405,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 
 ### D04 · HRM domain schema & ingest API
 - [x] The §3.2 tables, with the EF mappings and migration `D04_Hrm`.
+  (D13b later reshaped `teaching_loads`: `program`, nullable `term`, `module`, `track`, `level` renamed to `activity`; migration `D13b_TeachingPrograms`.)
 - [x] `POST integration/v1/{dataset}` takes full-snapshot batches (gzip JSON, ≤ 20 MB). The service:
   1. Binary-COPYs the batch into a temp table.
   2. `MERGE … WHEN NOT MATCHED BY SOURCE THEN DELETE` (PG 17+) on `hrm_id`.
@@ -467,6 +471,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 
 ### D13 · Sáng kiến, Giảng dạy, Nghiên cứu khoa học
 - [x] The three bespoke sections in §7.3, including the NCKH skewed switcher. Use proper responsive labels; the build relied on a Tailwind `xs` breakpoint that doesn't exist.
+- [x] D13b teaching programs: Giảng dạy groups by program (Đại học by học kỳ; Cao học and Tiến sĩ by học phần / chuyên đề, no học kỳ), each with its own stat cards, plus Hệ and activity chips. Backend: migration `D13b_TeachingPrograms`, `me/teaching` returns `programs`, the teaching xlsx import carries Bậc đào tạo, Học phần/chuyên đề, Hệ and Loại hoạt động.
 
 ### D14a · Admin core (backend)
 - [x] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. (Sync runs and issues endpoints are owned by D04.)
