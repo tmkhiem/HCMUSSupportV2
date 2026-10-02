@@ -10,6 +10,8 @@ const PLAIN_PORT = 5274
 const MARKDOWN_PORT = 5373
 /** D11 career pages (Lương, Chức vụ, Khen thưởng) on the mock user. */
 const CAREER_PORT = 5383
+/** D08 inbox (Tin tức) on the mock user and the synthetic inbox. */
+const INBOX_PORT = 5483
 
 export default defineConfig({
   testDir: './e2e',
@@ -42,6 +44,11 @@ export default defineConfig({
       testMatch: /career\.spec\.ts/,
       use: { baseURL: `http://localhost:${CAREER_PORT}` },
     },
+    {
+      name: 'inbox',
+      testMatch: /inbox\.spec\.ts/,
+      use: { baseURL: `http://localhost:${INBOX_PORT}` },
+    },
   ],
   webServer: [
     {
@@ -68,6 +75,13 @@ export default defineConfig({
     {
       command: `npx vite --port ${CAREER_PORT} --strictPort`,
       url: `http://localhost:${CAREER_PORT}`,
+      env: { VITE_MOCK_AUTH: '1' },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `npx vite --port ${INBOX_PORT} --strictPort`,
+      url: `http://localhost:${INBOX_PORT}`,
       env: { VITE_MOCK_AUTH: '1' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

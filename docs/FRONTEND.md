@@ -110,7 +110,7 @@ precision?)` (`dd/MM/yyyy`, `MM/yyyy`, `yyyy`), `dayKey` (local `yyyy-MM-dd`).
    role check.
 3. Only for a new sidebar item: add one line to `NAV` in `src/app/nav.ts` (`id`, `label`, MUI icon, `to`, optional
    `match` prefix, optional `role: 'editor' | 'admin'`). Sub-pages that live under an existing item need no entry.
-4. Live counts on a nav item: set `badge: 'unread'` and implement `useNavBadges()` (D08 fills it with the unread count).
+4. Live counts on a nav item: set `badge: 'unread'`; `useNavBadges()` (D08) returns `{ unread }` from the cached unread count.
 
 Nav hiding is cosmetic. `RequireRole` and the server's 403 are the real guards.
 
@@ -174,6 +174,27 @@ Code lives in `src/features/notifications/`: `body/` (`NotificationBody`, `remar
 `NotificationMarkdownEditor`, `MarkdownPreviewPane`, `contractPlugin`) and `dev/DevMarkdownPage` (route `/dev/markdown`, registered
 only when `import.meta.env.DEV`, so production builds have neither the page nor the editor chunk).
 
+## Tin tức: inbox (D08)
+
+Code in `src/features/notifications/inbox/` (the shared `NotificationBody` from D07a renders the post; nothing is re-implemented here).
+
+| File | Role |
+|---|---|
+| `InboxPage.tsx` | `/tin-tuc` (route component, renders `<Outlet />` for the detail). Header with unread count and "Đánh dấu tất cả đã đọc"; sticky filter bar; rows; skeleton / error / empty / "Xóa bộ lọc" states |
+| `InboxFilterBar.tsx`, `inboxFilters.ts` | Sticky acrylic bar: search (400 ms debounce), tag chips (multi-select, `GET /api/tags`), MUI X `DatePicker`s Từ ngày / Đến ngày, "Chưa đọc" toggle. Below `md` tags and dates fold behind a "Bộ lọc" button. **Filters live in the URL**: `?q=&tags=1,3&from=2026-01-01&to=2026-06-30&unread=1` (`parseFilters` / `serializeFilters`, malformed values are dropped; search edits use `replace`, the rest push history). `toInboxQuery` turns days into instants (`to` = 23:59:59.999 local, because the server's `to` is inclusive) |
+| `InboxRow.tsx`, `LoadMore.tsx` | Row = acrylic `<a>` to `/tin-tuc/:id` (title, summary, "Ghim" / "Cần xác nhận" (`requiresAck && !ackAt`) / "Đã cập nhật" chips, attachment icon, first tag + `+N`, delivery date; unread = 800 weight + primary dot). Infinite scroll = `IntersectionObserver` on a sentinel inside `#main-content`, plus a "Tải thêm" button as the fallback |
+| `NotificationDialog.tsx`, `DetailSections.tsx` | `/tin-tuc/:id` is a **nested route**: the Dialog opens over the still-mounted list (full-screen below `md`), so a deep link works and the list keeps its scroll and pages. Title, meta (date, series, tags, chips), `NotificationBody` with `vars`, attachment download links (`/api/notifications/:id/attachments/:fileId`), "Các kỳ trước" links (same series; `replace` navigation), "Xác nhận đã đọc" (then a green "Đã xác nhận lúc …" chip) |
+| `inboxApi.ts`, `inboxQueries.ts`, `inboxCache.ts` | Calls and TanStack hooks. Lists, unread count, read, ack, read-all and tags use the generated `notificationsClient` / `tagsClient` (`api/clients.ts`). The detail is hand-written over `http.get`: the generated `InboxDetailDto.vars` is the abstract `JsonNode` and its `fromJS` throws |
+| `inboxMock.ts` | Synthetic inbox for mock mode (26 posts, 5 unread, pinned + ack + series + vars rows + attachments) |
+
+- **Query keys** (all start with `['inbox']`, so `clearUserData` drops them on logout / user switch): `['inbox','list',filters]` (infinite, keyset `nextCursor`, `staleTime: 0`, `keepPreviousData`), `['inbox','detail',id]`, `['inbox','tags']`, `['inbox','unread-count']`.
+- **Read on open.** Once the detail is loaded and unread, the dialog posts `read` (once per post per mount; a failure does not loop). `useMarkRead` / `useAcknowledge` patch every cached list and the detail first (dot gone, badge -1) and settle on the `{count}` the server returns; an error invalidates `['inbox']`.
+- **Unread badge, no live stream.** There is **no SSE / EventSource**: the owner dropped live updates, employees reload (F5) to see new posts, and the app never opens `/api/notifications/stream` (that backend endpoint stays unused). `useUnreadCount()` loads `GET unread-count` with the app; `useRefreshUnreadOnNavigation(pathname)` (mounted in `AppLayout`) refetches it on every route change; it also refetches on window focus; read / ack / read-all write the returned count into the cache. No polling interval. `useNavBadges()` maps it to the sidebar badge; `AccountMenu` shows a red dot on the avatar while it is above 0.
+- **View-as.** While `me.actingAs` is set the dialog does not post `read`, "Xác nhận đã đọc" and "Đánh dấu tất cả đã đọc" are disabled with a tooltip (the server answers 403 to all three).
+- **Shell change.** `AppLayout` scrolls `#main-content` to the top on navigation, except between routes that declare the same `handle.scrollGroup` (`tin-tuc` and `tin-tuc/:id`), so opening a detail keeps the list where it was.
+- **Mock mode** (`VITE_MOCK_AUTH=1`): `inboxApi.ts` serves `inboxMock.ts` behind `import.meta.env.DEV && MOCK_AUTH` (no mock chunk in a production build). State lives in the module (read / ack stick until a reload); `?mock-view-as=1` makes writes answer 403; `window.__inboxMock.publish(title)` delivers a new post (visible after the next route change / list fetch).
+- **Tests.** vitest: `inboxFilters.test.ts` (filters <-> URL), `inbox.test.tsx` (DTO mapping, cache patching, read/ack optimistic updates, row rendering), `lib/format.test.ts` (`formatDateTime`, `formatBytes`). Playwright project `inbox` (`e2e/inbox.spec.ts`, port 5483, mock auth) writes `docs/screenshots/d08/`. The real-backend e2e (`e2e/real.spec.ts`, last test) has T0001 create, target at T0003 and publish a post through `/api/manage/notifications`, then T0003 sees it and the badge, opens it (badge -1), acknowledges it and reloads.
+
 ## Hồ sơ: Lương, Chức vụ, Khen thưởng (D11)
 
 Code in `src/features/profile/`: `salary/` (`SalaryPage`, `SalaryChart`, `SalaryTimeline`), `positions/` (`PositionsPage`,
@@ -231,8 +252,9 @@ Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `Summa
   `appsettings.Development.local.json` (DB; created and migrated on first start; `Auth:DevLogin:Enabled=true`) and the
   dev roster. Covers: T0001 sees the shell, name and admin nav; T0003 has no editor/admin nav and gets the 403 card on
   `/quan-tri`; unknown MSCB; unsafe call without `X-XSRF-TOKEN` -> 400 (with it -> 204); logout clears the cookie;
-  switching user; `/login?error=` redirect. Existing servers on those ports are reused locally (not in CI).
+  switching user; `/login?error=` redirect; and the D08 inbox flow (T0001 publishes to T0003, badge and row, open, ack; the post is archived afterwards). Existing servers on those ports are reused locally (not in CI).
 - The specs write screenshots to `docs/screenshots/d02/` (1440x900 and 375x812: shell, drawer, account menu, view-as bar,
   login). Commit them when the look changes. The login shots are taken in dev, where the "Đăng nhập thử (dev)" panel shows: `git checkout docs/screenshots` after a run unless the login page itself changed.
 - `e2e/markdown.spec.ts` (project `markdown`, port 5373, mock auth) drives `/dev/markdown`: placeholder chips, source/diff mode, typed and pasted text, tables, the raw-HTML fallback, image upload. Screenshots go to `docs/screenshots/d07a/`. `src/features/notifications/` has the renderer tests and `mdxRoundTrip.test.tsx`.
+- `e2e/inbox.spec.ts` (project `inbox`, port 5483, mock auth): list markers, infinite scroll, URL-backed filters, detail over the list and as a deep link, read-on-open, ack, read-all, view-as, mobile 375. Screenshots go to `docs/screenshots/d08/`.
 - Feature deliveries add a Playwright smoke test per page against synthetic data (PLAN §8).

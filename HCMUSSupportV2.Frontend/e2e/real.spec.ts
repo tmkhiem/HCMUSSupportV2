@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Page, PlaywrightWorkerArgs } from '@playwright/test'
 
 /**
  * `e2e-real` project: real backend (Development, dev-login enabled), no stubs. Roster: T0001 admin, T0002 editor,
@@ -106,4 +106,113 @@ test('switching user: a second dev-login refreshes me and the XSRF token', async
   await devLogin(page, 'T0003', '/ho-so')
   await expect(nav(page).getByRole('link', { name: 'Tin tức' })).toBeVisible()
   await expect(nav(page).getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
+})
+
+/** A cookie-jar of its own that signs in with dev-login and sends the XSRF header on unsafe calls (the admin side of the inbox test). */
+async function apiSession(playwright: PlaywrightWorkerArgs['playwright'], baseURL: string, code: string) {
+  const ctx = await playwright.request.newContext({ baseURL })
+  const login = await ctx.post('/api/auth/dev-login', { data: { employeeCode: code } })
+  expect(login.ok(), `dev-login ${code}`).toBe(true)
+  const xsrf = (await ctx.storageState()).cookies.find((c) => c.name === 'XSRF-TOKEN')?.value
+  expect(xsrf).toBeTruthy()
+  const headers = { 'X-XSRF-TOKEN': decodeURIComponent(xsrf!) }
+  return {
+    get: (url: string) => ctx.get(url),
+    post: (url: string, data?: unknown) => ctx.post(url, { headers, data }),
+    put: (url: string, data: unknown) => ctx.put(url, { headers, data }),
+    dispose: () => ctx.dispose(),
+  }
+}
+
+test('inbox: a post published by T0001 reaches T0003, the badge counts it, opening it decrements the badge, ack persists', async ({
+  page,
+  playwright,
+  baseURL,
+}) => {
+  test.setTimeout(120_000)
+  const title = `E2E hộp thư ${Date.now()}`
+  const streamRequests: string[] = []
+  page.on('request', (r) => r.url().includes('/api/notifications/stream') && streamRequests.push(r.url()))
+
+  const admin = await apiSession(playwright, baseURL!, 'T0001')
+  const employee = await apiSession(playwright, baseURL!, 'T0003')
+  const unreadOf = async () => ((await (await employee.get('/api/notifications/unread-count')).json()) as { count: number }).count
+  let notificationId: string | undefined
+
+  try {
+    const before = await unreadOf()
+
+    // T0001: create -> set the audience to employee T0003 -> publish.
+    const created = await admin.post('/api/manage/notifications', {
+      title,
+      bodyMd: 'Thông báo thử nghiệm cho hộp thư.\n\nNội dung **in đậm**.',
+      variables: [],
+      tagIds: [],
+      requiresAck: true,
+      audienceAll: false,
+    })
+    expect(created.status(), await created.text()).toBe(201)
+    const draft = (await created.json()) as { id: string; version: number }
+    notificationId = draft.id
+    const updated = await admin.put(`/api/manage/notifications/${draft.id}`, {
+      version: draft.version,
+      title,
+      bodyMd: 'Thông báo thử nghiệm cho hộp thư.\n\nNội dung **in đậm**.',
+      variables: [],
+      tagIds: [],
+      requiresAck: true,
+      audienceAll: false,
+      groupIds: [],
+      employeeCodes: ['T0003'],
+    })
+    expect(updated.ok(), await updated.text()).toBe(true)
+    const published = await admin.post(`/api/manage/notifications/${draft.id}/publish`)
+    expect(published.ok(), await published.text()).toBe(true)
+
+    // The fan-out is a background job: wait until T0003's unread count has moved.
+    await expect.poll(unreadOf, { timeout: 60_000, intervals: [500, 1000, 2000] }).toBe(before + 1)
+
+    // T0003 signs in and reloads: the post and the badge are there.
+    await devLogin(page, 'T0003', '/tin-tuc')
+    await page.reload()
+    const badge = page.locator('nav[aria-label="Điều hướng chính"] a[href="/tin-tuc"] .MuiBadge-badge').filter({ visible: true })
+    await expect(badge).toHaveText(String(before + 1))
+    const row = page.getByTestId('inbox-row').filter({ hasText: title })
+    await expect(row).toBeVisible()
+    await expect(row).toHaveAttribute('data-unread', 'true')
+    await expect(page.getByTestId('avatar-dot').filter({ visible: true })).toBeVisible()
+
+    // Open it: the body renders, it is marked read and the badge goes down by one (and the server agrees).
+    await row.click()
+    await expect(page).toHaveURL(new RegExp(`/tin-tuc/${draft.id}$`))
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { level: 2, name: title })).toBeVisible()
+    await expect(dialog.getByTestId('notification-body')).toContainText('Thông báo thử nghiệm cho hộp thư.')
+    if (before === 0) await expect(badge).toHaveCount(0)
+    else await expect(badge).toHaveText(String(before))
+    await expect.poll(unreadOf).toBe(before)
+
+    // The post asks for an acknowledgement: it is persisted (still acknowledged after a reload).
+    await expect(row).toContainText('Cần xác nhận')
+    await dialog.getByRole('button', { name: 'Xác nhận đã đọc' }).click()
+    await expect(dialog.getByText(/Đã xác nhận lúc/)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(row).toHaveAttribute('data-unread', 'false')
+    await expect(row).not.toContainText('Cần xác nhận')
+    await page.reload()
+    await expect(row).toBeVisible()
+    await expect(row).not.toContainText('Cần xác nhận')
+    await row.click()
+    await expect(page.getByRole('dialog')).toContainText('Đã xác nhận lúc')
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Xác nhận đã đọc' })).toHaveCount(0)
+
+    // No live stream is ever requested (employees reload to see new posts).
+    expect(streamRequests, 'the app does not open a live stream').toEqual([])
+  } finally {
+    if (notificationId) await admin.post(`/api/manage/notifications/${notificationId}/archive`)
+    await admin.dispose()
+    await employee.dispose()
+  }
 })
