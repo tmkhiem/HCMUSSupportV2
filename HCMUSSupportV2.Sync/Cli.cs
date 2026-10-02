@@ -1,4 +1,5 @@
 using HCMUSSupportV2.Sync.Contracts;
+using HCMUSSupportV2.Sync.Migration;
 using HCMUSSupportV2.Sync.Sources;
 using Microsoft.Extensions.Configuration;
 
@@ -13,12 +14,17 @@ public static class Cli
         Usage:
           sync legacy-git --path <SupportHCMUSData> [--datasets all|a,b] [--dry-run] [--force]
           sync hrm [--datasets all|a,b] [--dry-run] [--force]
+          sync legacy-migrate --path <SupportHCMUSData> [--steps all|roster,roles,teaching,research,papers]
+                              [--admin <email:mscb> ...] [--apply] [--report <file>]
 
         Datasets: org-units, employees, profiles, salary, positions, commendations, degrees, trainings, business-trips, innovations
         Options:
           --dry-run   read and map only; print row counts per dataset, post nothing (no API settings needed)
           --force     pass ?force=true (accept a snapshot below 80 percent of the previous one)
         Configuration: appsettings.json section "Sync", overridden by environment Sync__ApiBaseUrl, Sync__ApiToken, Sync__HrmConnectionString.
+        legacy-migrate is the one-off D15 migration (docs/MIGRATION.md): a dry run unless --apply, idempotent, scope legacy.import.
+          --admin    grants admin to this person (repeatable; or Sync:Legacy:Admins as "email:mscb" strings in appsettings.local.json)
+          --report   writes the full server answers (contains emails and names: keep it outside the repository)
         Exit code: 0 success, 1 a dataset failed, 2 bad usage or configuration.
         """;
 
@@ -58,8 +64,68 @@ public static class Cli
         return config.GetSection("Sync").Get<SyncOptions>() ?? new SyncOptions();
     }
 
+    public sealed record MigrateArgs(string Path, string? Steps, List<string> Admins, bool Apply, string? Report);
+
+    public static MigrateArgs? ParseMigrate(string[] args, TextWriter err)
+    {
+        var a = args.ToList();
+        if (a.Count > 0 && a[0].Equals("sync", StringComparison.OrdinalIgnoreCase)) a.RemoveAt(0);
+        if (a.Count == 0 || !a[0].Equals("legacy-migrate", StringComparison.OrdinalIgnoreCase)) return null;
+        string? path = null, steps = null, report = null;
+        var admins = new List<string>();
+        var apply = false;
+        for (var i = 1; i < a.Count; i++)
+        {
+            switch (a[i])
+            {
+                case "--path" when i + 1 < a.Count: path = a[++i]; break;
+                case "--steps" when i + 1 < a.Count: steps = a[++i]; break;
+                case "--admin" when i + 1 < a.Count: admins.Add(a[++i]); break;
+                case "--report" when i + 1 < a.Count: report = a[++i]; break;
+                case "--apply": apply = true; break;
+                default: err.WriteLine($"Unknown or incomplete argument: {a[i]}"); return null;
+            }
+        }
+        if (string.IsNullOrWhiteSpace(path)) { err.WriteLine("legacy-migrate needs --path <SupportHCMUSData>."); return null; }
+        return new MigrateArgs(path, steps, admins, apply, report);
+    }
+
+    private static async Task<int> RunMigrateAsync(MigrateArgs m, TextWriter output, TextWriter err)
+    {
+        IReadOnlyList<string> steps;
+        try { steps = LegacyMigrator.ParseSteps(m.Steps); }
+        catch (ArgumentException e) { err.WriteLine(e.Message); return 2; }
+
+        var settings = LoadOptions();
+        var admins = new List<AdminIdentity>();
+        foreach (var text in m.Admins.Concat(settings.Legacy.Admins))
+        {
+            var identity = AdminIdentity.TryParse(text);
+            if (identity is null) { err.WriteLine("--admin must look like <email>:<mscb>."); return 2; }
+            if (!admins.Any(x => x.Mscb == identity.Mscb && x.Email.Equals(identity.Email, StringComparison.OrdinalIgnoreCase))) admins.Add(identity);
+        }
+        if (!Directory.Exists(m.Path)) { err.WriteLine($"Data repo not found: {m.Path}"); return 2; }
+
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+        try
+        {
+            using var api = new LegacyApi(settings);
+            return await new LegacyMigrator(api, output).RunAsync(new MigrateOptions(m.Path, steps, admins, m.Apply, m.Report), cts.Token);
+        }
+        catch (InvalidOperationException e) { err.WriteLine(e.Message); return 2; }
+    }
+
     public static async Task<int> RunAsync(string[] args, TextWriter output, TextWriter err)
     {
+        var first = args.FirstOrDefault(x => !x.Equals("sync", StringComparison.OrdinalIgnoreCase));
+        if (first is not null && first.Equals("legacy-migrate", StringComparison.OrdinalIgnoreCase))
+        {
+            var m = ParseMigrate(args, err);
+            if (m is null) { output.WriteLine(Usage); return 2; }
+            return await RunMigrateAsync(m, output, err);
+        }
+
         var o = Parse(args, err);
         if (o is null) { output.WriteLine(Usage); return 2; }
 

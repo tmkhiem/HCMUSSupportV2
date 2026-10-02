@@ -21,6 +21,9 @@ public static class ApiKeyDefaults
 public static class ApiScopes
 {
     public const string HrmIngest = "hrm.ingest";
+
+    /// <summary>The one-off legacy migration (D15): <c>/api/integration/v1/legacy/*</c>. Admin-grade: it writes roster emails, roles and news.</summary>
+    public const string LegacyImport = "legacy.import";
 }
 
 public static class ApiTokens
@@ -117,7 +120,7 @@ public class ApiClientService(AppDbContext db, TimeProvider time)
 
 /// <summary>
 /// Development only: when <c>Hrm:DevApiClient:Token</c> is set (git-ignored local settings), makes sure a client named
-/// <c>dev</c> with scope <c>hrm.ingest</c> exists for that token, so the Sync tool can be tried without an admin page.
+/// <c>dev</c> with scopes <c>hrm.ingest</c> and <c>legacy.import</c> exists for that token, so the Sync tool can be tried without an admin page.
 /// </summary>
 public class DevApiClientSeeder(IServiceScopeFactory scopes, IHostEnvironment env, IConfiguration config, ILogger<DevApiClientSeeder> logger) : IHostedService
 {
@@ -132,9 +135,19 @@ public class DevApiClientSeeder(IServiceScopeFactory scopes, IHostEnvironment en
             await using var scope = scopes.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var hash = ApiTokens.Hash(token);
-            if (await db.Set<ApiClient>().AnyAsync(c => c.TokenHash == hash || c.Name == "dev", ct)) return;
-            await scope.ServiceProvider.GetRequiredService<ApiClientService>().CreateAsync("dev", [ApiScopes.HrmIngest], token, ct);
-            logger.LogInformation("Dev API client 'dev' (scope {Scope}) created from Hrm:DevApiClient:Token.", ApiScopes.HrmIngest);
+            var existing = await db.Set<ApiClient>().FirstOrDefaultAsync(c => c.TokenHash == hash || c.Name == "dev", ct);
+            if (existing is not null)
+            {
+                // A dev database created before D15 only has hrm.ingest: add the legacy scope.
+                if (existing.TokenHash == hash && !existing.Scopes.Contains(ApiScopes.LegacyImport))
+                {
+                    existing.Scopes = existing.Scopes.Append(ApiScopes.LegacyImport).ToArray();
+                    await db.SaveChangesAsync(ct);
+                }
+                return;
+            }
+            await scope.ServiceProvider.GetRequiredService<ApiClientService>().CreateAsync("dev", [ApiScopes.HrmIngest, ApiScopes.LegacyImport], token, ct);
+            logger.LogInformation("Dev API client 'dev' (scopes {Scopes}) created from Hrm:DevApiClient:Token.", string.Join(", ", ApiScopes.HrmIngest, ApiScopes.LegacyImport));
         }
         catch (Exception ex)
         {
