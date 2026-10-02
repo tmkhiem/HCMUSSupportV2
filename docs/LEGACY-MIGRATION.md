@@ -58,6 +58,11 @@ Rules:
   employee has no primary yet.
 - After inserting, the import calls the `IEmployeeActivationObserver`s with the codes that gained their first email, so
   late-joiner backfill runs the same way it does for editor-added emails.
+- Counting: `users` and `emails` count the entries received. Each `issues` count equals its `details` rows: `unknown_employee`,
+  `inactive_employee` and `name_mismatch` count users, the other kinds count emails (`duplicate_in_source` once per affected MSCB).
+  A user without a code is reported as `unknown_employee`. A repeated MSCB in the payload is merged into one user.
+- `is_primary` goes to the first email that is actually inserted for an employee who has no primary yet (existing or earlier in the run).
+- On a dry run `inserted` is the number of mappings a real run would add. The audit entry holds counts and the API client name, never emails or MSCBs.
 
 ### `POST legacy/notifications`
 
@@ -106,6 +111,14 @@ Rules:
 - **Changed content on a re-run:** when title, summary, body, variables, tags, series, flags or recipients differ, the
   post is updated in place, `version` goes up by one and a `notification_revisions` row is written (outcome `updated`).
   Otherwise the outcome is `unchanged`.
+- **Rejection codes** (`issues` of a rejected post): the `NotificationMarkdown` codes (`RAW_HTML`, `UNDECLARED_PLACEHOLDER`, …) plus
+  `INVALID_KEY`, `DUPLICATE_KEY` (a legacyKey repeated in one batch: the later one is rejected), `INVALID_TITLE`, `INVALID_PUBLISHED_AT`,
+  `INVALID_VARIABLE`, `INVALID_TAG`, `INVALID_SERIES`, `INVALID_SUMMARY`, `RECIPIENTS_REQUIRED` (not `audienceAll` and no recipients) and
+  `INVALID_RECIPIENT`. A rejected post reports its id when `legacyKey` and `publishedAt` are valid.
+- **Transaction and dry run:** one transaction per request. A dry run runs the same code and rolls back, so its report equals the real one.
+  `publishedAt` is part of the id: changing it for the same `legacyKey` creates a new post, so keep it stable.
+  `status`, `created_at` and attachments of an existing post are never touched. `audienceAll` posts get no audience row (the flag is enough).
+  `deliveries` of an import post counts its active recipients, of an `audienceAll` post all deliveries the post now has.
 
 ### `POST legacy/datasets/{teaching|research|publications}`
 
