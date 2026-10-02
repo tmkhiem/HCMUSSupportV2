@@ -62,7 +62,7 @@ test.describe('desktop shell', () => {
 
   test('every planned route renders its Vietnamese title', async ({ page }) => {
     const routes: Record<string, string> = {
-      '/tin-tuc/abc': 'Chi tiết thông báo',
+      '/tin-tuc': 'Tin tức', // the detail (/tin-tuc/:id) is a dialog over the list, covered by inbox.spec.ts
       '/ho-so': 'Hồ sơ cá nhân',
       '/ho-so/thong-tin-chung': 'Thông tin chung',
       '/ho-so/thong-tin-chi-tiet': 'Thông tin chi tiết',
