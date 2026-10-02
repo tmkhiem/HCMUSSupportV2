@@ -161,3 +161,30 @@ Notes on the implementation:
 - **Roles:** nobody is auto-granted. The step 2 report lists the v1 ViewAs/Lookup holders. The first admin comes from
   `Admin:BootstrapEmails`.
 - `apps.json` is not migrated, and `2022-12-12-test.json`, `*.old` and `backup/` are ignored.
+- **Teaching without a term:** v1 has postgraduate lines with no `HKn` (2,287 lines, about 4 %). `teaching_loads.term` only
+  allows 1 to 3, so they are skipped and counted by default. `sync legacy-datasets --unknown-term 1|2|3` files them under a term instead.
+- **Titles:** v1 titles are kept as they are, including three posts whose header says "Nâng lương thường xuyên" although
+  the content is about vượt khung (flagged `title_disagrees` in the converter report). They can be fixed in the editor after import.
+
+## Running it
+
+```powershell
+# backend running on a migrated database, token of a client with hrm.ingest + legacy.import
+$env:LEGACY_API_TOKEN = '<token>'
+powershell -File tools\legacy-migrate.ps1 -DataPath C:\path\to\SupportHCMUSData -ApiBaseUrl http://localhost:5161 [-DryRun] [-SkipHrm]
+```
+
+For release, either run the same script against a fresh production database (with `Dev:SeedEmployees` off, so the
+synthetic `T0001…` roster is absent), or copy a seeded database made that way. Don't copy a dev database, because it holds the
+synthetic dev roster and dev API client.
+
+## Dev seed result (2026-10-02, `hcmus_support_dev_d15`, v1 snapshot of the same day)
+
+| Step | Result |
+|---|---|
+| 1 legacy-git | org units 327 · employees 6,257 (7 duplicate MSCBs quarantined) · profiles 6,257 · salary 11,204 · positions 1,135 · commendations 13,463 · degrees 3,822 · trainings 2,406 · business trips 63 · innovations 5,784 |
+| 2 emails | 1,925 users, 2,140 emails, 2,133 mapped. Issues: `invalid_email` 4, `unknown_employee` 3. No conflicts or name mismatches. |
+| 3 datasets | teaching 42,776 rows over 4 years (2020-2021 … 2023-2024; the `2019-2021` file is one year, 2020-2021) · research 2,215 projects / 6,409 member rows (77 unknown MSCBs) · publications 1 |
+| 4 news | 56 posts (55 news + banner), 0 rejected, 17,350 deliveries (the banner reaches 1,920 active employees with an email) |
+| re-run | every step reports unchanged / 0 new, updated or removed rows |
+| spot check | 5 random mapped employees: news count, research rows and teaching hours equal v1, except the skipped no-term teaching lines |
