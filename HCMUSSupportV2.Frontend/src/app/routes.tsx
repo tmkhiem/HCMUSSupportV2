@@ -93,8 +93,8 @@ export const routes: RouteObject[] = [
         element: <RequireRole role="editor" />,
         children: [
           { index: true, element: <Navigate to="/quan-ly/thong-bao" replace /> },
-          page('thong-bao', 'Quản lý thông báo'),
-          page('thong-bao/:id', 'Soạn thông báo'),
+          page('thong-bao', 'Quản lý thông báo', () => import('../features/notifications/manage/ManageListPage')),
+          page('thong-bao/:id', 'Soạn thông báo', () => import('../features/notifications/manage/NotificationEditorPage')),
           page('nhan-su', 'Nhân sự & email'),
           page('nhom', 'Nhóm'),
           page('nhom/:id', 'Chi tiết nhóm'),
