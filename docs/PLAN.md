@@ -451,8 +451,8 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ### D09 · Notification editor UI (manage)
 > D07a landed `LazyNotificationMarkdownEditor` (MDXEditor, `:var[Key]` chip, "Chèn biến", upload-only image dialog, source/diff mode) and `MarkdownPreviewPane`, plus the `/dev/markdown` playground. D09 adds the MSCB picker, data fetching and the rest of the page.
 
-- [ ] List and editor as in §7.3: MDXEditor with the custom `:var[...]` directive chip and the "Chèn biến" menu, a split live preview of the unsaved draft as a chosen MSCB, image upload to `files`, targeting panel with live count, import flow with report, preview-as, schedule, publish, archive, clone, revisions, attachments.
-- [ ] Tags and series management dialogs.
+- [x] List and editor as in §7.3: MDXEditor with the custom `:var[...]` directive chip and the "Chèn biến" menu, a split live preview of the unsaved draft as a chosen MSCB, image upload to `files`, targeting panel with live count, import flow with report, preview-as, schedule, publish, archive, clone, revisions, attachments.
+- [x] Tags and series management dialogs.
 - **Done when:** Playwright checks that an editor can make "Nâng lương thường xuyên 2026" by cloning the 2025 post and uploading a synthetic xlsx, preview it as a recipient and publish it, and that the recipient sees it with the substituted values.
 
 ### D10 · Hồ sơ: overview, Thông tin chung, Thông tin chi tiết

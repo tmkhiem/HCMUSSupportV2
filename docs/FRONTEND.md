@@ -216,6 +216,41 @@ client has no Hrm endpoints), a `*Format.ts` (tested), a `*Mock.ts` and its page
   dialogs, the year select, load more, the switcher link, the sticky divider, and the empty/error states. Screenshots go to
   `docs/screenshots/d13/`.
 
+## Quản lý thông báo: editor UI (D09)
+
+Code in `src/features/notifications/manage/`. Routes `/quan-ly/thong-bao` (list) and `/quan-ly/thong-bao/:id` (editor; `moi` = a notification that
+does not exist yet), both under `RequireRole editor`. It uses the D07a `LazyNotificationMarkdownEditor` and `MarkdownPreviewPane` (so the MDXEditor chunk is
+only fetched when an editor opens a notification) and the D08 `LoadMore`. No SSE, EventSource or polling: lists refetch when opened and when the window
+regains focus.
+
+| File | Role |
+|---|---|
+| `manageTypes.ts`, `manageApi.ts`, `manageQueries.ts` | View models, the generated clients (`ManageNotificationsClient`, `ManageTagsClient`, `ManageSeriesClient`, `GroupsClient`, `AudienceLookupClient`, built here on `clientFetch`, not in `api/clients.ts`) mapped to them, and the TanStack hooks (keys all start with `manage`). `preview-vars` is hand-written over `http.get`: its `rows` is the abstract `JsonNode` in the generated client |
+| `ManageListPage.tsx`, `ManageRow.tsx`, `manageFilters.ts` | List: status chips, search (400 ms debounce), tag and series selects, **all in the URL** (`?status=&tag=&series=&q=`); rows with series, first tag `+N`, "Cần xác nhận", the read-rate bar (`đọc/nhận`, `%`), a "⋮" menu (Mở và sửa, Sao chép thành bản nháp, Lưu trữ, Xóa bản nháp; archive and delete ask first). "Soạn thông báo" and "Thẻ và chuỗi" in the header |
+| `NotificationEditorPage.tsx`, `EditorWorkspace.tsx`, `draft.ts` | The page loads the notification, `EditorWorkspace` owns the form. `draft.ts` is the pure logic (form <-> write request, `isDirty`, variable key rule, 400 `errors` map, 409 `currentVersion`) |
+| `PreviewPanel.tsx`, `Pickers.tsx` | Split live preview of the **unsaved** body as a chosen MSCB: `GET preview-vars` supplies that person's rows (the applied sheet, else the latest validated one); chips say whether they are in the saved audience and why (`all`, `group:`, `employee`, `import`). Autocompletes for employees (server search, accents ignored) and groups |
+| `TargetingPanel.tsx` | Tất cả nhân sự (đã có email), groups, named employees, "Tải danh sách". The choices add up. The big number is `POST audience-estimate` for exactly the unsaved choices (cached by sorted ids) |
+| `ImportDialog.tsx` | Upload xlsx/csv (the draft is saved first), the validation report (counts, unknown / inactive MSCBs, duplicate rows, rows without a code, variables the body uses but the sheet lacks, unused columns, the header to key mapping), "Tải tệp mẫu", then "Áp dụng danh sách" (merges the new columns into the variables and makes the sheet the audience) |
+| `VariablesPanel.tsx` | Declared variables: key (`[A-Za-z][A-Za-z0-9_]{0,63}`, checked as you type), label, type (text, date, number, money). Only valid keys reach the "Chèn biến" menu |
+| `SettingsPanel.tsx`, `DateTimeField.tsx` | Series, tags, expiry, pin-until (MUI X `DateTimePicker`, local time `dd/MM/yyyy HH:mm`, only complete valid values reach the form), "Cần xác nhận" |
+| `AttachmentsPanel.tsx` | Add / remove files (pdf, docx, xlsx, png, jpg, 20 MB, 20 files); a new draft is saved first. No download link: the only download endpoint is the recipient's |
+| `ScheduleDialog.tsx`, `ConfirmDialog.tsx`, `RevisionsDialog.tsx`, `StatsPanel.tsx`, `TagsSeriesDialog.tsx`, `StartFromPanel.tsx` | "Lên lịch", publish / archive / delete confirmations, revision history (expand a version, "Dùng lại nội dung này" loads it into the form, not saved), read and ack rates with a cumulative chart, tag and series CRUD, "Bắt đầu từ bài đã có" (clone for a new notification) |
+
+- **Saving.** The first "Lưu" of a new draft creates it and the URL becomes `/quan-ly/thong-bao/<id>` (`replace`) without remounting the workspace (the page keeps the same
+  `key`), so the form and the preview picker survive. Later saves send the `version`; a 409 shows "Lưu đè", which resends with the server's `currentVersion`. 400
+  `errors` are shown on the field (`title`, `expiresAt`, `audience`, ...) and the `bodyMd` lines (`Dòng n, cột m: ...`) as a list under the editor.
+  Publish, schedule, import and attachments save pending changes first. After publishing, saving content shows "Đã cập nhật" to recipients (the notice says so).
+- **Unsaved changes.** `useBlocker` plus `beforeunload` guard a dirty form. MDXEditor's one `initialNormalize` call (it rewrites the loaded text into its canonical form)
+  updates the baseline, so opening a notification is not "dirty".
+- **Mobile (375).** One column; the preview is a "Soạn thảo / Xem trước" toggle (both stay mounted); dialogs are full screen; the header actions stay on one row.
+- **Backend additions (D09).** `POST /api/manage/notifications/audience-estimate` and `GET /api/manage/notifications/employees` (NOTIFICATIONS.md), with tests in
+  `AudienceLookupTests`. The generated client was regenerated (additive).
+- **Tests.** vitest `manage.test.tsx` (draft logic, filters, mapping, `ManageRow`, `ReportView`). Playwright project `editor` (`e2e/editor.spec.ts`, port 5683, mock
+  auth) runs against `e2e/editorFake.ts`, a stateful fake of `/api/manage/*` (so no mock code ships in the app) and writes `docs/screenshots/d09/`. The D09 "Done when" is
+  `e2e/real-editor.spec.ts` in the real-backend config (`npm run test:e2e:real`): an editor clones the 2025 post of a series, uploads a synthetic xlsx
+  (`e2e/xlsx.ts` writes it without a dependency), previews it as T0003 and T0004, publishes; T0003 then sees the post with the substituted values.
+  `playwright.real.config.ts` reads the ports from `E2E_API_PORT` / `E2E_WEB_PORT` (defaults 5261 / 5275).
+
 ## Hồ sơ: Lương, Chức vụ, Khen thưởng (D11)
 
 Code in `src/features/profile/`: `salary/` (`SalaryPage`, `SalaryChart`, `SalaryTimeline`), `positions/` (`PositionsPage`,
