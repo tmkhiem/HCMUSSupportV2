@@ -24,7 +24,7 @@ student portal is out of scope.
 2. **Tin tức**, a personal, searchable notification inbox:
    - unread state and optional "xác nhận đã đọc" (acknowledge)
    - attachments
-   - live unread badge
+   - unread badge (refreshed on page load; employees reload with F5 — no live push in v2.0)
 3. **Editors**:
    - Write notifications in **Markdown** (MDXEditor) with per-recipient placeholders, and see a live **preview as any MSCB**.
    - Target them at everyone, groups (static, org-unit or rule-based), individual employees, or an uploaded recipient sheet.
@@ -53,7 +53,7 @@ acting as an OIDC provider for other apps; VNeID sign-in (the login screen shows
 | IDs | `uuid` v7 for notifications, files and imports, generated in the app with the `UUIDNext` package (PG 17 has no `uuidv7()`). They are time-ordered and safe to expose. `bigint identity` elsewhere. The MSCB is a natural key. |
 | Auth | Server-side Google OIDC (`/api/auth/login` redirect, as in the build). An HttpOnly `__Host-` session cookie, sliding 12 h. Data-protection keys stored in PG. |
 | Background work | One PG-backed job queue (`jobs` table, `FOR UPDATE SKIP LOCKED`) drained by a hosted service. No Hangfire or Redis. |
-| Realtime | Server-Sent Events (`GET /api/notifications/stream`), fed by PG `LISTEN/NOTIFY`, so it keeps working with more than one instance. |
+| Realtime | **Off in v2.0** (owner, 2026-10-02): delivering notifications is the core value; employees reload (F5) to see new ones, and the frontend has no live-push code. The backend keeps an opt-in SSE endpoint (`GET /api/notifications/stream`, fed by PG `LISTEN/NOTIFY`) behind `Notifications:Realtime:Enabled` (default `false`, the endpoint answers 404). Live updates are a later value-add. |
 | Files | `IFileStore` with local-disk storage (`/var/lib/hcmus-support/files`) and an S3-compatible option. Size and MIME allowlist. |
 | Observability | Serilog to journald and a rolling file. OpenTelemetry traces and metrics, with OTLP export when configured. `/healthz`. An `audit_log` table. |
 | Frontend | React 19, **MUI v9 re-themed** (§7), `@mui/icons-material`, react-router 7 (data router, lazy routes, real URLs), TanStack Query 5, react-hook-form + zod, MUI X Date Pickers and Charts, **MDXEditor** (`@mdxeditor/editor`) for writing notifications, `react-markdown` + `remark-gfm` + `remark-directive` for rendering them (raw HTML off), Vite 8 with React Compiler (already scaffolded). |
@@ -159,7 +159,7 @@ files                    id uuid v7 · storage_key · file_name · content_type 
 **Lifecycle and mechanics**
 - **Publish:** at `publish_at`, or straight away, a job resolves the audiences into recipients. That is the union of all active
   employees (when `audience_all`), group members, named employees and imported rows. It inserts deliveries with
-  `INSERT … SELECT … ON CONFLICT DO NOTHING`, sets the counters, and sends `NOTIFY notifications, <employee batch>`.
+  `INSERT … SELECT … ON CONFLICT DO NOTHING`, sets the counters, and sends `NOTIFY notifications, <employee batch>` (consumed only when realtime is enabled).
   About 6k employees means roughly 6k rows per broadcast, so no partitioning is needed. Revisit at 10M deliveries (yearly range partitions on `delivered_at`).
 - **Late joiners:** when someone is added to a group, or a new employee or email appears, a job backfills deliveries for
   published, unexpired notifications that target that group or everyone. Removing someone from a group keeps what they already received.
@@ -232,7 +232,7 @@ me            GET me/profile/overview · GET me/profile/general · GET me/profil
               GET me/salary · GET me/positions · GET me/commendations · GET me/degrees · GET me/trainings · GET me/business-trips
               GET me/innovations?q&cursor · GET me/teaching?year · GET me/teaching/years · GET me/research/projects?q&cursor · GET me/research/publications?q&cursor
 notifications GET notifications?q&tags&from&to&unread&cursor · GET notifications/{id} · POST notifications/{id}/read
-              POST notifications/{id}/ack · POST notifications/read-all · GET notifications/unread-count · GET notifications/stream (SSE)
+              POST notifications/{id}/ack · POST notifications/read-all · GET notifications/unread-count · GET notifications/stream (SSE, opt-in, off by default)
               GET notifications/{id}/attachments/{fileId} · GET tags
 manage        notifications: GET/POST/PUT/DELETE manage/notifications[/{id}] · POST …/{id}/schedule|publish|archive|clone
                 · POST …/{id}/recipients/import (multipart) → import report · POST …/imports/{importId}/apply
@@ -437,14 +437,14 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] Markdown contract: `docs/notification-markdown.md` defines the allowed GFM subset, the `:var[key]` directive, image URLs (`/api/files/{id}` only), and the rule that raw HTML is not allowed. A Markdig-based `NotificationMarkdown` service validates the body, lists the placeholders it uses, and extracts `content_text` and `summary`. **Spike first:** confirm that MDXEditor round-trips `:var[...]` unchanged through `directivesPlugin` and source mode, and that pasted text containing `{`, `}` or `<` isn't mangled. Record the result in the doc.
 - [x] Recipient import (xlsx/csv). It detects the MSCB column, maps other columns to variables, and reports unknown or inactive MSCBs, duplicate rows (several rows per MSCB are allowed when intended), and variables used in the body but missing from the file. Template download.
 - [x] Lifecycle (draft → scheduled/published → archived): publish job fan-out, late-joiner backfill job, revisions, clone (copies content, variables, tags, series and audiences, but not imported rows), and stats counters.
-- [x] Inbox endpoints (§5): keyset paging, filters, FTS, read, ack, read-all, unread count. SSE stream via `LISTEN/NOTIFY` with heartbeats.
+- [x] Inbox endpoints (§5): keyset paging, filters, FTS, read, ack, read-all, unread count. SSE stream via `LISTEN/NOTIFY` with heartbeats (built; **disabled by default** since 2026-10-02, `Notifications:Realtime:Enabled`).
 - [x] Attachments through `IFileStore`, with a MIME and size allowlist and an authorization check that the caller has a delivery.
 - **Done when:** tests prove `all`, `group`, `employee` and `import` audiences reach exactly the right people; scheduled posts are invisible before `publish_at`; a late joiner gets backfilled; FTS without diacritics finds an accented title ("tham nien" → "Thâm niên"); and an employee without a delivery gets 404.
 
 ### D08 · Tin tức UI
 > D07a landed `NotificationBody` + `remarkVars` (`src/features/notifications/body/`) with its unit tests. D08 only has to use it.
 
-- [ ] Inbox, filters, unread styling, infinite scroll, detail route and modal, attachments, acknowledge, read-on-open, series history, unread badge over SSE in the nav and avatar.
+- [ ] Inbox, filters, unread styling, infinite scroll, detail route and modal, attachments, acknowledge, read-on-open, series history, unread badge in the nav and avatar from `GET unread-count` (on load / navigation / after read; **no SSE, no EventSource, no polling**).
 - [ ] A shared `NotificationBody` renderer (`react-markdown` + `remark-gfm` + `remark-directive`, with a remark plugin that substitutes `:var[key]` from `vars` as text nodes; HTML skipped). One block per vars row, for posts with several rows. Unit tests: substitution, missing value → `—`, and a value containing markup is shown as literal text.
 - **Done when:** Playwright checks that a published synthetic post appears live, opening it marks it read, the badge decrements, and an ack is persisted.
 

@@ -119,6 +119,16 @@ public class NotificationOptions
     public SchedulerOptions Scheduler { get; set; } = new();
     public SseOptions Sse { get; set; } = new();
     public ListenerOptions Listener { get; set; } = new();
+    public RealtimeOptions Realtime { get; set; } = new();
+
+    /// <summary>
+    /// Live push (SSE <c>/api/notifications/stream</c> + the LISTEN connection). Off by default: the owner decided
+    /// live updates are not essential for v2.0; employees reload to see new notifications (PLAN §2).
+    /// </summary>
+    public class RealtimeOptions
+    {
+        public bool Enabled { get; set; }
+    }
 
     public class SchedulerOptions
     {

@@ -85,6 +85,7 @@ public sealed class NotificationsHost : IAsyncDisposable
             ["Jobs:Enabled"] = "true",
             ["Notifications:Scheduler:PollSeconds"] = "0.2",
             ["Notifications:Sse:HeartbeatSeconds"] = "0.5",
+            ["Notifications:Realtime:Enabled"] = "true",   // the engine tests also cover the (opt-in) SSE stream
         };
         foreach (var (k, v) in settings ?? []) all[k] = v;
         Factory = new TestApiFactory(database, all, TestControllers.Add);

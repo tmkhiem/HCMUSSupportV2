@@ -401,6 +401,16 @@ public class NotificationImportAndStreamTests(PostgresFixture database) : IAsync
         var hub = _host.Factory.Services.GetService(typeof(HCMUSSupportV2.Backend.Modules.Notifications.Realtime.SseHub)) as HCMUSSupportV2.Backend.Modules.Notifications.Realtime.SseHub;
         Assert.True(await Wait.UntilAsync(() => Task.FromResult(!hub!.ConnectedCodes.Contains(reader)), TimeSpan.FromSeconds(10)), "subscription was not released");
     }
+    [Fact]
+    public async Task The_stream_is_off_by_default_and_answers_404()
+    {
+        await using var host = new NotificationsHost(database, new() { ["Notifications:Realtime:Enabled"] = "false" });
+        var reader = await host.EmployeeAsync();
+        var api = await host.SignInAsync(reader);
+
+        var response = await api.Client.GetAsync("/api/notifications/stream");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
 
 /// <summary>A live SSE response read line by line in the background.</summary>

@@ -129,6 +129,10 @@ the unread badge.
 
 ## Live updates: `GET /api/notifications/stream` (SSE)
 
+> **Disabled by default** (owner, 2026-10-02): `Notifications:Realtime:Enabled=false`. The endpoint answers 404 and the
+> listener opens no connection. The frontend implements no live push in v2.0; employees reload to see new notifications.
+> Everything below describes the opt-in behaviour.
+
 Authenticated (cookie), GET, not in the generated client. Response `text/event-stream`, `Cache-Control: no-cache`,
 `X-Accel-Buffering: no`, buffering disabled, never compressed (`Content-Encoding: identity`). The deploy kit's nginx already has
 `proxy_buffering off` for this path.
@@ -149,6 +153,7 @@ state. With several instances each one listens, so any instance can serve any cl
 | Key | Default | Meaning |
 |---|---|---|
 | `Notifications:Scheduler:PollSeconds` | 30 | sweeper interval |
+| `Notifications:Realtime:Enabled` | false | master switch for live push (SSE endpoint + LISTEN connection) |
 | `Notifications:Sse:HeartbeatSeconds` | 25 | SSE heartbeat |
 | `Notifications:Listener:Enabled` | true | run the LISTEN connection (turn off on instances that serve no SSE) |
 

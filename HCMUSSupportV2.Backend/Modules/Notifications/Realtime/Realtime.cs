@@ -76,7 +76,7 @@ public sealed class NotificationListener(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
-        if (!options.CurrentValue.Listener.Enabled) return;
+        if (!options.CurrentValue.Listener.Enabled || !options.CurrentValue.Realtime.Enabled) return;
 
         var first = true;
         while (!stoppingToken.IsCancellationRequested)
@@ -201,6 +201,12 @@ public class NotificationStreamController(
     [HttpGet]
     public async Task Stream(CancellationToken ct)
     {
+        if (!options.CurrentValue.Realtime.Enabled)
+        {
+            Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
         var code = user.RequireEffectiveCode();
         Response.Headers.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache, no-store";
