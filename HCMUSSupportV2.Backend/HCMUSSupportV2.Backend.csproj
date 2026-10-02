@@ -41,4 +41,20 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
+
+  <!-- wwwroot is produced by the Vite build of the Frontend project (emptyOutDir, content-hashed file names). The SDK's
+       default globs (Content wwwroot/**, used by static web asset discovery) are expanded when this project is evaluated,
+       i.e. BEFORE the Frontend project reference has rebuilt wwwroot. After a frontend change they still list the old
+       hashed files and DefineStaticWebAssets fails with "No file exists for the asset ... wwwroot/assets/index-*.js".
+       Re-expand the glob once the project references (the frontend build) are done and before assets are defined. -->
+  <Target Name="RefreshWwwrootItems" AfterTargets="ResolveProjectReferences" BeforeTargets="ResolveProjectStaticWebAssets;AssignTargetPaths">
+    <!-- A wildcard Remove inside a target only matches files that still exist on disk, so the stale (deleted) hashed
+         files must be removed by exact item spec instead. -->
+    <ItemGroup>
+      <_StaleWwwrootItem Include="@(Content);@(None)" Condition="$([System.String]::Copy('%(Identity)').Replace('/', '\').StartsWith('wwwroot\'))" />
+      <Content Remove="@(_StaleWwwrootItem)" />
+      <None Remove="@(_StaleWwwrootItem)" />
+      <Content Include="wwwroot\**" />
+    </ItemGroup>
+  </Target>
 </Project>
