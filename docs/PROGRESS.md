@@ -24,11 +24,11 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 
 `main` at the time of writing passes **353 backend**, **50 sync** and **175 frontend (vitest)** tests.
 
-## Interrupted (the usage limit cut the agents off at ~04:25)
+## In progress
 
 | Branch / worktree | State |
 |---|---|
-| `feat/d14b-admin-pages` (`.claude/worktrees/d14b`) | Admin and editor pages were in progress (it stopped in the middle of the rule builder). **Nothing is committed**; all the work is uncommitted files in the worktree. It needs finishing, verifying and committing. |
+| `feat/d14b-admin-pages` (**pushed to origin**) | Part A (admin pages) is committed and the agent reported it finished. Part B (frontend leftovers 7, 11, 12) is an unverified WIP commit on top. Work stopped at the owner's request (offloaded). The next machine finishes, verifies and merges it. |
 
 ## Not started
 
@@ -69,6 +69,6 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 
 ## Way of working from now on (owner, 2026-10-02)
 
-- **Main machine:** one Sonnet 5.5 agent at a time, with no parallel agents. After each item, the owner confirms (yes/no) before the next one starts.
-- **Secondary machine:** takes the small independent parts (D12, D13, the free follow-ups) under the rules in [PARALLEL-WORK.md](PARALLEL-WORK.md). Setup is in [DEV-SETUP.md](DEV-SETUP.md).
-- **In progress on the main machine:** D14b (finishing the admin pages), together with the frontend leftovers 7, 11 and 12.
+- **Work is fully offloaded to another machine.** The original machine stopped after pushing `main` and `feat/d14b-admin-pages`.
+- Work order, rules and the prompt to paste: [PARALLEL-WORK.md](PARALLEL-WORK.md). Setup: [DEV-SETUP.md](DEV-SETUP.md).
+- One Sonnet 5.5 agent at a time, never in parallel. After each delivery the owner confirms (yes/no) before the next one starts.

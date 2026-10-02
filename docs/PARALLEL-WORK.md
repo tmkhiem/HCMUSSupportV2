@@ -5,27 +5,39 @@ parts are handed to an agent on **another machine**. This file is the contract t
 
 Setup is in [DEV-SETUP.md](DEV-SETUP.md), the plan in [PLAN.md](PLAN.md) §9, and the current state in [PROGRESS.md](PROGRESS.md).
 
-## 1. Who does what
+## 1. Who does what (updated 2026-10-02: work fully offloaded)
 
-| Owner of the work | Deliveries |
-|---|---|
-| **Main machine** (core path) | D14b admin pages (in progress) → D09 notification editor UI → D14c MSCB↔email mapping (backend + page) → D15 legacy migration → D18 parity/cutover |
-| **Secondary machine** (small, independent parts) | **D12** Hồ sơ: Quá trình đào tạo, Quá trình bồi dưỡng, Đi công tác (frontend only) · **D13** Sáng kiến, Giảng dạy, Nghiên cứu khoa học (frontend only) · small follow-ups from PROGRESS.md that are marked as free (see §3) |
+The owner's main machine has **stopped**. All remaining work now happens on the **other machine**, still one
+implementation agent at a time, and the owner confirms (yes/no) after each delivery. Order:
 
-The backend endpoints D12 and D13 need already exist on `main` (D04: `GET /api/me/degrees`, `trainings`, `business-trips`,
-`innovations`, `teaching`, `teaching/years`, `research/projects`, `research/publications`), so neither needs backend changes. If
-one turns out to need a backend change, stop and ask the owner. Don't change backend modules from the secondary machine.
+1. **D14b** · finish the branch `feat/d14b-admin-pages` (pushed). Two commits finish the admin pages (Part A). The
+   top commit `wip(frontend): Part B …` is unverified work in progress:
+   - switching D10/D11 to the generated client
+   - deduplicating the partial-date helpers
+   - guarding mock chunks out of the production bundle
+   - fixing the stale `shell.spec.ts` and `markdown.spec.ts` specs
 
-## 2. Claiming and integrating
+   Finish it, verify it, and merge it. Nhân sự & email stays out of D14b; that's D14c.
+2. **D09** · notification editor UI (PLAN §7.3 "Quản lý thông báo", §9 D09). It uses the D07a editor component
+   `src/features/notifications/editor/LazyNotificationMarkdownEditor.tsx` and `MarkdownPreviewPane.tsx`.
+3. **D14c** · MSCB↔email mapping: the backend `manage/employees` endpoints (directory, email add/remove/set primary, bulk xlsx import
+   with a dry-run report) and the "Nhân sự & email" page. This replaces the Google Sheet. **New backend work.**
+4. **D12** and **D13** · frontend-only Hồ sơ / Sáng kiến / Giảng dạy / NCKH pages. The endpoints already exist.
+5. **D15** · legacy migration (needs a clone of the private `tmkhiem/SupportHCMUSData` *outside* this repo).
+6. Free follow-ups in §3, then **D18** parity and cutover, with the owner.
 
-1. **Claim before you start:** create and push the branch straight away, so the other machine can see it:
-   `git switch -c feat/d12-education-pages origin/main && git commit --allow-empty -m "claim: D12" && git push -u origin HEAD`.
-   Check existing claims with `git ls-remote --heads origin 'feat/*'`. Never start an item someone else has already claimed.
-2. **One delivery per branch.** Rebase on `origin/main` often (`git fetch && git rebase origin/main`).
-3. **Never push `main`** from the secondary machine, and never force-push someone else's branch. Push only your `feat/*` branch, then
-   open a pull request into `main` (or tell the owner the branch is ready). The main machine merges.
-4. A branch is "ready" when `npm run build`, `npm run lint`, `npx vitest run` and its Playwright project are green, and the
-   delivery's checkboxes in `docs/PLAN.md` are ticked.
+## 2. Branches and integrating
+
+1. **One delivery per branch:** `feat/dNN-<slug>` from `origin/main` (D14b continues on its existing branch). Rebase on `origin/main` before merging.
+2. **Integrating:** since this is now the only active machine, it **may merge into `main` and push `main`** (fast-forward or
+   `--no-ff` merge, **never force-push**), but only when the branch is green:
+   - `dotnet build`, `dotnet test`
+   - `npm run build`, `npm run lint`, `npx vitest run`
+   - its Playwright projects
+   - for UI deliveries, `npm run test:e2e:real` too
+3. **Migrations:** one migration per delivery, generated last, after rebasing. If `AppDbContextModelSnapshot.cs` conflicts,
+   delete your migration, rebase, regenerate it, and check with `dotnet ef migrations has-pending-model-changes`.
+4. **After each delivery:** add a row under "Merged" in `docs/PROGRESS.md`, update its follow-ups, then **stop and ask the owner** before the next one.
 
 ## 3. Files that conflict, and the rules for them
 
@@ -34,13 +46,13 @@ one turns out to need a backend change, stop and ask the owner. Don't change bac
 | `HCMUSSupportV2.Frontend/src/app/routes.tsx`, `src/app/nav.ts` | Add or change **one line per route**. Keep existing lines. |
 | `HCMUSSupportV2.Frontend/playwright.config.ts` | Add **one project and one webServer** with a free port. Ports in use: 5273, 5274, 5373, 5383, 5393, 5473, 5483. The secondary machine takes 5583 for D12 and 5593 for D13. |
 | `HCMUSSupportV2.Frontend/src/api/generated-client.ts` | Only `generate-api.ps1` writes it. If it conflicts, take `main`'s version and regenerate. The secondary machine shouldn't need to change it at all. |
-| `HCMUSSupportV2.Backend/Migrations/*` | Main machine only. |
+| `HCMUSSupportV2.Backend/Migrations/*` | One migration per delivery, following the rule in §2.3. |
 | `docs/PLAN.md`, `docs/FRONTEND.md` | Tick only your own delivery's boxes, and add your own section. Keep both sides when merging. |
-| `docs/PROGRESS.md` | Main machine only. |
+| `docs/PROGRESS.md` | Update it after each merged delivery. |
 | `docs/screenshots/<delivery>/` | Write only your own delivery's folder. Running the full Playwright suite rewrites other folders: `git checkout -- docs/screenshots` before committing. |
 | `src/ui/*`, `src/lib/*` (shared primitives/helpers) | Add new files freely. To change an existing one, keep it backward compatible and mention it in the PR. |
 
-**Free follow-ups for the secondary machine** (take them only after D12/D13, and claim each with its own branch):
+**Free follow-ups** (each on its own branch):
 - `fix/build-wwwroot-flake`: the intermittent "No file exists for the asset … wwwroot/assets" build failure.
 - `fix/ef-bundle-release`: the EF migrations bundle only builds in Debug (`EfToolsExcludeAssets`).
 - `docs/env-example-keys`: reconcile `deploy/env.example` with the real config keys.
@@ -56,35 +68,29 @@ one turns out to need a backend change, stop and ask the owner. Don't change bac
 - **Never touch the live server** `support.hcmus.edu.vn`.
 - **Agents:** Sonnet 5.5, and one implementation agent at a time per machine.
 
-## 5. Prompt for the secondary machine
+## 5. Prompt for the other machine
 
 Clone the repo, follow DEV-SETUP.md (a local Postgres container is fine), open Claude Code in the repo root and paste:
 
 ```text
-You are working on HCMUS Support V2 (ASP.NET Core 8 + PostgreSQL 17 + Vite/React 19/MUI v9), cloned on a SECONDARY
-machine. Another machine (the owner's) works on the core path at the same time. Read these first and follow them exactly:
-docs/PARALLEL-WORK.md (ownership, claiming, conflict rules, non-negotiables), docs/DEV-SETUP.md (setup), docs/PLAN.md
-(§6 routes, §7 UI incl. §7.3 page designs, §8 conventions, §9 D12 and D13), docs/FRONTEND.md (structure, theme variants,
-primitives, clients, mock auth, Playwright), docs/BACKEND.md (Hrm section: the me/* endpoints and DTOs in
-HCMUSSupportV2.Backend/Modules/Hrm/Me/MeDtos.cs), and the look reference docs/reference/prompting-fe-build/.
+You are continuing HCMUS Support V2 (ASP.NET Core 8 + PostgreSQL 17 + Vite/React 19/MUI v9). The owner's original
+machine has stopped; this machine now does all remaining work. Read these first and follow them exactly:
+docs/PARALLEL-WORK.md (work order, branch/merge rules, conflict rules, non-negotiables), docs/DEV-SETUP.md (setup),
+docs/PROGRESS.md (current state + follow-ups), docs/PLAN.md (§2 platform, §3 data model, §4 roles, §5 API, §6 routes,
+§7 UI incl. §7.3 page designs, §8 conventions, §9 deliveries), docs/FRONTEND.md, docs/BACKEND.md, docs/NOTIFICATIONS.md,
+docs/notification-markdown.md, and the look reference docs/reference/prompting-fe-build/.
 
-Your work, in order, one delivery at a time:
-1. D12 · Hồ sơ: Quá trình đào tạo (/ho-so/dao-tao: diploma-style cards), Quá trình bồi dưỡng (/ho-so/boi-duong: table
-   grouped by year with sticky group dividers), Đi công tác (/ho-so/cong-tac: stats + year filter + table).
-2. D13 · Sáng kiến (/sang-kien), Giảng dạy (/giang-day: academic-year pill select, stats, table grouped by học kỳ),
-   Nghiên cứu khoa học (/nckh/de-tai and /nckh/bai-bao with the skewed pill switcher from the reference).
-Both are frontend-only: the backend endpoints exist. Follow the patterns of the existing D10/D11 pages in
-src/features/profile/ (data hooks via the generated client in src/api/clients.ts, synthetic mock data under VITE_MOCK_AUTH
-guarded by import.meta.env.DEV so it never ships in production, PageState for error/loading/empty, fly-in, 375px responsive).
+Work in the order of docs/PARALLEL-WORK.md §1, ONE delivery at a time, starting with D14b: check out the pushed branch
+feat/d14b-admin-pages, review its top "wip(frontend): Part B" commit (unverified), finish and verify everything listed
+there, rebase on origin/main, merge into main and push main.
 
 Rules:
-- Before starting each delivery: git fetch; check `git ls-remote --heads origin 'feat/*'`; claim it by pushing an empty
-  commit on feat/d12-education-pages (or feat/d13-research-teaching-pages) branched from origin/main.
-- Never push main, never touch backend modules or migrations, never edit docs/PROGRESS.md, never touch the live server,
-  synthetic data only, no secrets in commits.
-- Use your own Playwright project and port (D12: 5583, D13: 5593) and only your own docs/screenshots/<delivery>/ folder.
-- Done means: npm run build, npm run lint, npx vitest run and your Playwright project are green; screenshots at 1440 and
-  375 committed; your PLAN.md boxes ticked; a short section in docs/FRONTEND.md. Rebase on origin/main, push the branch,
-  open a pull request into main (or report the branch name), then STOP and ask me before starting the next delivery.
-- If an endpoint or DTO is missing or wrong, do not change the backend — stop and report it.
+- Use at most one implementation subagent at a time (Sonnet 5.5); never run parallel agents.
+- One branch per delivery (feat/dNN-<slug> from origin/main), green before merge (dotnet build/test, npm run build,
+  npm run lint, npx vitest run, the delivery's Playwright projects, and npm run test:e2e:real for UI work). Never force-push.
+- Bespoke page per category (no generic category renderer), the PromptingFEBuild look on MUI v9, Vietnamese UI copy,
+  @mui/icons-material per-path imports, no live push (no SSE/EventSource/polling), synthetic data only, no secrets in
+  commits, never touch the live server support.hcmus.edu.vn.
+- After each delivery is merged: update docs/PROGRESS.md (Merged table + follow-ups), push main, then STOP and ask me
+  "continue with <next delivery>? (yes/no)" before starting the next one.
 ```
