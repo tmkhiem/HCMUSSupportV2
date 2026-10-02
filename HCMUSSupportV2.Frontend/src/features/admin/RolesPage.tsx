@@ -31,7 +31,9 @@ import { errorMessage } from '../../ui/errorMessage'
 import PageHeader from '../../ui/PageHeader'
 import PageState from '../../ui/PageState'
 import { rolesClient } from './clients'
-import { LoadMore, formatDateTime, useDebounced } from './common'
+import { formatDateTime } from '../../lib/format'
+import { useDebounced } from '../../lib/useDebounced'
+import LoadMore from './LoadMore'
 
 const STATUS_LABELS: Record<string, string> = { active: 'Đang làm việc', inactive: 'Ngưng hoạt động', retired: 'Đã nghỉ hưu' }
 

@@ -14,6 +14,7 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import AcrylicCard from '../../../ui/AcrylicCard'
+import OrgUnitField from './OrgUnitField'
 import { FIELD_LABELS, STATUS_OPTIONS, newCondition } from './ruleModel'
 import type { Combinator, Condition, ConditionField, RuleModel } from './ruleModel'
 
@@ -54,16 +55,7 @@ function ConditionEditor({ condition, onPatch, disabled }: { condition: Conditio
     case 'org_unit':
       return (
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', flex: 1 }} useFlexGap>
-          <TextField
-            size="small"
-            type="number"
-            label="Mã đơn vị"
-            value={condition.id ?? ''}
-            disabled={disabled}
-            onChange={(e) => onPatch({ id: e.target.value === '' ? null : Number(e.target.value) })}
-            slotProps={{ htmlInput: { min: 1, step: 1 } }}
-            sx={{ width: 140 }}
-          />
+          <OrgUnitField id={condition.id} name={condition.unitName} disabled={disabled} onChange={(u) => onPatch({ id: u?.id ?? null, unitName: u?.name })} />
           <FormControlLabel
             control={<Switch checked={Boolean(condition.includeDescendants)} disabled={disabled} onChange={(_, v) => onPatch({ includeDescendants: v })} />}
             label="Gồm đơn vị trực thuộc"

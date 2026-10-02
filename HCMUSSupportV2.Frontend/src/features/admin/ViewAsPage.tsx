@@ -16,7 +16,7 @@ import AcrylicCard from '../../ui/AcrylicCard'
 import { errorMessage } from '../../ui/errorMessage'
 import PageHeader from '../../ui/PageHeader'
 import { rolesClient, viewAsClient } from './clients'
-import { useDebounced } from './common'
+import { useDebounced } from '../../lib/useDebounced'
 
 export function Component() {
   const qc = useQueryClient()
@@ -70,7 +70,8 @@ export function Component() {
                 label="Cán bộ cần xem"
                 placeholder="MSCB hoặc họ tên"
                 slotProps={{
-                  input: { ...params.InputProps, startAdornment: <><SearchOutlined fontSize="small" sx={{ mr: 1 }} />{params.InputProps.startAdornment}</> },
+                  ...params.slotProps,
+                  input: { ...params.slotProps.input, startAdornment: <><SearchOutlined fontSize="small" sx={{ mr: 1 }} />{params.slotProps.input.startAdornment}</> },
                 }}
               />
             )}

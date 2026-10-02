@@ -2,8 +2,10 @@ import {
   AdminEmployeesClient,
   AuditClient,
   DashboardClient,
+  DatasetsClient,
   GroupsClient,
   RolesClient,
+  SyncAdminClient,
   ViewAsClient,
 } from '../../api/generated-client'
 import { clientFetch } from '../../api/http'
@@ -15,3 +17,5 @@ export const employeesAdminClient = new AdminEmployeesClient(undefined, clientFe
 export const dashboardClient = new DashboardClient(undefined, clientFetch)
 export const auditClient = new AuditClient(undefined, clientFetch)
 export const groupsClient = new GroupsClient(undefined, clientFetch)
+export const syncAdminClient = new SyncAdminClient(undefined, clientFetch)
+export const datasetsClient = new DatasetsClient(undefined, clientFetch)

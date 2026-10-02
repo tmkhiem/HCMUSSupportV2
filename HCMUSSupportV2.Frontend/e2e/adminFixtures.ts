@@ -20,18 +20,32 @@ const employees = [
   { code: 'T0004', fullName: 'Phạm Giảng Viên', unit: 'Khoa Hóa học', status: 'retired', primaryEmail: undefined, roles: [] },
 ]
 
-const groups = [
+const baseGroups = () => [
   { id: 1, name: 'Giảng viên có email', description: 'Tất cả giảng viên', kind: 'rule', includeDescendants: false, memberCount: 128, rule: { all: [{ field: 'position_title', op: 'contains', value: 'Giảng viên' }, { field: 'has_email', value: true }] }, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-02T00:00:00Z' },
   { id: 2, name: 'Ban chủ nhiệm khoa', description: 'Danh sách thủ công', kind: 'static', includeDescendants: false, memberCount: 3, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-02T00:00:00Z' },
   { id: 3, name: 'Khoa Công nghệ thông tin', kind: 'org_unit', orgUnitId: 12, orgUnitName: 'Khoa Công nghệ thông tin', includeDescendants: true, memberCount: 54, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-02T00:00:00Z' },
+  { id: 4, name: 'Khoa Toán - Tin học', kind: 'org_unit', orgUnitId: 13, orgUnitName: 'Khoa Toán - Tin học', includeDescendants: false, memberCount: 40, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-02T00:00:00Z' },
+  { id: 6, name: 'Quy tắc lồng nhau', kind: 'rule', includeDescendants: false, memberCount: 7, rule: { all: [{ any: [{ field: 'has_email', value: true }, { field: 'degree', op: 'in', value: ['Tiến sĩ'] }] }] }, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-02T00:00:00Z' },
+  { id: 5, name: 'Nhóm cũ 2024', description: 'Đã lưu trữ', kind: 'static', includeDescendants: false, memberCount: 2, archivedAt: '2026-08-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-08-01T00:00:00Z' },
 ]
+type Group = ReturnType<typeof baseGroups>[number] & { archivedAt?: string }
 
 export interface Calls {
   rolePuts: { code: string; body: { roles: string[] } }[]
   viewAs: { employeeCode: string }[]
   groupPuts: unknown[]
+  groupPosts: unknown[]
+  previews: unknown[]
+  archived: string[]
+  restored: string[]
+  memberAdds: string[][]
+  memberRemoves: string[][]
+  memberImports: boolean[]
   resolved: string[]
   applied: string[]
+  /** Raw query strings of audit calls. */
+  auditQueries: string[]
+  syncIssueQueries: string[]
 }
 
 export interface StubOptions {
@@ -40,7 +54,8 @@ export interface StubOptions {
 }
 
 export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<Calls> {
-  const calls: Calls = { rolePuts: [], viewAs: [], groupPuts: [], resolved: [], applied: [] }
+  const calls: Calls = { rolePuts: [], viewAs: [], groupPuts: [], groupPosts: [], previews: [], archived: [], restored: [], memberAdds: [], memberRemoves: [], memberImports: [], resolved: [], applied: [], auditQueries: [], syncIssueQueries: [] }
+  const groups: Group[] = baseGroups()
   const roleOf = (code: string) => employees.find((e) => e.code === code) ?? employees[2]
   const detail = (code: string, roles?: string[]) => {
     const e = roleOf(code)
@@ -51,7 +66,8 @@ export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<
     }
   }
 
-  await page.route('**/api/**', async (route: Route) => {
+  // Match only real API paths: a '**/api/**' glob would also catch vite's /src/api/*.ts modules.
+  await page.route((u) => u.pathname.startsWith('/api/'), async (route: Route) => {
     const req = route.request()
     const url = new URL(req.url())
     const p = url.pathname
@@ -93,6 +109,7 @@ export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<
     }
     if (p === '/api/admin/audit/actions') return json(['auth.login', 'group.created', 'roles.granted', 'viewas.started'])
     if (p === '/api/admin/audit') {
+      calls.auditQueries.push(url.search)
       const cursor = url.searchParams.get('cursor')
       const action = url.searchParams.get('action')
       const rows = cursor
@@ -107,13 +124,15 @@ export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<
           { id: 1, source: 'hrm-etl', dataset: 'commendations', startedAt: '2026-10-01T01:00:00Z', status: 'failed', received: 0, inserted: 0, updated: 0, deleted: 0, error: 'Số dòng giảm quá ngưỡng cho phép.', issueCount: 0, openIssueCount: 0 },
         ],
       })
-    if (p === '/api/admin/sync-issues')
+    if (p === '/api/admin/sync-issues') {
+      calls.syncIssueQueries.push(url.search)
       return json({
         items: [
           { id: 11, syncRunId: 2, dataset: 'employees', kind: 'duplicate_mscb', sourceKey: 'T0099', detailsJson: '{"count":2}', createdAt: '2026-10-02T01:02:00Z' },
           { id: 12, syncRunId: 2, dataset: 'employees', kind: 'unknown_unit', sourceKey: 'T0100', createdAt: '2026-10-02T01:02:00Z' },
         ],
       })
+    }
     const resolve = /^\/api\/admin\/sync-issues\/(\d+)\/resolve$/.exec(p)
     if (resolve) {
       calls.resolved.push(resolve[1])
@@ -136,18 +155,59 @@ export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<
     if (p === '/api/manage/groups' && m === 'GET') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase()
       const kind = url.searchParams.get('kind')
-      return json({ items: groups.filter((g) => (!kind || g.kind === kind) && (!q || g.name.toLowerCase().includes(q))) })
+      const archived = url.searchParams.get('includeArchived') === 'true'
+      return json({ items: groups.filter((g) => (archived || !g.archivedAt) && (!kind || g.kind === kind) && (!q || g.name.toLowerCase().includes(q))) })
     }
-    if (p === '/api/manage/groups/preview-rule')
+    if (p === '/api/manage/groups' && m === 'POST') {
+      const body = req.postDataJSON() as { name: string; description?: string; kind: string; rule?: unknown }
+      calls.groupPosts.push(body)
+      const created = { id: 100 + groups.length, name: body.name, description: body.description, kind: body.kind, includeDescendants: false, memberCount: 0, rule: body.rule, createdAt: '2026-10-02T03:00:00Z', updatedAt: '2026-10-02T03:00:00Z' } as Group
+      groups.push(created)
+      return json(created, 201)
+    }
+    if (p === '/api/manage/groups/preview-rule') {
+      const body = req.postDataJSON() as { rule: unknown }
+      calls.previews.push(body.rule)
       return json({ count: 128, sample: [{ code: 'T0002', fullName: 'Trần Mẫu Thử', unit: 'Khoa Toán - Tin học' }, { code: 'T0003', fullName: 'Lê Nhân Viên', unit: 'Khoa Vật lý' }] })
+    }
     const group = /^\/api\/manage\/groups\/(\d+)$/.exec(p)
-    if (group && m === 'GET') return json(groups.find((g) => g.id === Number(group[1])))
+    const find = (id: string) => groups.find((g) => g.id === Number(id))
+    if (group && m === 'GET') return json(find(group[1]))
     if (group && m === 'PUT') {
       calls.groupPuts.push(req.postDataJSON())
-      return json({ ...groups.find((g) => g.id === Number(group[1])), ...(req.postDataJSON() as object), updatedAt: '2026-10-02T03:00:00Z' })
+      const updated = { ...find(group[1]), ...(req.postDataJSON() as object), updatedAt: '2026-10-02T03:00:00Z' } as Group
+      groups.splice(groups.findIndex((g) => g.id === updated.id), 1, updated)
+      return json(updated)
+    }
+    if (group && m === 'DELETE') {
+      calls.archived.push(group[1])
+      find(group[1])!.archivedAt = '2026-10-02T03:00:00Z'
+      return route.fulfill({ status: 204 })
+    }
+    const restore = /^\/api\/manage\/groups\/(\d+)\/restore$/.exec(p)
+    if (restore) {
+      calls.restored.push(restore[1])
+      const g = find(restore[1])!
+      delete g.archivedAt
+      return json({ ...g, updatedAt: '2026-10-02T04:00:00Z' })
     }
     if (/^\/api\/manage\/groups\/\d+\/members$/.test(p) && m === 'GET')
       return json({ items: employees.slice(0, 3).map((e) => ({ code: e.code, fullName: e.fullName, unit: e.unit, source: 'manual', addedAt: '2026-09-05T02:00:00Z' })) })
+    if (/^\/api\/manage\/groups\/\d+\/members$/.test(p) && m === 'PUT') {
+      const codes = (req.postDataJSON() as { codes: string[] }).codes
+      calls.memberAdds.push(codes)
+      return json({ added: codes.filter((c) => c !== 'X9999'), alreadyMember: [], unknown: codes.filter((c) => c === 'X9999'), inactive: [], memberCount: 4 })
+    }
+    if (/^\/api\/manage\/groups\/\d+\/members$/.test(p) && m === 'DELETE') {
+      const codes = (req.postDataJSON() as { codes: string[] }).codes
+      calls.memberRemoves.push(codes)
+      return json({ removed: codes, notMember: [], memberCount: 2 })
+    }
+    if (/^\/api\/manage\/groups\/\d+\/members\/import$/.test(p)) {
+      const dryRun = url.searchParams.get('dryRun') !== 'false'
+      calls.memberImports.push(dryRun)
+      return json({ dryRun, rows: 5, added: ['T0003', 'T0004'], alreadyMember: ['T0001'], duplicate: [], unknown: ['X9999'], inactive: [], memberCount: dryRun ? 3 : 5 })
+    }
 
     return route.fulfill({ status: 404, contentType: 'application/problem+json', body: JSON.stringify({ title: 'Not stubbed', status: 404, detail: `Chưa giả lập ${m} ${p}` }) })
   })

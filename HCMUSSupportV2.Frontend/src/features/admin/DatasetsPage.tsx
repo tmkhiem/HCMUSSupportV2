@@ -16,8 +16,9 @@ import AcrylicCard from '../../ui/AcrylicCard'
 import { errorMessage } from '../../ui/errorMessage'
 import PageHeader from '../../ui/PageHeader'
 import SectionLabel from '../../ui/SectionLabel'
-import { hrmAdmin } from './hrmApi'
-import type { DatasetImportReport, DatasetName } from './hrmApi'
+import { datasetsClient } from './clients'
+import { toReport } from './datasetReport'
+import type { DatasetName, DatasetReport } from './datasetReport'
 
 const DATASETS: { id: DatasetName; label: string; note: string }[] = [
   { id: 'teaching', label: 'Giảng dạy', note: 'Dữ liệu giảng dạy được thay thế theo từng năm học có trong tệp.' },
@@ -40,7 +41,7 @@ function Metric({ label, value }: { label: string; value: number }) {
   )
 }
 
-function Report({ report, onApply, applying }: { report: DatasetImportReport; onApply?: () => void; applying: boolean }) {
+function Report({ report, onApply, applying }: { report: DatasetReport; onApply?: () => void; applying: boolean }) {
   const applied = report.status === 'applied'
   const canApply = report.status === 'validated' && !applied
   return (
@@ -95,16 +96,16 @@ function Report({ report, onApply, applying }: { report: DatasetImportReport; on
 
 export function Component() {
   const [dataset, setDataset] = useState<DatasetName>('teaching')
-  const [report, setReport] = useState<DatasetImportReport | null>(null)
+  const [report, setReport] = useState<DatasetReport | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const current = DATASETS.find((d) => d.id === dataset)!
 
   const upload = useMutation({
-    mutationFn: (file: File) => hrmAdmin.importDataset(dataset, file),
+    mutationFn: async (file: File) => toReport(await datasetsClient.import(dataset, { data: file, fileName: file.name })),
     onSuccess: setReport,
   })
   const apply = useMutation({
-    mutationFn: (id: string) => hrmAdmin.applyImport(id),
+    mutationFn: async (id: string) => toReport(await datasetsClient.apply(id)),
     onSuccess: setReport,
   })
 
@@ -132,7 +133,7 @@ export function Component() {
         <Stack spacing={2}>
           <Typography color="text.secondary">{current.note}</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-            <Button component="a" href={hrmAdmin.templateUrl(dataset)} download startIcon={<DownloadOutlined />} variant="outlined">
+            <Button component="a" href={`/api/admin/datasets/${dataset}/template`} download startIcon={<DownloadOutlined />} variant="outlined">
               Tải tệp mẫu
             </Button>
             <Button startIcon={<UploadFileOutlined />} variant="contained" disabled={upload.isPending} onClick={() => fileRef.current?.click()}>

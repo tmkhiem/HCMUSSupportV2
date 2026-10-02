@@ -52,4 +52,46 @@ describe('ruleModel', () => {
     expect(byIndex[0]).toEqual(['Không tìm thấy đơn vị.'])
     expect(general).toEqual(['Quy tắc không hợp lệ.'])
   })
+
+  it('round-trips every condition kind, in any and all', () => {
+    const rule = {
+      any: [
+        { field: 'org_unit', id: 3, includeDescendants: false },
+        { field: 'position_title', op: 'eq', value: 'Trưởng khoa' },
+        { field: 'position_title', op: 'contains', value: 'phó' },
+        { field: 'academic_rank', op: 'in', value: ['GS'] },
+        { field: 'degree', op: 'in', value: ['Tiến sĩ', 'Thạc sĩ'] },
+        { field: 'status', op: 'in', value: ['active', 'retired'] },
+        { field: 'has_email', value: false },
+      ],
+    }
+    const model = fromRule(rule)!
+    expect(model.combinator).toBe('any')
+    expect(model.conditions.map((c) => c.field)).toEqual(['org_unit', 'position_title', 'position_title', 'academic_rank', 'degree', 'status', 'has_email'])
+    expect(modelComplete(model)).toBe(true)
+    expect(toRule(model)).toEqual(rule)
+  })
+
+  it('never sends the client-only unit name', () => {
+    const c = { ...newCondition('org_unit'), id: 9, unitName: 'Khoa Toán' }
+    expect(toRule({ combinator: 'all', conditions: [c] })).toEqual({ all: [{ field: 'org_unit', id: 9, includeDescendants: false }] })
+  })
+
+  it('refuses malformed leaves', () => {
+    expect(fromRule({ all: [{ field: 'degree', op: 'in', value: 'Tiến sĩ' }] })).toBeNull()
+    expect(fromRule({ all: [{ field: 'position_title', value: 5 }] })).toBeNull()
+    expect(fromRule({ all: 'x' })).toBeNull()
+    expect(fromRule({ all: [3] })).toBeNull()
+  })
+
+  it('limits a rule to 50 conditions and needs at least one', () => {
+    const many = { combinator: 'all' as const, conditions: Array.from({ length: 51 }, () => ({ ...newCondition('has_email') })) }
+    expect(modelComplete(many)).toBe(false)
+    expect(modelComplete({ combinator: 'all', conditions: [] })).toBe(false)
+  })
+
+  it('a new status condition starts with active only, a new org_unit without a unit', () => {
+    expect(newCondition('status').values).toEqual(['active'])
+    expect(newCondition('org_unit').id).toBeNull()
+  })
 })

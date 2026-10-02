@@ -19,13 +19,11 @@ import AcrylicCard from '../../../ui/AcrylicCard'
 import { errorMessage } from '../../../ui/errorMessage'
 import PageState from '../../../ui/PageState'
 import SectionLabel from '../../../ui/SectionLabel'
+import MemberPicker from './MemberPicker'
 import { groupsClient } from '../../admin/clients'
-import { LoadMore, formatDateTime, useDebounced } from '../../admin/common'
-
-/** Split a pasted list of MSCBs (commas, semicolons, spaces, new lines) into unique codes. */
-export function parseCodes(text: string): string[] {
-  return [...new Set(text.split(/[\s,;]+/).map((c) => c.trim()).filter(Boolean))]
-}
+import { formatDateTime } from '../../../lib/format'
+import { useDebounced } from '../../../lib/useDebounced'
+import LoadMore from '../../admin/LoadMore'
 
 function Summary({ label, items }: { label: string; items: readonly string[] | undefined }) {
   if (!items || items.length === 0) return null
@@ -107,7 +105,6 @@ export default function GroupMembers({ groupId, editable }: { groupId: number; e
   const qc = useQueryClient()
   const [q, setQ] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [codesText, setCodesText] = useState('')
   const dq = useDebounced(q)
 
   const list = useInfiniteQuery({
@@ -125,17 +122,13 @@ export default function GroupMembers({ groupId, editable }: { groupId: number; e
 
   const add = useMutation({
     mutationFn: (codes: string[]) => groupsClient.addMembers(groupId, new MemberCodesRequest({ codes })),
-    onSuccess: () => {
-      setCodesText('')
-      refresh()
-    },
+    onSuccess: refresh,
   })
   const remove = useMutation({
     mutationFn: (codes: string[]) => groupsClient.removeMembers(groupId, new MemberCodesRequest({ codes })),
     onSuccess: refresh,
   })
 
-  const codes = parseCodes(codesText)
   const toggle = (code: string) =>
     setSelected((s) => {
       const n = new Set(s)
@@ -149,21 +142,8 @@ export default function GroupMembers({ groupId, editable }: { groupId: number; e
       {editable && (
         <AcrylicCard sx={{ p: 2 }}>
           <Stack spacing={1.5}>
-            <SectionLabel>Thêm thành viên</SectionLabel>
-            <TextField
-              size="small"
-              multiline
-              minRows={2}
-              label="Danh sách MSCB"
-              placeholder="Mỗi MSCB một dòng, hoặc cách nhau bằng dấu phẩy"
-              value={codesText}
-              onChange={(e) => setCodesText(e.target.value)}
-            />
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-              <Button variant="contained" disabled={codes.length === 0 || add.isPending} onClick={() => add.mutate(codes)}>
-                {add.isPending ? 'Đang thêm…' : `Thêm ${codes.length > 0 ? codes.length : ''} MSCB`.trim()}
-              </Button>
-            </Stack>
+            <SectionLabel>Thêm vào nhóm</SectionLabel>
+            <MemberPicker onAdd={(codes) => add.mutate(codes)} pending={add.isPending} />
             {add.error && <Alert severity="error">{errorMessage(add.error, 'Không thêm được thành viên.')}</Alert>}
             {add.data && (
               <Alert severity="info">

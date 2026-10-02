@@ -22,6 +22,8 @@ const ADMIN_PORT = 5393
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // The first visit of a page compiles its lazy chunks in vite dev, which can take a few seconds.
+  expect: { timeout: 10_000 },
   reporter: [['list']],
   use: { ...devices['Desktop Chrome'], locale: 'vi-VN', timezoneId: 'Asia/Ho_Chi_Minh' },
   projects: [

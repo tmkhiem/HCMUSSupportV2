@@ -13,6 +13,8 @@ export interface Condition {
   field: ConditionField
   /** org_unit: unit id (null while the field is empty). */
   id?: number | null
+  /** org_unit: display name remembered from the picker (client-only, never sent). */
+  unitName?: string
   includeDescendants?: boolean
   /** position_title. */
   op?: 'eq' | 'contains'

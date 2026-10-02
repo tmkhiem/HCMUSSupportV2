@@ -21,7 +21,7 @@ import PageState from '../../ui/PageState'
 import SectionLabel from '../../ui/SectionLabel'
 import StatCard from '../../ui/StatCard'
 import { dashboardClient } from './clients'
-import { formatDateTime } from './common'
+import { formatDateTime } from '../../lib/format'
 import { actionLabel } from './auditLabels'
 
 interface QuickAction {

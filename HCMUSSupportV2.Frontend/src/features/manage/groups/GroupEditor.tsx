@@ -5,6 +5,11 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogContentText from '@mui/material/DialogContentText'
+import DialogTitle from '@mui/material/DialogTitle'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
@@ -12,8 +17,8 @@ import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
-import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link as RouterLink, useBlocker, useNavigate } from 'react-router-dom'
 import { PreviewRuleRequest, UpdateGroupRequest } from '../../../api/generated-client'
 import type { GroupDto } from '../../../api/generated-client'
 import { ApiError } from '../../../api/http'
@@ -22,23 +27,22 @@ import { errorMessage } from '../../../ui/errorMessage'
 import PageState from '../../../ui/PageState'
 import SectionLabel from '../../../ui/SectionLabel'
 import { groupsClient } from '../../admin/clients'
-import { useDebounced } from '../../admin/common'
+import { useDebounced } from '../../../lib/useDebounced'
 import GroupMembers from './GroupMembers'
+import { KIND_LABELS } from './groupKinds'
 import RuleBuilder from './RuleBuilder'
 import { fromRule, modelComplete, ruleErrors, toRule } from './ruleModel'
 import type { RuleModel } from './ruleModel'
 
-export const KIND_LABELS: Record<string, string> = { static: 'Tĩnh', rule: 'Quy tắc', org_unit: 'Đơn vị' }
-
 function RulePreview({ model, onErrors }: { model: RuleModel; onErrors: (e: Record<number, string[]>) => void }) {
   const complete = modelComplete(model)
-  const rule = useDebounced(toRule(model), 500)
-  const key = JSON.stringify(rule)
+  // Debounce the serialised rule: a fresh object each render would never settle.
+  const key = useDebounced(JSON.stringify(toRule(model)), 500)
   const preview = useQuery({
     queryKey: ['groups', 'preview-rule', key],
     queryFn: async () => {
       try {
-        const res = await groupsClient.previewRule(new PreviewRuleRequest({ rule }))
+        const res = await groupsClient.previewRule(new PreviewRuleRequest({ rule: JSON.parse(key) as Record<string, unknown> }))
         onErrors({})
         return res
       } catch (e) {
@@ -144,8 +148,17 @@ function Editor({ group }: { group: GroupDto }) {
     save.reset()
   }
 
+  // Leaving the page (another group, another menu item) with a draft asks first; closing the tab shows the browser prompt.
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname)
+  useEffect(() => {
+    if (!dirty) return
+    const onUnload = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', onUnload)
+    return () => window.removeEventListener('beforeunload', onUnload)
+  }, [dirty])
+
   return (
-    <Stack spacing={3} sx={{ pb: dirty ? 10 : 0 }}>
+    <Stack spacing={3}>
       <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Button component={RouterLink} to="/quan-ly/nhom" startIcon={<ArrowBackOutlined />} sx={{ display: { md: 'none' } }}>
           Danh sách
@@ -234,17 +247,17 @@ function Editor({ group }: { group: GroupDto }) {
           role="region"
           aria-label="Thay đổi chưa lưu"
           sx={{
-            position: 'fixed',
+            position: 'sticky',
             bottom: { xs: 12, md: 24 },
-            left: '50%',
-            transform: 'translateX(-50%)',
+            alignSelf: 'center',
             zIndex: (t) => t.zIndex.snackbar,
             px: 2.5,
             py: 1.25,
             display: 'flex',
             alignItems: 'center',
+            flexWrap: 'wrap',
             gap: 2,
-            maxWidth: 'calc(100vw - 24px)',
+            maxWidth: '100%',
           }}
         >
           <Typography variant="body2" sx={{ fontWeight: 600 }}>Bạn có thay đổi chưa lưu</Typography>
@@ -254,6 +267,17 @@ function Editor({ group }: { group: GroupDto }) {
           </Button>
         </Paper>
       )}
+
+      <Dialog open={blocker.state === 'blocked'} onClose={() => blocker.reset?.()}>
+        <DialogTitle>Bỏ các thay đổi chưa lưu?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Nhóm này có thay đổi chưa lưu. Nếu rời trang, các thay đổi sẽ mất.</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => blocker.reset?.()}>Ở lại</Button>
+          <Button color="error" onClick={() => blocker.proceed?.()}>Bỏ thay đổi</Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   )
 }

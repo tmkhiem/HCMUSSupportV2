@@ -2,7 +2,9 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
+import Switch from '@mui/material/Switch'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -11,14 +13,16 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import AcrylicCard from '../../ui/AcrylicCard'
 import { errorMessage } from '../../ui/errorMessage'
 import PageHeader from '../../ui/PageHeader'
 import PageState from '../../ui/PageState'
 import SectionLabel from '../../ui/SectionLabel'
-import { LoadMore, formatDateTime } from './common'
-import { hrmAdmin } from './hrmApi'
-import type { SyncIssue } from './hrmApi'
+import { formatDateTime } from '../../lib/format'
+import LoadMore from './LoadMore'
+import { syncAdminClient } from './clients'
+import type { SyncIssueDto } from '../../api/generated-client'
 
 const RUN_STATUS: Record<string, { label: string; color: 'success' | 'error' | 'warning' | 'default' }> = {
   ok: { label: 'Thành công', color: 'success' },
@@ -30,9 +34,9 @@ const RUN_STATUS: Record<string, { label: string; color: 'success' | 'error' | '
   rejected: { label: 'Bị từ chối', color: 'warning' },
 }
 
-const nextOf = (last: { nextCursor?: string | number | null }) => last.nextCursor ?? undefined
+const nextOf = (last: { nextCursor?: number }) => last.nextCursor ?? undefined
 
-function IssueRow({ issue, onResolve, busy }: { issue: SyncIssue; onResolve: (id: number) => void; busy: boolean }) {
+function IssueRow({ issue, onResolve, busy }: { issue: SyncIssueDto; onResolve: (id: number) => void; busy: boolean }) {
   return (
     <TableRow hover>
       <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateTime(issue.createdAt)}</TableCell>
@@ -48,7 +52,7 @@ function IssueRow({ issue, onResolve, busy }: { issue: SyncIssue; onResolve: (id
         {issue.resolvedAt ? (
           <Typography variant="caption" color="text.secondary">Đã xử lý {formatDateTime(issue.resolvedAt)}</Typography>
         ) : (
-          <Button size="small" disabled={busy} onClick={() => onResolve(issue.id)} aria-label={`Đánh dấu đã xử lý ${issue.sourceKey}`}>
+          <Button size="small" disabled={busy} onClick={() => onResolve(issue.id!)} aria-label={`Đánh dấu đã xử lý ${issue.sourceKey}`}>
             Đã xử lý
           </Button>
         )}
@@ -59,34 +63,38 @@ function IssueRow({ issue, onResolve, busy }: { issue: SyncIssue; onResolve: (id
 
 export function Component() {
   const qc = useQueryClient()
+  const [showResolved, setShowResolved] = useState(false)
   const runs = useInfiniteQuery({
     queryKey: ['admin', 'sync-runs'],
-    queryFn: ({ pageParam }) => hrmAdmin.syncRuns(pageParam),
-    initialPageParam: undefined as string | number | undefined,
+    queryFn: ({ pageParam }) => syncAdminClient.runs(undefined, pageParam, 20),
+    initialPageParam: undefined as number | undefined,
     getNextPageParam: nextOf,
   })
   const issues = useInfiniteQuery({
-    queryKey: ['admin', 'sync-issues', 'open'],
-    queryFn: ({ pageParam }) => hrmAdmin.syncIssues(false, pageParam),
-    initialPageParam: undefined as string | number | undefined,
+    queryKey: ['admin', 'sync-issues', showResolved ? 'all' : 'open'],
+    queryFn: ({ pageParam }) => syncAdminClient.issues(showResolved ? undefined : false, undefined, undefined, pageParam, 30),
+    initialPageParam: undefined as number | undefined,
     getNextPageParam: nextOf,
   })
   const resolve = useMutation({
-    mutationFn: (id: number) => hrmAdmin.resolveIssue(id),
+    mutationFn: (id: number) => syncAdminClient.resolve(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['admin', 'sync-issues'] })
       void qc.invalidateQueries({ queryKey: ['admin', 'sync-runs'] })
     },
   })
 
-  const runRows = runs.data?.pages.flatMap((p) => p.items) ?? []
-  const issueRows = issues.data?.pages.flatMap((p) => p.items) ?? []
+  const runRows = runs.data?.pages.flatMap((p) => p.items ?? []) ?? []
+  const issueRows = issues.data?.pages.flatMap((p) => p.items ?? []) ?? []
 
   return (
     <>
       <PageHeader title="Đồng bộ" eyebrow="Quản trị" subtitle="Lịch sử đồng bộ dữ liệu từ HRM và các vấn đề cần xử lý." />
 
-      <SectionLabel sx={{ mt: 3, mb: 1 }}>Vấn đề chưa xử lý</SectionLabel>
+      <Stack direction="row" sx={{ mt: 3, mb: 1, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }} useFlexGap>
+        <SectionLabel>{showResolved ? 'Tất cả vấn đề' : 'Vấn đề chưa xử lý'}</SectionLabel>
+        <FormControlLabel control={<Switch size="small" checked={showResolved} onChange={(_, v) => setShowResolved(v)} />} label="Hiện cả vấn đề đã xử lý" />
+      </Stack>
       {resolve.error && <Alert severity="error" sx={{ mb: 1 }}>{errorMessage(resolve.error, 'Không đánh dấu được vấn đề.')}</Alert>}
       <PageState error={issues.error} loading={issues.isPending} empty={issueRows.length === 0} emptyMessage="Không có vấn đề nào cần xử lý." errorFallback="Không tải được danh sách vấn đề." onRetry={() => issues.refetch()}>
         <AcrylicCard sx={{ overflow: 'hidden' }}>
@@ -133,7 +141,7 @@ export function Component() {
               </TableHead>
               <TableBody>
                 {runRows.map((r) => {
-                  const s = RUN_STATUS[r.status] ?? { label: r.status, color: 'default' as const }
+                  const s = RUN_STATUS[r.status ?? ''] ?? { label: r.status ?? '—', color: 'default' as const }
                   return (
                     <TableRow key={r.id} hover>
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateTime(r.startedAt)}</TableCell>
