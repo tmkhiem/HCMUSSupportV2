@@ -114,7 +114,10 @@ test.describe('Thông tin chi tiết', () => {
     for (const s of ['Công tác', 'Học hàm và học vị', 'Đoàn thể', 'Tài chính và bảo hiểm'])
       await expect(page.getByRole('region', { name: s })).toBeVisible()
 
+    await shoot(page, 'detailed-1440')
+
     const money = page.getByRole('region', { name: 'Tài chính và bảo hiểm' })
+    await money.scrollIntoViewIfNeeded()
     const values = money.getByTestId('masked-value')
     await expect(values.filter({ hasText: '•••• 4321' })).toBeVisible()
     await expect(money).not.toContainText('079085004321')
@@ -124,7 +127,7 @@ test.describe('Thông tin chi tiết', () => {
     // Other fields stay masked.
     await expect(money).toContainText('•••• 7788')
     await expect(money).not.toContainText('8412347788')
-    await shoot(page, 'detailed-1440')
+    await shoot(page, 'detailed-reveal-1440')
 
     await money.getByRole('button', { name: 'Ẩn Số CCCD' }).click()
     await expect(money).not.toContainText('079085004321')

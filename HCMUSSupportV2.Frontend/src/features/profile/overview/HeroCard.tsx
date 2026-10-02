@@ -71,12 +71,12 @@ export default function HeroCard({ hero }: { hero: ProfileHero }) {
           spacing={1.5}
           sx={{ alignItems: { xs: 'center', md: 'baseline' }, justifyContent: { xs: 'center', md: 'flex-start' }, mb: 0.5 }}
         >
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 900, letterSpacing: '-0.03em', overflowWrap: 'anywhere' }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 900, letterSpacing: '-0.03em', overflowWrap: 'anywhere', fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
             {hero.fullName}
           </Typography>
           <Chip variant="tag" label={hero.code} size="small" />
         </Stack>
-        <Typography variant="h6" component="p" color="text.secondary" sx={{ fontWeight: 700, mb: 3 }}>
+        <Typography variant="h6" component="p" color="text.secondary" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1rem', md: '1.25rem' } }}>
           {subtitle ?? '—'}
         </Typography>
         <Stack
