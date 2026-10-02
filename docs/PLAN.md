@@ -472,7 +472,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. (Sync runs and issues endpoints are owned by D04.)
 
 ### D14b · Admin & editor management pages
-- [ ] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet.
+- [x] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet. (Delivered as D14c: backend `api/manage/employees` and the page at `quan-ly/nhan-su`.)
 - [ ] Nhóm (editor): master-detail, rule builder with preview.
 - [ ] Quản trị: dashboard, Phân quyền, Xem thử, Nhật ký, Đồng bộ (runs and issue resolution), Dữ liệu (dataset imports), API clients.
 - **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/quan-tri/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.

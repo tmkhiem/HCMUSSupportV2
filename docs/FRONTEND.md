@@ -273,6 +273,22 @@ Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `Summa
 - **Tests.** `src/features/profile/profile.test.tsx`, `src/lib/partialDate.test.ts`; Playwright project `profile`
   (`e2e/profile.spec.ts`, mock server) writes screenshots to `docs/screenshots/d10/`.
 
+## Nhân sự & email (D14c)
+
+Code in `src/features/employees/`, route `quan-ly/nhan-su` (editor; `RequireRole` is on the `quan-ly` group), nav entry "Nhân sự & email" (`id: 'staff'`, placed before `manage` so it wins the prefix match on its own route). Backend: see BACKEND.md "Nhân sự & email".
+
+| File | Role |
+|---|---|
+| `EmployeesPage.tsx` | The route component (`Component`). Header with the count and "Nhập từ tệp", sticky filter bar, list, "Tải thêm" (keyset `nextCursor`), skeleton / error (`PageState` + "Thử lại") / empty / filtered-empty ("Xóa bộ lọc") states. **The URL is the state**: `?q=&trangthai=active|inactive|retired&chuaemail=1&canxuly=1&ma=T0003` (`ma` = the open employee, so a drawer is deep-linkable; search edits use `replace`) |
+| `EmployeeFilterBar.tsx` | Debounced search (400 ms; MSCB, name without accents or an email fragment), Trạng thái select, "Chưa có email" and "Cần kiểm tra" toggles |
+| `EmployeeList.tsx` | Table from `md` up (MSCB, Họ tên + chức danh, Đơn vị, Email = primary + `+N`, Trạng thái), stacked cards below. A row is a button (Enter/Space) that opens the drawer. Chips: "Chưa có email", "Cần kiểm tra" (an email equals another employee's HRM personal email), non-active status |
+| `EmailDrawer.tsx` | Right drawer (full width on phones): the person, the list of emails (primary chip, HRM-conflict chip, note, added date and by whom), set-primary star, remove (confirmation dialog), and the add form (client validation, optional note, "Đặt làm email chính"). Server refusals (409 owner, 400, 403 while viewing as someone) show in an alert with the server's Vietnamese message |
+| `ImportDialog.tsx`, `ImportReportView.tsx` | Three steps: choose a `.xlsx`/`.csv` (5 MB; "Tải tệp mẫu" downloads a csv template), "Kiểm tra tệp" = dry run and the report (counts, then collapsible tables: new, removed, conflicts, unknown MSCB, invalid, warnings), "Áp dụng (N)" uploads the same file with `dryRun=false`. The option "chỉ giữ các email trong tệp" = `removeMissing` and shows a warning. Full-screen below `sm` |
+| `employeesApi.ts`, `employeesQueries.ts`, `employeesTypes.ts`, `employeesFormat.ts` | Generated `manageEmployeesClient` calls mapped to view types; TanStack hooks (`['manage','employees',...]` keys; every write puts the answer in the detail cache and invalidates the lists); labels, email validation (same rule as the backend), URL <-> filters, the csv template |
+| `employeesMock.ts` | Synthetic directory for mock mode: `T0001`..`T0040` (5 without email, one inactive, one retired, one HRM conflict), `example.test` addresses, in-memory state, a csv-aware import. `?employees=empty` or `?employees=error` shows the other states. Only `employeesApi.ts` imports it, behind `import.meta.env.DEV && MOCK_AUTH` |
+
+- **Tests.** vitest `employees.test.tsx` (helpers, URL filters, list, states, drawer add/primary/remove, conflicts, import two-step flow and errors). Playwright project `employees` (`e2e/employees.spec.ts`, port 5693, mock auth, 1440 and 375) writes `docs/screenshots/d14c/`. Real backend: `e2e/real.employees.spec.ts` (picked up by `npm run test:e2e:real`, whose `testMatch` is now `real(.name)?.spec.ts`): an editor maps a new email to T0005 in the UI and `GET /api/auth/me` of T0005 shows it; the import dry run writes nothing and apply adds; an editor gets 403 on `/api/admin/*` and the forbidden card on `/quan-tri/*`, an employee gets 403 on the directory. Google sign-in cannot run in e2e; the backend suite covers it.
+
 ## Tests
 
 - `npm test`: vitest + Testing Library (jsdom). `format.test.ts`, `http.test.ts`, `nav.test.ts`, `returnUrl.test.ts` and

@@ -34,6 +34,7 @@ describe('activeNavIndex', () => {
   it('uses the match prefix for multi-route entries', () => {
     expect(idOf('/nckh/bai-bao')).toBe('research')
     expect(idOf('/quan-ly/nhom/3')).toBe('manage')
+    expect(idOf('/quan-ly/nhan-su')).toBe('staff')
     expect(idOf('/quan-tri/nhat-ky')).toBe('admin')
   })
 

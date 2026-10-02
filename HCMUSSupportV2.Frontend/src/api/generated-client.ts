@@ -4167,6 +4167,328 @@ export class AdminEmployeesClient {
     }
 }
 
+export class ManageEmployeesClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    list(q: string | null | undefined, status: string | null | undefined, hasEmail: boolean | null | undefined, flagged: boolean | null | undefined, unitId: number | null | undefined, cursor: string | null | undefined, limit: number | undefined): Promise<ManagedEmployeePageDto> {
+        let url_ = this.baseUrl + "/api/manage/employees?";
+        if (q !== undefined && q !== null)
+            url_ += "q=" + encodeURIComponent("" + q) + "&";
+        if (status !== undefined && status !== null)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (hasEmail !== undefined && hasEmail !== null)
+            url_ += "hasEmail=" + encodeURIComponent("" + hasEmail) + "&";
+        if (flagged !== undefined && flagged !== null)
+            url_ += "flagged=" + encodeURIComponent("" + flagged) + "&";
+        if (unitId !== undefined && unitId !== null)
+            url_ += "unitId=" + encodeURIComponent("" + unitId) + "&";
+        if (cursor !== undefined && cursor !== null)
+            url_ += "cursor=" + encodeURIComponent("" + cursor) + "&";
+        if (limit === null)
+            throw new globalThis.Error("The parameter 'limit' cannot be null.");
+        else if (limit !== undefined)
+            url_ += "limit=" + encodeURIComponent("" + limit) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processList(_response);
+        });
+    }
+
+    protected processList(response: Response): Promise<ManagedEmployeePageDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ManagedEmployeePageDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ManagedEmployeePageDto>(null as any);
+    }
+
+    get(code: string): Promise<ManagedEmployeeDto> {
+        let url_ = this.baseUrl + "/api/manage/employees/{code}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGet(_response);
+        });
+    }
+
+    protected processGet(response: Response): Promise<ManagedEmployeeDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ManagedEmployeeDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ManagedEmployeeDto>(null as any);
+    }
+
+    addEmail(code: string, request: AddEmployeeEmailRequest): Promise<ManagedEmployeeDto> {
+        let url_ = this.baseUrl + "/api/manage/employees/{code}/emails";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAddEmail(_response);
+        });
+    }
+
+    protected processAddEmail(response: Response): Promise<ManagedEmployeeDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = ManagedEmployeeDto.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ManagedEmployeeDto>(null as any);
+    }
+
+    removeEmail(code: string, email: string): Promise<ManagedEmployeeDto> {
+        let url_ = this.baseUrl + "/api/manage/employees/{code}/emails/{email}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        if (email === undefined || email === null)
+            throw new globalThis.Error("The parameter 'email' must be defined.");
+        url_ = url_.replace("{email}", encodeURIComponent("" + email));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRemoveEmail(_response);
+        });
+    }
+
+    protected processRemoveEmail(response: Response): Promise<ManagedEmployeeDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ManagedEmployeeDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ManagedEmployeeDto>(null as any);
+    }
+
+    setPrimary(code: string, email: string): Promise<ManagedEmployeeDto> {
+        let url_ = this.baseUrl + "/api/manage/employees/{code}/emails/{email}/primary";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        if (email === undefined || email === null)
+            throw new globalThis.Error("The parameter 'email' must be defined.");
+        url_ = url_.replace("{email}", encodeURIComponent("" + email));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "PUT",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSetPrimary(_response);
+        });
+    }
+
+    protected processSetPrimary(response: Response): Promise<ManagedEmployeeDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ManagedEmployeeDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ManagedEmployeeDto>(null as any);
+    }
+
+    importEmails(dryRun: boolean | undefined, removeMissing: boolean | undefined, file: FileParameter | null | undefined): Promise<EmailImportReportDto> {
+        let url_ = this.baseUrl + "/api/manage/employees/emails/import?";
+        if (dryRun === null)
+            throw new globalThis.Error("The parameter 'dryRun' cannot be null.");
+        else if (dryRun !== undefined)
+            url_ += "dryRun=" + encodeURIComponent("" + dryRun) + "&";
+        if (removeMissing === null)
+            throw new globalThis.Error("The parameter 'removeMissing' cannot be null.");
+        else if (removeMissing !== undefined)
+            url_ += "removeMissing=" + encodeURIComponent("" + removeMissing) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file !== null && file !== undefined)
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processImportEmails(_response);
+        });
+    }
+
+    protected processImportEmails(response: Response): Promise<EmailImportReportDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EmailImportReportDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EmailImportReportDto>(null as any);
+    }
+}
+
 export class DashboardClient {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -12050,6 +12372,650 @@ export interface ICreateEmployeeRequest {
     code?: string;
     fullName?: string;
     orgUnitId?: number | undefined;
+}
+
+export class ManagedEmployeePageDto implements IManagedEmployeePageDto {
+    items?: ManagedEmployeeDto[];
+    nextCursor?: string | undefined;
+    total?: number;
+
+    constructor(data?: IManagedEmployeePageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ManagedEmployeeDto.fromJS(item));
+            }
+            this.nextCursor = _data["nextCursor"];
+            this.total = _data["total"];
+        }
+    }
+
+    static fromJS(data: any): ManagedEmployeePageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManagedEmployeePageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["nextCursor"] = this.nextCursor;
+        data["total"] = this.total;
+        return data;
+    }
+}
+
+export interface IManagedEmployeePageDto {
+    items?: ManagedEmployeeDto[];
+    nextCursor?: string | undefined;
+    total?: number;
+}
+
+export class ManagedEmployeeDto implements IManagedEmployeeDto {
+    code?: string;
+    fullName?: string;
+    status?: string;
+    source?: string;
+    unitId?: number | undefined;
+    unit?: string | undefined;
+    positionTitle?: string | undefined;
+    emails?: ManagedEmailDto[];
+    hasHrmConflict?: boolean;
+
+    constructor(data?: IManagedEmployeeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.status = _data["status"];
+            this.source = _data["source"];
+            this.unitId = _data["unitId"];
+            this.unit = _data["unit"];
+            this.positionTitle = _data["positionTitle"];
+            if (Array.isArray(_data["emails"])) {
+                this.emails = [] as any;
+                for (let item of _data["emails"])
+                    this.emails!.push(ManagedEmailDto.fromJS(item));
+            }
+            this.hasHrmConflict = _data["hasHrmConflict"];
+        }
+    }
+
+    static fromJS(data: any): ManagedEmployeeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManagedEmployeeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["status"] = this.status;
+        data["source"] = this.source;
+        data["unitId"] = this.unitId;
+        data["unit"] = this.unit;
+        data["positionTitle"] = this.positionTitle;
+        if (Array.isArray(this.emails)) {
+            data["emails"] = [];
+            for (let item of this.emails)
+                data["emails"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["hasHrmConflict"] = this.hasHrmConflict;
+        return data;
+    }
+}
+
+export interface IManagedEmployeeDto {
+    code?: string;
+    fullName?: string;
+    status?: string;
+    source?: string;
+    unitId?: number | undefined;
+    unit?: string | undefined;
+    positionTitle?: string | undefined;
+    emails?: ManagedEmailDto[];
+    hasHrmConflict?: boolean;
+}
+
+export class ManagedEmailDto implements IManagedEmailDto {
+    email?: string;
+    isPrimary?: boolean;
+    note?: string | undefined;
+    addedBy?: string | undefined;
+    addedAt?: Date;
+    hrmConflict?: boolean;
+
+    constructor(data?: IManagedEmailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.email = _data["email"];
+            this.isPrimary = _data["isPrimary"];
+            this.note = _data["note"];
+            this.addedBy = _data["addedBy"];
+            this.addedAt = _data["addedAt"] ? new Date(_data["addedAt"].toString()) : undefined as any;
+            this.hrmConflict = _data["hrmConflict"];
+        }
+    }
+
+    static fromJS(data: any): ManagedEmailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManagedEmailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["email"] = this.email;
+        data["isPrimary"] = this.isPrimary;
+        data["note"] = this.note;
+        data["addedBy"] = this.addedBy;
+        data["addedAt"] = this.addedAt ? this.addedAt.toISOString() : undefined as any;
+        data["hrmConflict"] = this.hrmConflict;
+        return data;
+    }
+}
+
+export interface IManagedEmailDto {
+    email?: string;
+    isPrimary?: boolean;
+    note?: string | undefined;
+    addedBy?: string | undefined;
+    addedAt?: Date;
+    hrmConflict?: boolean;
+}
+
+export class AddEmployeeEmailRequest implements IAddEmployeeEmailRequest {
+    email?: string;
+    isPrimary?: boolean | undefined;
+    note?: string | undefined;
+
+    constructor(data?: IAddEmployeeEmailRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.email = _data["email"];
+            this.isPrimary = _data["isPrimary"];
+            this.note = _data["note"];
+        }
+    }
+
+    static fromJS(data: any): AddEmployeeEmailRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddEmployeeEmailRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["email"] = this.email;
+        data["isPrimary"] = this.isPrimary;
+        data["note"] = this.note;
+        return data;
+    }
+}
+
+export interface IAddEmployeeEmailRequest {
+    email?: string;
+    isPrimary?: boolean | undefined;
+    note?: string | undefined;
+}
+
+export class EmailImportReportDto implements IEmailImportReportDto {
+    dryRun?: boolean;
+    removeMissing?: boolean;
+    rows?: number;
+    employees?: number;
+    skippedEmptyRows?: number;
+    addedCount?: number;
+    unchangedCount?: number;
+    removedCount?: number;
+    conflictCount?: number;
+    unknownCount?: number;
+    invalidCount?: number;
+    added?: ImportedEmailItemDto[];
+    removed?: ImportedEmailItemDto[];
+    conflicts?: ImportConflictDto[];
+    unknown?: ImportUnknownCodeDto[];
+    invalid?: ImportInvalidDto[];
+    warnings?: ImportWarningDto[];
+    truncated?: boolean;
+
+    constructor(data?: IEmailImportReportDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.dryRun = _data["dryRun"];
+            this.removeMissing = _data["removeMissing"];
+            this.rows = _data["rows"];
+            this.employees = _data["employees"];
+            this.skippedEmptyRows = _data["skippedEmptyRows"];
+            this.addedCount = _data["addedCount"];
+            this.unchangedCount = _data["unchangedCount"];
+            this.removedCount = _data["removedCount"];
+            this.conflictCount = _data["conflictCount"];
+            this.unknownCount = _data["unknownCount"];
+            this.invalidCount = _data["invalidCount"];
+            if (Array.isArray(_data["added"])) {
+                this.added = [] as any;
+                for (let item of _data["added"])
+                    this.added!.push(ImportedEmailItemDto.fromJS(item));
+            }
+            if (Array.isArray(_data["removed"])) {
+                this.removed = [] as any;
+                for (let item of _data["removed"])
+                    this.removed!.push(ImportedEmailItemDto.fromJS(item));
+            }
+            if (Array.isArray(_data["conflicts"])) {
+                this.conflicts = [] as any;
+                for (let item of _data["conflicts"])
+                    this.conflicts!.push(ImportConflictDto.fromJS(item));
+            }
+            if (Array.isArray(_data["unknown"])) {
+                this.unknown = [] as any;
+                for (let item of _data["unknown"])
+                    this.unknown!.push(ImportUnknownCodeDto.fromJS(item));
+            }
+            if (Array.isArray(_data["invalid"])) {
+                this.invalid = [] as any;
+                for (let item of _data["invalid"])
+                    this.invalid!.push(ImportInvalidDto.fromJS(item));
+            }
+            if (Array.isArray(_data["warnings"])) {
+                this.warnings = [] as any;
+                for (let item of _data["warnings"])
+                    this.warnings!.push(ImportWarningDto.fromJS(item));
+            }
+            this.truncated = _data["truncated"];
+        }
+    }
+
+    static fromJS(data: any): EmailImportReportDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EmailImportReportDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["dryRun"] = this.dryRun;
+        data["removeMissing"] = this.removeMissing;
+        data["rows"] = this.rows;
+        data["employees"] = this.employees;
+        data["skippedEmptyRows"] = this.skippedEmptyRows;
+        data["addedCount"] = this.addedCount;
+        data["unchangedCount"] = this.unchangedCount;
+        data["removedCount"] = this.removedCount;
+        data["conflictCount"] = this.conflictCount;
+        data["unknownCount"] = this.unknownCount;
+        data["invalidCount"] = this.invalidCount;
+        if (Array.isArray(this.added)) {
+            data["added"] = [];
+            for (let item of this.added)
+                data["added"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.removed)) {
+            data["removed"] = [];
+            for (let item of this.removed)
+                data["removed"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.conflicts)) {
+            data["conflicts"] = [];
+            for (let item of this.conflicts)
+                data["conflicts"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.unknown)) {
+            data["unknown"] = [];
+            for (let item of this.unknown)
+                data["unknown"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.invalid)) {
+            data["invalid"] = [];
+            for (let item of this.invalid)
+                data["invalid"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.warnings)) {
+            data["warnings"] = [];
+            for (let item of this.warnings)
+                data["warnings"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["truncated"] = this.truncated;
+        return data;
+    }
+}
+
+export interface IEmailImportReportDto {
+    dryRun?: boolean;
+    removeMissing?: boolean;
+    rows?: number;
+    employees?: number;
+    skippedEmptyRows?: number;
+    addedCount?: number;
+    unchangedCount?: number;
+    removedCount?: number;
+    conflictCount?: number;
+    unknownCount?: number;
+    invalidCount?: number;
+    added?: ImportedEmailItemDto[];
+    removed?: ImportedEmailItemDto[];
+    conflicts?: ImportConflictDto[];
+    unknown?: ImportUnknownCodeDto[];
+    invalid?: ImportInvalidDto[];
+    warnings?: ImportWarningDto[];
+    truncated?: boolean;
+}
+
+export class ImportedEmailItemDto implements IImportedEmailItemDto {
+    row?: number;
+    code?: string;
+    fullName?: string | undefined;
+    email?: string;
+    isPrimary?: boolean;
+
+    constructor(data?: IImportedEmailItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.row = _data["row"];
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+            this.email = _data["email"];
+            this.isPrimary = _data["isPrimary"];
+        }
+    }
+
+    static fromJS(data: any): ImportedEmailItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportedEmailItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["row"] = this.row;
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        data["email"] = this.email;
+        data["isPrimary"] = this.isPrimary;
+        return data;
+    }
+}
+
+export interface IImportedEmailItemDto {
+    row?: number;
+    code?: string;
+    fullName?: string | undefined;
+    email?: string;
+    isPrimary?: boolean;
+}
+
+export class ImportConflictDto implements IImportConflictDto {
+    row?: number;
+    code?: string;
+    email?: string;
+    reason?: string;
+    message?: string;
+    ownerCode?: string | undefined;
+    ownerName?: string | undefined;
+
+    constructor(data?: IImportConflictDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.row = _data["row"];
+            this.code = _data["code"];
+            this.email = _data["email"];
+            this.reason = _data["reason"];
+            this.message = _data["message"];
+            this.ownerCode = _data["ownerCode"];
+            this.ownerName = _data["ownerName"];
+        }
+    }
+
+    static fromJS(data: any): ImportConflictDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportConflictDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["row"] = this.row;
+        data["code"] = this.code;
+        data["email"] = this.email;
+        data["reason"] = this.reason;
+        data["message"] = this.message;
+        data["ownerCode"] = this.ownerCode;
+        data["ownerName"] = this.ownerName;
+        return data;
+    }
+}
+
+export interface IImportConflictDto {
+    row?: number;
+    code?: string;
+    email?: string;
+    reason?: string;
+    message?: string;
+    ownerCode?: string | undefined;
+    ownerName?: string | undefined;
+}
+
+export class ImportUnknownCodeDto implements IImportUnknownCodeDto {
+    row?: number;
+    code?: string;
+    emails?: string[];
+
+    constructor(data?: IImportUnknownCodeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.row = _data["row"];
+            this.code = _data["code"];
+            if (Array.isArray(_data["emails"])) {
+                this.emails = [] as any;
+                for (let item of _data["emails"])
+                    this.emails!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): ImportUnknownCodeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportUnknownCodeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["row"] = this.row;
+        data["code"] = this.code;
+        if (Array.isArray(this.emails)) {
+            data["emails"] = [];
+            for (let item of this.emails)
+                data["emails"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IImportUnknownCodeDto {
+    row?: number;
+    code?: string;
+    emails?: string[];
+}
+
+export class ImportInvalidDto implements IImportInvalidDto {
+    row?: number;
+    code?: string;
+    email?: string | undefined;
+    reason?: string;
+    message?: string;
+
+    constructor(data?: IImportInvalidDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.row = _data["row"];
+            this.code = _data["code"];
+            this.email = _data["email"];
+            this.reason = _data["reason"];
+            this.message = _data["message"];
+        }
+    }
+
+    static fromJS(data: any): ImportInvalidDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportInvalidDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["row"] = this.row;
+        data["code"] = this.code;
+        data["email"] = this.email;
+        data["reason"] = this.reason;
+        data["message"] = this.message;
+        return data;
+    }
+}
+
+export interface IImportInvalidDto {
+    row?: number;
+    code?: string;
+    email?: string | undefined;
+    reason?: string;
+    message?: string;
+}
+
+export class ImportWarningDto implements IImportWarningDto {
+    row?: number;
+    code?: string;
+    reason?: string;
+    message?: string;
+
+    constructor(data?: IImportWarningDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.row = _data["row"];
+            this.code = _data["code"];
+            this.reason = _data["reason"];
+            this.message = _data["message"];
+        }
+    }
+
+    static fromJS(data: any): ImportWarningDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportWarningDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["row"] = this.row;
+        data["code"] = this.code;
+        data["reason"] = this.reason;
+        data["message"] = this.message;
+        return data;
+    }
+}
+
+export interface IImportWarningDto {
+    row?: number;
+    code?: string;
+    reason?: string;
+    message?: string;
 }
 
 export class DashboardDto implements IDashboardDto {

@@ -95,7 +95,7 @@ export const routes: RouteObject[] = [
           { index: true, element: <Navigate to="/quan-ly/thong-bao" replace /> },
           page('thong-bao', 'Quản lý thông báo'),
           page('thong-bao/:id', 'Soạn thông báo'),
-          page('nhan-su', 'Nhân sự & email'),
+          page('nhan-su', 'Nhân sự & email', () => import('../features/employees/EmployeesPage')),
           page('nhom', 'Nhóm'),
           page('nhom/:id', 'Chi tiết nhóm'),
         ],
