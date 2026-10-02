@@ -140,6 +140,17 @@ the payload, and research and publications are replaced whole.
 // response: ImportReportDto (D04), with status "applied" (or "validated"/"rejected" on a dry run / invalid payload)
 ```
 
+Notes on the implementation:
+- **Validation** is D04's, run on the JSON values. A bad value is reported with `row` = the 1-based position in `rows` and `column` = the JSON field name.
+  Any bad value, an empty `rows` or an exact duplicate rejects the whole batch (a non-dry run still stores the payload as a `rejected` import, and writes nothing to the dataset).
+  A body without `rows` is a 400.
+- **Dry run:** the report has `id` = the empty GUID, `fileName` = `legacy-<dataset>.json` and status `validated` (or `rejected`). Nothing is stored: no file, no `dataset_imports` row, no audit entry.
+- **Role codes** are `chu_nhiem`, `dong_chu_nhiem` and `thanh_vien` (`dong_chu_nhiem` is new here; any other value is a bad value). `acceptedOn` is `yyyy-MM-dd` (or `dd/MM/yyyy`).
+- **Teaching identity.** v1 has no course codes and reuses class labels such as `CQ`, so for this endpoint a line is identified by MSCB, academic year, term, course (code, else name), class and
+  level. Posting the same rows again reports no new, updated or removed rows. (The `.xlsx` import keeps D04's identity: MSCB, year, term, course code, class.)
+- **Storage.** The payload is stored through `IFileStore` as `application/json`, so `Storage:AllowedContentTypes` must include `application/json` (it does in `appsettings.json`; check the production override).
+- The audit entry `legacy.datasets.<name>` holds counts only (status, total, new, updated, removed, number of unknown MSCBs and bad values).
+
 ## Decisions recorded
 
 - **Read state:** v1 had none, so migrated deliveries count as already read (`markRead: true`). Otherwise every employee would

@@ -15,8 +15,19 @@ public interface IIngestPoster
     Task<PostOutcome> PostAsync(string dataset, IReadOnlyList<object> rows, bool force, CancellationToken ct);
 }
 
+/// <summary>Outcome of a generic JSON post: the raw response body (a report), or an error text.</summary>
+public sealed record JsonPostOutcome(bool Success, int StatusCode, string? Body, string? Error);
+
+/// <summary>Posts any JSON body (the D15 legacy endpoints: <c>{users:[...]}</c>, <c>{rows:[...]}</c>) to a path under the API origin.</summary>
+public interface IJsonPoster
+{
+    /// <param name="path">Relative, for example <c>api/integration/v1/legacy/emails</c>.</param>
+    /// <param name="serverDryRun">Adds <c>?dryRun=true</c>: the server validates and answers with the same report but writes nothing.</param>
+    Task<JsonPostOutcome> PostJsonAsync(string path, object body, bool serverDryRun, CancellationToken ct);
+}
+
 /// <summary>Posts a full snapshot as gzipped JSON <c>{"rows":[...]}</c> to <c>POST /api/integration/v1/{dataset}</c> with the ApiKey header.</summary>
-public sealed class IngestClient : IIngestPoster, IDisposable
+public sealed class IngestClient : IIngestPoster, IJsonPoster, IDisposable
 {
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -45,12 +56,37 @@ public sealed class IngestClient : IIngestPoster, IDisposable
     }
 
     /// <summary>The gzipped request body for a snapshot.</summary>
-    public static byte[] BuildBody(IReadOnlyList<object> rows)
+    public static byte[] BuildBody(IReadOnlyList<object> rows) => BuildBody((object)new { rows });
+
+    /// <summary>The gzipped JSON of any request body.</summary>
+    public static byte[] BuildBody(object body)
     {
         using var ms = new MemoryStream();
         using (var gz = new GZipStream(ms, CompressionLevel.Optimal, leaveOpen: true))
-            JsonSerializer.Serialize(gz, new { rows }, Json);
+            JsonSerializer.Serialize(gz, body, Json);
         return ms.ToArray();
+    }
+
+    public async Task<JsonPostOutcome> PostJsonAsync(string path, object body, bool serverDryRun, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, path.TrimStart('/') + (serverDryRun ? "?dryRun=true" : ""))
+        {
+            Content = new ByteArrayContent(BuildBody(body)),
+        };
+        req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        req.Content.Headers.ContentEncoding.Add("gzip");
+        try
+        {
+            using var resp = await _http.SendAsync(req, ct);
+            var text = await resp.Content.ReadAsStringAsync(ct);
+            return resp.IsSuccessStatusCode
+                ? new JsonPostOutcome(true, (int)resp.StatusCode, text, null)
+                : new JsonPostOutcome(false, (int)resp.StatusCode, null, $"HTTP {(int)resp.StatusCode}: {Truncate(ProblemDetail(text), 300)}");
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            return new JsonPostOutcome(false, 0, null, e.Message);
+        }
     }
 
     public async Task<PostOutcome> PostAsync(string dataset, IReadOnlyList<object> rows, bool force, CancellationToken ct)
