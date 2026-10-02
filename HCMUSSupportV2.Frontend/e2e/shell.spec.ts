@@ -63,7 +63,7 @@ test.describe('desktop shell', () => {
   test('every planned route renders its Vietnamese title', async ({ page }) => {
     const routes: Record<string, string> = {
       '/tin-tuc': 'Tin tức', // the detail (/tin-tuc/:id) is a dialog over the list, covered by inbox.spec.ts
-      '/ho-so': 'Hồ sơ cá nhân',
+      '/ho-so': '', // the overview's h1 is the employee's name (HeroCard), so only presence is checked
       '/ho-so/thong-tin-chung': 'Thông tin chung',
       '/ho-so/thong-tin-chi-tiet': 'Thông tin chi tiết',
       '/ho-so/luong': 'Quá trình lương',
@@ -87,7 +87,10 @@ test.describe('desktop shell', () => {
     }
     for (const [path, title] of Object.entries(routes)) {
       await page.goto(path)
-      await expect(page.getByRole('heading', { level: 1, name: title, exact: true }), path).toBeVisible()
+      await expect(
+        title ? page.getByRole('heading', { level: 1, name: title, exact: true }) : page.getByRole('heading', { level: 1 }),
+        path,
+      ).toBeVisible()
     }
     await page.goto('/khong-ton-tai')
     await expect(page.getByRole('heading', { level: 1, name: 'Không tìm thấy trang' })).toBeVisible()

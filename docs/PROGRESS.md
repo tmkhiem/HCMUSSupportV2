@@ -52,8 +52,8 @@ Updated 2026-10-02 ~10:00. Plan: [PLAN.md](PLAN.md). Nothing is pushed to `origi
 2. **Notification summary length:** the code uses 300 characters and the Markdown contract says 200. It is one constant, `NotificationMarkdown.SummaryMaxLength`.
 3. **Official logo:** the HCMUS mark for the watermark. `public/bg-logo.svg` is a placeholder.
 4. **HRM SQL in D05 has never run against HRM.** The column assumptions are listed in `docs/SYNC.md`. The first `sync hrm --dry-run` on the HRM box needs the read-only login (`deploy/sql/hrm-readonly-login.sql`).
-5. **Build flake:** `dotnet build`/`test` sometimes fails with "No file exists for the asset … wwwroot/assets/index-*.js". It happens when the frontend build rewrites `wwwroot` during a backend build, and a re-run passes. This needs a proper fix in the Frontend csproj, or an `obj` clean.
-6. **EF migrations bundle** only builds in Debug, because of `EfToolsExcludeAssets` (see D16 notes). D16 also has `deploy/env.example` keys that should be reconciled with the real config keys.
+5. **Build flake:** fixed by `fix/build-wwwroot-flake` (the frontend build no longer rewrites `wwwroot` under a running backend build).
+6. **EF migrations bundle:** fixed by `fix/ef-bundle-release`; it now builds in Release as well as Debug. The `deploy/env.example` keys were reconciled by `docs/env-example-keys`.
 7. **Hand-written API calls:** D10 and D11 call `http.get('/api/me/...')` with hand-written types. Swap them to the generated client now that it has the Hrm endpoints. D11 also duplicates a partial-date helper that should be shared.
 8. **D07 extras still open:**
    - a draft recipient-count estimate (needed by D09)

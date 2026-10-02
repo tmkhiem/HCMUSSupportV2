@@ -67,9 +67,6 @@ npm run test:e2e:real                                                  # Playwri
 powershell -File generate-api.ps1                                      # regenerate src/api/generated-client.ts after API changes
 ```
 
-**Known flake:** `dotnet build` or `dotnet test` sometimes fails with "No file exists for the asset … wwwroot/assets/index-*.js".
-It happens when the frontend rebuild rewrites `wwwroot` during the backend build. Run the command again.
-
 ## 6. References outside this repo
 
 | What | Where | Needed for |

@@ -53,8 +53,8 @@ implementation agent at a time, and the owner confirms (yes/no) after each deliv
 | `src/ui/*`, `src/lib/*` (shared primitives/helpers) | Add new files freely. To change an existing one, keep it backward compatible and mention it in the PR. |
 
 **Free follow-ups** (each on its own branch):
-- `fix/build-wwwroot-flake`: the intermittent "No file exists for the asset … wwwroot/assets" build failure.
-- `fix/ef-bundle-release`: the EF migrations bundle only builds in Debug (`EfToolsExcludeAssets`).
+- `fix/build-wwwroot-flake`: the intermittent "No file exists for the asset … wwwroot/assets" build failure (fixed and merged in `integration/d12-d13-followups`).
+- `fix/ef-bundle-release`: the EF migrations bundle used to build only in Debug (`EfToolsExcludeAssets`); fixed, it now builds in Release too.
 - `docs/env-example-keys`: reconcile `deploy/env.example` with the real config keys.
 
 ## 4. Non-negotiables (both machines)

@@ -196,6 +196,9 @@ test('inbox: a post published by T0001 reaches T0003, the badge counts it, openi
     await expect(row).toContainText('Cần xác nhận')
     await dialog.getByRole('button', { name: 'Xác nhận đã đọc' }).click()
     await expect(dialog.getByText(/Đã xác nhận lúc/)).toBeVisible()
+    // The ack button unmounted with the focus on it; MUI's focus trap moves it back into the dialog a moment later.
+    // Escape only reaches the dialog from there, so wait for that instead of racing it.
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('.MuiDialog-root'))).toBe(true)
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(page).toHaveURL(/\/tin-tuc$/)
