@@ -444,9 +444,9 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 ### D08 · Tin tức UI
 > D07a landed `NotificationBody` + `remarkVars` (`src/features/notifications/body/`) with its unit tests. D08 only has to use it.
 
-- [ ] Inbox, filters, unread styling, infinite scroll, detail route and modal, attachments, acknowledge, read-on-open, series history, unread badge in the nav and avatar from `GET unread-count` (on load / navigation / after read; **no SSE, no EventSource, no polling**).
-- [ ] A shared `NotificationBody` renderer (`react-markdown` + `remark-gfm` + `remark-directive`, with a remark plugin that substitutes `:var[key]` from `vars` as text nodes; HTML skipped). One block per vars row, for posts with several rows. Unit tests: substitution, missing value → `—`, and a value containing markup is shown as literal text.
-- **Done when:** Playwright checks that a published synthetic post appears live, opening it marks it read, the badge decrements, and an ack is persisted.
+- [x] Inbox, filters, unread styling, infinite scroll, detail route and modal, attachments, acknowledge, read-on-open, series history, unread badge in the nav and avatar. **Scope change (owner): no live stream.** The badge comes from `GET unread-count` on load, on every route change and on window focus, and from the counts returned by read/ack/read-all; the SSE endpoint stays unused and employees reload to see new posts.
+- [x] A shared `NotificationBody` renderer (`react-markdown` + `remark-gfm` + `remark-directive`, with a remark plugin that substitutes `:var[key]` from `vars` as text nodes; HTML skipped). One block per vars row, for posts with several rows. Unit tests: substitution, missing value → `—`, and a value containing markup is shown as literal text.
+- **Done when:** Playwright checks that a published synthetic post appears (after a reload, no live stream), opening it marks it read, the badge decrements, and an ack is persisted. (Mock project `inbox` plus the last test of `e2e-real`.)
 
 ### D09 · Notification editor UI (manage)
 > D07a landed `LazyNotificationMarkdownEditor` (MDXEditor, `:var[Key]` chip, "Chèn biến", upload-only image dialog, source/diff mode) and `MarkdownPreviewPane`, plus the `/dev/markdown` playground. D09 adds the MSCB picker, data fetching and the rest of the page.
