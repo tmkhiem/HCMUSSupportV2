@@ -75,7 +75,7 @@ test.describe('desktop shell', () => {
       '/sang-kien': 'Sáng kiến',
       '/giang-day': 'Giảng dạy',
       '/nckh/bai-bao': 'Bài báo khoa học',
-      '/quan-ly/thong-bao/xyz': 'Soạn thông báo',
+      '/quan-ly/thong-bao/moi': 'Soạn thông báo mới', // a saved id would need the API; `moi` renders the empty editor
       '/quan-ly/nhan-su': 'Nhân sự & email',
       '/quan-ly/nhom/1': 'Nhóm', // master-detail: the detail pane sits beside the list under the same heading
       '/quan-tri': 'Quản trị',

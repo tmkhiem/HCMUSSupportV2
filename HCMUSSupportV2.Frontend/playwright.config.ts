@@ -78,7 +78,7 @@ export default defineConfig({
     },
     {
       name: 'employees',
-      testMatch: /employees\.spec\.ts/,
+      testMatch: /(^|\/)employees\.spec\.ts$/,
       use: { baseURL: `http://localhost:${EMPLOYEES_PORT}` },
     },
     {
