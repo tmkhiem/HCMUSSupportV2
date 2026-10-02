@@ -195,6 +195,27 @@ Code in `src/features/notifications/inbox/` (the shared `NotificationBody` from 
 - **Mock mode** (`VITE_MOCK_AUTH=1`): `inboxApi.ts` serves `inboxMock.ts` behind `import.meta.env.DEV && MOCK_AUTH` (no mock chunk in a production build). State lives in the module (read / ack stick until a reload); `?mock-view-as=1` makes writes answer 403; `window.__inboxMock.publish(title)` delivers a new post (visible after the next route change / list fetch).
 - **Tests.** vitest: `inboxFilters.test.ts` (filters <-> URL), `inbox.test.tsx` (DTO mapping, cache patching, read/ack optimistic updates, row rendering), `lib/format.test.ts` (`formatDateTime`, `formatBytes`). Playwright project `inbox` (`e2e/inbox.spec.ts`, port 5483, mock auth) writes `docs/screenshots/d08/`. The real-backend e2e (`e2e/real.spec.ts`, last test) has T0001 create, target at T0003 and publish a post through `/api/manage/notifications`, then T0003 sees it and the badge, opens it (badge -1), acknowledges it and reloads.
 
+## Sáng kiến, Giảng dạy, Nghiên cứu khoa học (D13)
+
+Three feature folders, each with its own hand-written types and TanStack hooks over `http.get('/api/me/...')` (the NSwag
+client has no Hrm endpoints), a `*Format.ts` (tested), a `*Mock.ts` and its pages. Mocks are dynamically imported behind
+`MOCK_AUTH` (no mock chunk in production); `?scenario=empty|error` on a page URL shows the other page states.
+
+| Folder | Route | What it does |
+|---|---|---|
+| `innovation/` | `/sang-kien` | `InnovationStats` (total + one `StatCard` per type, 1/2/3 columns at xs/sm/md; always the employee's totals), a debounced search that uses the server's `q`, keyset "Tải thêm" (`useInfiniteQuery`, `keepPreviousData`), `InnovationDialog` (code, type, decision, ngày/năm công nhận, năm học; full screen below `sm`) |
+| `teaching/` | `/giang-day` | `YearSelect` = the §4.6 pill select fed by `teaching/years` (newest preselected), three stat cards (giờ quy đổi, lớp, môn), one `TermGroup` per học kỳ (divider + table), and the caption "Nguồn: …, cập nhật …" (each half dropped when unknown). Below `sm` the Lớp column folds under the course name, below `md` Bậc is hidden |
+| `research/` | `/nckh/de-tai`, `/nckh/bai-bao` | `ResearchSwitcher`: the skewed pill (`skewX(-15deg)` parallelogram under the active link; two route links, labels shorten below `sm`). `ProjectsPage` rows with a role chip (`chu_nhiem` -> Chủ nhiệm, else Thành viên), level and funding, `ProjectDialog` with the members (chủ nhiệm first; the signed-in employee is tagged "Bạn"). `PublicationsPage` rows with `venue · year`, the DOI as `https://doi.org/…` (external link; only http(s) URLs are ever linked) and the co-authors |
+
+- **Sticky học kỳ dividers.** `TermGroup` is a `<section>` whose divider is a block with `position: sticky; top: 0`, so the browser
+  pushes it off when the next section arrives. This avoids `useStickyGroupPush` because sticky does not work on table cells
+  and the groups are not rows of one table (each học kỳ has its own small table).
+- **Members are not links.** The app has no page for another employee's profile, so members appear as name, MSCB and role.
+- **Tests.** vitest: `innovationFormat.test.ts`, `teachingFormat.test.ts`, `researchFormat.test.ts`. Playwright project `research`
+  (`e2e/research.spec.ts`, port 5593, mock auth): every page at 1440 and 375 px (no horizontal scroll at 375), search, the detail
+  dialogs, the year select, load more, the switcher link, the sticky divider, and the empty/error states. Screenshots go to
+  `docs/screenshots/d13/`.
+
 ## Hồ sơ: Lương, Chức vụ, Khen thưởng (D11)
 
 Code in `src/features/profile/`: `salary/` (`SalaryPage`, `SalaryChart`, `SalaryTimeline`), `positions/` (`PositionsPage`,
