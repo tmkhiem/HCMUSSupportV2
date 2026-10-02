@@ -134,11 +134,12 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
 
     // ------------------------------------------------------------------ parsed rows
 
-    // A teaching line is identified by teacher, year, term, course (code, else name), class and level. v1 has no course codes and
-    // reuses class labels such as "CQ", so the name (and the level, e.g. theory vs practice) has to take part in the identity.
     internal sealed record TeachingRowData(int Row, string Mscb, string Year, int Term, string? CourseCode, string CourseName, string? ClassCode, string? Level, int Periods, decimal Hours)
     {
-        public string Key => TeachingKey(Mscb, Year, Term, CourseCode, CourseName, ClassCode, Level);
+        public string Key => string.Join('|', Mscb, Year, Term, CourseCode ?? "", ClassCode ?? "");
+
+        /// <summary>The identity of a line when <see cref="Parsed.TeachingIdentityByCourseName"/> is set (legacy import).</summary>
+        public string NamedKey => TeachingNamedKey(Mscb, Year, Term, CourseCode, CourseName, ClassCode, Level);
     }
 
     internal sealed record ResearchRowData(int Row, string Code, string Title, string? Level, string? Type, decimal? Funding, string? Period, DateOnly? Accepted, string? Result, string? Mscb, string Role);
@@ -154,6 +155,15 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
         public List<TeachingRowData> Teaching { get; } = [];
         public List<ResearchRowData> Research { get; } = [];
         public List<PublicationRowData> Publications { get; } = [];
+
+        /// <summary>
+        /// The v1 teaching lines have no course code and reuse class labels such as "CQ", so the legacy import identifies a line by
+        /// teacher, year, term, course code or else name, class and level (theory vs practice). The xlsx importer keeps the original
+        /// identity (teacher, year, term, course code, class).
+        /// </summary>
+        public bool TeachingIdentityByCourseName { get; init; }
+
+        public string KeyOf(TeachingRowData t) => TeachingIdentityByCourseName ? t.NamedKey : t.Key;
     }
 
     private static string Normalize(string s)
@@ -368,20 +378,21 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
             {
                 total = parsed.Teaching.Count;
                 var known = await KnownCodesAsync(parsed.Teaching.Select(t => t.Mscb), ct);
-                foreach (var dup in parsed.Teaching.GroupBy(t => t.Key).Where(g => g.Count() > 1))
+                foreach (var dup in parsed.Teaching.GroupBy(parsed.KeyOf).Where(g => g.Count() > 1))
                     bad.Add(new(dup.Skip(1).First().Row, "MSCB", $"Dòng trùng với dòng {dup.First().Row} (cùng MSCB, năm học, học kỳ, môn, lớp)."));
                 var ok = parsed.Teaching.Where(t => known.Contains(t.Mscb)).ToList();
                 foreach (var t in parsed.Teaching.Where(t => !known.Contains(t.Mscb))) unknown.Add(t.Mscb);
                 years = parsed.Teaching.Select(t => t.Year).Distinct().OrderByDescending(y => y).ToList();
                 var existing = await db.Set<TeachingLoad>().AsNoTracking().Where(t => years.Contains(t.AcademicYear)).ToListAsync(ct);
-                var existingByKey = existing.GroupBy(e => TeachingKey(e)).ToDictionary(g => g.Key, g => g.First());
-                var fileKeys = ok.Select(t => t.Key).ToHashSet();
-                foreach (var t in ok.DistinctBy(t => t.Key))
+                string ExistingKey(TeachingLoad e) => parsed.TeachingIdentityByCourseName ? TeachingNamedKey(e.EmployeeCode, e.AcademicYear, e.Term, e.CourseCode, e.CourseName, e.ClassCode, e.Level) : TeachingKey(e);
+                var existingByKey = existing.GroupBy(ExistingKey).ToDictionary(g => g.Key, g => g.First());
+                var fileKeys = ok.Select(parsed.KeyOf).ToHashSet();
+                foreach (var t in ok.DistinctBy(parsed.KeyOf))
                 {
-                    if (!existingByKey.TryGetValue(t.Key, out var e)) added++;
+                    if (!existingByKey.TryGetValue(parsed.KeyOf(t), out var e)) added++;
                     else if (e.CourseName != t.CourseName || e.Level != t.Level || e.Periods != t.Periods || e.StandardHours != t.Hours) updated++;
                 }
-                removed = existing.Count(e => !fileKeys.Contains(TeachingKey(e)));
+                removed = existing.Count(e => !fileKeys.Contains(ExistingKey(e)));
                 break;
             }
             case DatasetNames.Research:
@@ -433,9 +444,9 @@ public class DatasetImportService(AppDbContext db, IFileStore files, ICurrentUse
             unknown.ToList(), bad.OrderBy(b => b.Row).ToList(), years);
     }
 
-    private static string TeachingKey(TeachingLoad t) => TeachingKey(t.EmployeeCode, t.AcademicYear, t.Term, t.CourseCode, t.CourseName, t.ClassCode, t.Level);
+    private static string TeachingKey(TeachingLoad t) => string.Join('|', t.EmployeeCode, t.AcademicYear, t.Term, t.CourseCode ?? "", t.ClassCode ?? "");
 
-    private static string TeachingKey(string mscb, string year, int term, string? courseCode, string courseName, string? classCode, string? level) =>
+    private static string TeachingNamedKey(string mscb, string year, int term, string? courseCode, string courseName, string? classCode, string? level) =>
         string.Join('|', mscb, year, term, courseCode ?? courseName, classCode ?? "", level ?? "");
 
     private static string PublicationKey(Publication p) =>

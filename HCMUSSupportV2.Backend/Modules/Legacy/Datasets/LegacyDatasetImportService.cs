@@ -41,7 +41,7 @@ public class LegacyDatasetImportService(
 
     public Task<ImportReportDto> ImportTeachingAsync(LegacyTeachingRequest request, bool dryRun, CancellationToken ct)
     {
-        var parsed = new DatasetImportService.Parsed();
+        var parsed = new DatasetImportService.Parsed { TeachingIdentityByCourseName = true };
         var rows = RequireRows(request.Rows, parsed);
         for (var i = 0; i < rows.Count; i++)
         {
