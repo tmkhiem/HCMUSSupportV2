@@ -1,5 +1,4 @@
 import Typography from '@mui/material/Typography'
-import { AcrylicCard, SectionLabel } from '../../../ui'
 import NotificationBody from '../body/NotificationBody'
 import type { VarsRow } from '../body/remarkVars'
 
@@ -15,15 +14,12 @@ export interface MarkdownPreviewPaneProps {
 /** Live preview of a draft: the same `NotificationBody` the employee sees, fed with one recipient's values. */
 export default function MarkdownPreviewPane({ markdown, vars, recipientLabel }: MarkdownPreviewPaneProps) {
   return (
-    <AcrylicCard data-testid="markdown-preview" sx={{ p: 2.5, minHeight: 200 }}>
-      <SectionLabel>Xem trước{recipientLabel ? ` · ${recipientLabel}` : ''}</SectionLabel>
-      <div style={{ marginTop: 12 }}>
-        {markdown.trim() === '' ? (
-          <Typography color="text.secondary">Chưa có nội dung.</Typography>
-        ) : (
-          <NotificationBody markdown={markdown} vars={vars} />
-        )}
-      </div>
-    </AcrylicCard>
+    <div data-testid="markdown-preview" aria-label={recipientLabel} style={{ minHeight: 200 }}>
+      {markdown.trim() === '' ? (
+        <Typography color="text.secondary">Chưa có nội dung.</Typography>
+      ) : (
+        <NotificationBody markdown={markdown} vars={vars} />
+      )}
+    </div>
   )
 }

@@ -64,6 +64,9 @@ export default function TargetingPanel({ value, onChange, importSummary, notific
           {live ? `người nhận dự kiến (đã gửi cho ${formatNumber(deliveredCount)})` : 'người nhận dự kiến'}
         </Typography>
       </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Các lựa chọn dưới đây cộng dồn với nhau; mỗi người chỉ nhận một lần. Chỉ tính nhân sự đang hoạt động.
+      </Typography>
       {estimate.isError && <Alert severity="warning" sx={{ mb: 1.5 }}>Không tính được số người nhận lúc này.</Alert>}
       {error && (
         <Alert severity="error" sx={{ mb: 1.5 }}>
@@ -88,6 +91,10 @@ export default function TargetingPanel({ value, onChange, importSummary, notific
               Tải danh sách
             </Button>
           </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }} data-testid="template-steps">
+            Gửi giá trị riêng cho từng người (ví dụ hệ số lương mới): tải lên tệp xlsx hoặc csv trước. Mỗi ô ở dòng đầu (trừ cột MSCB) trở thành một
+            placeholder, giữ nguyên tên; các dòng sau là giá trị của từng người, mã số ở cột MSCB. Sau đó soạn nội dung bên dưới và chèn placeholder bằng nút “Chèn biến”.
+          </Typography>
           {importSummary ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }} data-testid="import-summary">
               {sheetApplied
@@ -95,8 +102,8 @@ export default function TargetingPanel({ value, onChange, importSummary, notific
                 : `Tệp đã kiểm tra nhưng chưa áp dụng (${formatNumber(importSummary.distinctEmployees)} người).`}
             </Typography>
           ) : (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Gửi giá trị riêng cho từng người (ví dụ hệ số lương mới) bằng một tệp xlsx hoặc csv.
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Chưa có tệp nào.
               {notificationId && (
                 <>
                   {' '}

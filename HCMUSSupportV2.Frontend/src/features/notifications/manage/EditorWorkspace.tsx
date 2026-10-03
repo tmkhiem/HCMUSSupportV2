@@ -37,7 +37,7 @@ import StatsPanel from './StatsPanel'
 import StatusChip from './StatusChip'
 import TagsSeriesDialog from './TagsSeriesDialog'
 import TargetingPanel from './TargetingPanel'
-import VariablesPanel from './VariablesPanel'
+import PlaceholderHelp from './PlaceholderHelp'
 import { EMPTY_DRAFT, applyRevision, conflictVersion, fieldErrorsOf, formFromDetail, isDirty, splitBodyIssue, toWriteRequest, variableKeyError } from './draft'
 import type { FieldErrors } from './draft'
 import { cloneNotification, createNotification, publishNotification, updateNotification, uploadBodyImage } from './manageApi'
@@ -94,6 +94,12 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
   const patch = (p: Partial<DraftForm>) => setForm((f) => ({ ...f, ...p }))
   const status = saved?.status ?? 'draft'
   const live = status === 'published'
+  const audience = {
+    audienceAll: form.audienceAll,
+    groupIds: form.groups.map((g) => g.id),
+    employeeCodes: form.employees.map((e) => e.code),
+    importId: saved?.import?.status === 'applied' ? saved.import.importId : null,
+  }
   const validVariables = useMemo(
     () => form.variables.filter((v, i) => variableKeyError(v.key, form.variables.filter((_, j) => j !== i).map((o) => o.key)) === null).map((v) => ({ key: v.key.trim(), label: v.label.trim() || v.key.trim() })),
     [form.variables],
@@ -217,6 +223,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
         diffMarkdown={baseline?.bodyMd ?? ''}
         onUploadImage={uploadBodyImage}
         minHeight={isLg ? 420 : 320}
+        sx={{ bgcolor: 'transparent', boxShadow: 'none', backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
         onChange={(md, meta) => {
           if (meta.initialNormalize) {
             // MDXEditor rewrote the loaded text into its canonical form: that is the new baseline, not an edit.
@@ -319,9 +326,12 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
 
         {!saved && <StartFromPanel onCloned={(copy) => { dirtyRef.current = false; void navigate(`/manage/notifications/${copy.id}`) }} />}
 
-        <AcrylicCard sx={{ p: 2.5 }}>
-          <SectionLabel>Tiêu đề và tóm tắt</SectionLabel>
-          <Stack spacing={2} sx={{ mt: 1.5 }}>
+        <AcrylicCard sx={{ p: 2.5 }} component="section" aria-label="Tiêu đề">
+          <SectionLabel>Tiêu đề</SectionLabel>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Tiêu đề và tóm tắt hiện trong danh sách thông báo của người nhận. Tóm tắt là một dòng ngắn dưới tiêu đề.
+          </Typography>
+          <Stack spacing={1.5} sx={{ mt: 1.5 }}>
             <TextField
               label="Tiêu đề"
               required
@@ -333,55 +343,65 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
               slotProps={{ htmlInput: { maxLength: 500, 'data-testid': 'title-input' } }}
             />
             <TextField
-              label="Tóm tắt (không bắt buộc)"
+              label="Tóm tắt"
               fullWidth
-              multiline
-              minRows={2}
               value={form.summary}
               onChange={(e) => patch({ summary: e.target.value })}
-              placeholder={saved && !saved.summaryIsCustom ? saved.summary : undefined}
-              helperText={errors.summary?.[0] ?? 'Để trống để lấy từ đoạn đầu của nội dung. Hiện trong danh sách của người nhận.'}
+              placeholder={saved && !saved.summaryIsCustom ? saved.summary : 'Không bắt buộc: để trống để lấy từ đoạn đầu của nội dung'}
+              helperText={errors.summary?.[0]}
               error={Boolean(errors.summary)}
               slotProps={{ htmlInput: { maxLength: 1000, 'data-testid': 'summary-input' } }}
             />
           </Stack>
         </AcrylicCard>
 
-        {!isLg && (
-          <ToggleButtonGroup exclusive size="small" value={pane} onChange={(_, v: 'edit' | 'preview' | null) => v && setPane(v)} aria-label="Chế độ hiển thị" sx={{ bgcolor: 'common.white', alignSelf: 'flex-start' }}>
-            <ToggleButton value="edit">Soạn thảo</ToggleButton>
-            <ToggleButton value="preview" data-testid="pane-preview">Xem trước</ToggleButton>
-          </ToggleButtonGroup>
-        )}
+        <TargetingPanel
+          value={{ audienceAll: form.audienceAll, groups: form.groups, employees: form.employees }}
+          onChange={(t) => patch(t)}
+          importSummary={saved?.import ?? null}
+          notificationId={saved?.id ?? null}
+          status={status}
+          deliveredCount={saved?.recipientCount ?? 0}
+          onUpload={() => void openImport()}
+          uploading={busy === 'save'}
+          error={errors.audience?.[0] ?? errors.groupIds?.[0] ?? errors.employeeCodes?.[0]}
+        />
 
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'start' }}>
-          <Box sx={{ display: isLg || pane === 'edit' ? 'block' : 'none', minWidth: 0 }}>{editorPane}</Box>
-          <Box sx={{ display: isLg || pane === 'preview' ? 'block' : 'none', minWidth: 0 }}>
-            <PreviewPanel markdown={form.bodyMd} notificationId={saved?.id ?? null} version={saved?.version} employee={previewAs} onEmployee={setPreviewAs} />
+        <Stack spacing={2} component="section" aria-label="Nội dung thông báo">
+          <Box sx={{ pt: 1 }}>
+            <SectionLabel>Nội dung thông báo</SectionLabel>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Soạn nội dung bên trái, kết quả hiện bên phải. Chọn một người nhận ở khung kết quả để xem đúng những gì người đó sẽ thấy.
+            </Typography>
           </Box>
-        </Box>
 
-        <VariablesPanel variables={form.variables} onChange={(variables) => patch({ variables })} serverErrors={errors.variables} />
+          {/* One card: the Markdown template on the left, the live preview on the right. */}
+          <AcrylicCard sx={{ overflow: 'hidden' }}>
+            {!isLg && (
+              <ToggleButtonGroup exclusive size="small" value={pane} onChange={(_, v: 'edit' | 'preview' | null) => v && setPane(v)} aria-label="Chế độ hiển thị" sx={{ m: 2, mb: 0 }}>
+                <ToggleButton value="edit">Soạn thảo</ToggleButton>
+                <ToggleButton value="preview" data-testid="pane-preview">Kết quả</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'stretch' }}>
+              <Box sx={{ display: isLg || pane === 'edit' ? 'block' : 'none', minWidth: 0, p: 1.5 }}>{editorPane}</Box>
+              <Box sx={{ display: isLg || pane === 'preview' ? 'block' : 'none', minWidth: 0, p: 2.5, bgcolor: 'rgba(38, 50, 56, 0.04)' }}>
+                <PreviewPanel markdown={form.bodyMd} notificationId={saved?.id ?? null} version={saved?.version} employee={previewAs} onEmployee={setPreviewAs} audience={audience} />
+              </Box>
+            </Box>
+          </AcrylicCard>
+
+          <PlaceholderHelp variables={form.variables} serverErrors={errors.variables} />
+        </Stack>
 
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'start' }}>
-          <TargetingPanel
-            value={{ audienceAll: form.audienceAll, groups: form.groups, employees: form.employees }}
-            onChange={(t) => patch(t)}
-            importSummary={saved?.import ?? null}
-            notificationId={saved?.id ?? null}
-            status={status}
-            deliveredCount={saved?.recipientCount ?? 0}
-            onUpload={() => void openImport()}
-            uploading={busy === 'save'}
-            error={errors.audience?.[0] ?? errors.groupIds?.[0] ?? errors.employeeCodes?.[0]}
+          <SettingsPanel
+            form={form}
+            onChange={patch}
+            errors={{ seriesId: errors.seriesId?.[0], tagIds: errors.tagIds?.[0] }}
+            onManageTags={() => setDialog('tags')}
           />
           <Stack spacing={2}>
-            <SettingsPanel
-              form={form}
-              onChange={patch}
-              errors={{ seriesId: errors.seriesId?.[0], tagIds: errors.tagIds?.[0] }}
-              onManageTags={() => setDialog('tags')}
-            />
             <AttachmentsPanel
               notificationId={saved?.id ?? null}
               attachments={saved?.attachments ?? []}

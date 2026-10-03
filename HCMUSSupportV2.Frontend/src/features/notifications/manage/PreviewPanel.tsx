@@ -1,13 +1,13 @@
 import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
-import { SectionLabel, errorMessage } from '../../../ui'
+import { errorMessage } from '../../../ui'
 import MarkdownPreviewPane from '../editor/MarkdownPreviewPane'
 import { EmployeeSinglePicker } from './Pickers'
 import { employeeLabel } from './labels'
 import { usePreviewVars } from './manageQueries'
+import type { AudienceInput } from './manageQueries'
 import type { EmployeeRef } from './manageTypes'
 
 export interface PreviewPanelProps {
@@ -18,6 +18,8 @@ export interface PreviewPanelProps {
   version: number | undefined
   employee: EmployeeRef | null
   onEmployee: (e: EmployeeRef | null) => void
+  /** The current targeting choices: the picker offers exactly these recipients. */
+  audience: AudienceInput
 }
 
 const REASON_LABEL = (r: string) => {
@@ -32,7 +34,7 @@ const REASON_LABEL = (r: string) => {
  * The live preview of the unsaved draft as one recipient: the same renderer the employee sees, fed with that person's
  * rows from the saved sheet. Picking "Xem trước với tư cách…" also says whether the person is in the saved audience.
  */
-export default function PreviewPanel({ markdown, notificationId, version, employee, onEmployee }: PreviewPanelProps) {
+export default function PreviewPanel({ markdown, notificationId, version, employee, onEmployee, audience }: PreviewPanelProps) {
   const preview = usePreviewVars(notificationId ?? undefined, employee?.code ?? null, version, null)
   const data = preview.data
   const rows = data?.rows ?? []
@@ -40,10 +42,7 @@ export default function PreviewPanel({ markdown, notificationId, version, employ
 
   return (
     <Stack spacing={1.5} data-testid="preview-panel">
-      <Box>
-        <SectionLabel sx={{ mb: 1 }}>Xem trước với tư cách người nhận</SectionLabel>
-        <EmployeeSinglePicker value={employee} onChange={onEmployee} />
-      </Box>
+      <EmployeeSinglePicker value={employee} onChange={onEmployee} audience={audience} />
 
       {employee && notificationId === null && (
         <Alert severity="info">Lưu bản nháp để xem với dữ liệu riêng của người này. Hiện các biến hiển thị “—”.</Alert>

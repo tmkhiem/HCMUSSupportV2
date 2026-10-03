@@ -6,7 +6,7 @@ import { ApiError } from '../../../api/http'
 import { renderWithTheme } from '../../../test/render'
 import { ReportView } from './ImportDialog'
 import ManageRow from './ManageRow'
-import { applyRevision, conflictVersion, EMPTY_DRAFT, fieldErrorsOf, formFromDetail, isDirty, nextVariableKey, splitBodyIssue, toWriteRequest, variableKeyError } from './draft'
+import { applyRevision, conflictVersion, EMPTY_DRAFT, fieldErrorsOf, formFromDetail, isDirty, splitBodyIssue, toWriteRequest, variableKeyError } from './draft'
 import { EMPTY_MANAGE_FILTERS, hasManageFilters, parseManageFilters, serializeManageFilters, toListQuery } from './manageFilters'
 import { toManageDetail, toManageItem, toRows } from './manageApi'
 import type { ImportReport, ManageDetail, ManageItem } from './manageTypes'
@@ -104,12 +104,6 @@ describe('variables', () => {
     expect(variableKeyError('Hệ_số', [])).toMatch(/Chữ cái đầu/)
     expect(variableKeyError('a'.repeat(65), [])).toMatch(/64/)
     expect(variableKeyError('A', ['A'])).toBe('Tên biến bị trùng.')
-  })
-
-  it('suggests the next free key', () => {
-    expect(nextVariableKey([])).toBe('Bien')
-    expect(nextVariableKey([{ key: 'Bien', label: '', type: 'text' }])).toBe('Bien2')
-    expect(nextVariableKey([{ key: 'Bien', label: '', type: 'text' }, { key: 'Bien2', label: '', type: 'text' }])).toBe('Bien3')
   })
 })
 

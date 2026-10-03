@@ -5,7 +5,8 @@ import Typography from '@mui/material/Typography'
 import { useState } from 'react'
 import { joinParts } from '../../../lib/format'
 import { employeeLabel } from './labels'
-import { useEmployeeSearch, useGroupSearch } from './manageQueries'
+import { useAudienceMembers, useEmployeeSearch, useGroupSearch } from './manageQueries'
+import type { AudienceInput } from './manageQueries'
 import type { EmployeeRef, GroupRef } from './manageTypes'
 import { useDebounced } from './useDebounced'
 
@@ -71,19 +72,22 @@ export function EmployeeMultiPicker({
   )
 }
 
-/** One employee (the "xem trước với tư cách" picker). */
+/** One recipient of this notification (the "preview as a recipient" picker): it offers the audience only, nobody else. */
 export function EmployeeSinglePicker({
   value,
   onChange,
+  audience,
   label = 'Xem trước với tư cách…',
 }: {
   value: EmployeeRef | null
   onChange: (next: EmployeeRef | null) => void
+  /** The current (unsaved) targeting choices. */
+  audience: AudienceInput
   label?: string
 }) {
   const [input, setInput] = useState('')
   const q = useDebounced(input.trim(), 300)
-  const found = useEmployeeSearch(q)
+  const found = useAudienceMembers(audience, q)
   return (
     <Autocomplete
       size="small"
@@ -96,9 +100,15 @@ export function EmployeeSinglePicker({
       inputValue={input}
       onInputChange={(_, v, reason) => (reason === 'reset' ? setInput(value ? employeeLabel(value) : '') : setInput(v))}
       onChange={(_, next) => onChange(next)}
-      noOptionsText={q ? 'Không tìm thấy nhân sự.' : 'Nhập mã số hoặc tên.'}
+      noOptionsText={q ? 'Không có người nhận nào khớp.' : 'Chưa chọn người nhận nào.'}
       loadingText="Đang tìm…"
-      renderInput={(params) => <TextField {...params} label={label} placeholder="Nhập mã số hoặc tên" />}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          placeholder="Chọn người nhận để xem nội dung của họ"
+          slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, 'aria-label': label } }}
+        />
+      )}
     />
   )
 }

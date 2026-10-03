@@ -40,6 +40,10 @@ test.describe('admin pages (desktop)', () => {
     const calls = await stubAdminApi(page)
     await page.goto('/admin/roles')
     await expect(h1(page, 'Phân quyền')).toBeVisible()
+    // Default view lists only people who already hold a role.
+    await expect(page.getByRole('combobox', { name: 'Quyền' })).toHaveText('Đã có quyền')
+    await page.getByRole('combobox', { name: 'Quyền' }).click()
+    await page.getByRole('option', { name: 'Tất cả cán bộ' }).click()
     await expect(page.getByRole('button', { name: 'Mở Lê Nhân Viên' })).toBeVisible()
     await page.getByRole('button', { name: 'Tải thêm' }).click()
     await expect(page.getByText('Phạm Giảng Viên')).toBeVisible()
@@ -49,7 +53,7 @@ test.describe('admin pages (desktop)', () => {
     await page.getByRole('option', { name: 'Biên tập viên' }).click()
     await filtered
     await page.getByRole('combobox', { name: 'Quyền' }).click()
-    await page.getByRole('option', { name: 'Tất cả' }).click()
+    await page.getByRole('option', { name: 'Tất cả cán bộ' }).click()
 
     await page.getByLabel('Tìm cán bộ').fill('Lê Nhân')
     await expect(page.getByRole('button', { name: 'Mở Lê Nhân Viên' })).toBeVisible()

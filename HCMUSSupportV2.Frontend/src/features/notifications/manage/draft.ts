@@ -1,6 +1,6 @@
 import { ApiError } from '../../../api/http'
 import { VAR_KEY_PATTERN } from '../body/remarkVars'
-import type { DeclaredVariable, DraftForm, ManageDetail, ManageRevision, VariableType, WriteRequest } from './manageTypes'
+import type { DraftForm, ManageDetail, ManageRevision, WriteRequest } from './manageTypes'
 
 /** The empty form of a new notification. */
 export const EMPTY_DRAFT: DraftForm = {
@@ -63,8 +63,6 @@ export function isDirty(form: DraftForm, saved: DraftForm | null): boolean {
   return JSON.stringify(toWriteRequest(form)) !== JSON.stringify(toWriteRequest(saved))
 }
 
-export const VARIABLE_TYPES: readonly VariableType[] = ['text', 'date', 'number', 'money']
-
 /** Mirror of the server rule (`NotificationMarkdown.IsValidVarKey`): a letter first, then letters, digits or `_`, up to 64. */
 export function variableKeyError(key: string, others: readonly string[]): string | null {
   const k = key.trim()
@@ -72,13 +70,6 @@ export function variableKeyError(key: string, others: readonly string[]): string
   if (!VAR_KEY_PATTERN.test(k)) return 'Chữ cái đầu, sau đó chữ, số hoặc _ (tối đa 64 ký tự).'
   if (others.includes(k)) return 'Tên biến bị trùng.'
   return null
-}
-
-/** The first free key `Bien`, `Bien2`, `Bien3` ... for the "Thêm biến" button. */
-export function nextVariableKey(variables: readonly DeclaredVariable[]): string {
-  const used = new Set(variables.map((v) => v.key))
-  if (!used.has('Bien')) return 'Bien'
-  for (let i = 2; ; i++) if (!used.has(`Bien${i}`)) return `Bien${i}`
 }
 
 /** Field errors of a 400 (`errors` map of the ProblemDetails), keyed by the camelCase field name. */

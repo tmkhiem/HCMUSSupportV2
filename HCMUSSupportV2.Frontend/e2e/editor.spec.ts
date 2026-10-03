@@ -175,22 +175,12 @@ test.describe('desktop 1440', () => {
     await expect(page.getByText('Tiêu đề không được để trống.')).toBeVisible()
 
     await page.getByTestId('title-input').fill('Thông báo lịch họp')
-    await page.getByRole('button', { name: 'Thêm biến' }).click()
-    await expect(page.getByLabel('Khóa biến 1')).toHaveValue('Bien')
-    await page.getByLabel('Khóa biến 1').fill('Ten_Day_Du')
-    await page.getByLabel('Nhãn biến 1').fill('Họ và tên')
-
-    // The body uses a variable that is not declared: the server's message lists it.
+    // No placeholders yet: the help text says they come from the first row of the recipient sheet, and the insert button is off.
+    await expect(page.getByTestId('placeholder-help')).toContainText('dòng đầu')
+    await expect(page.getByRole('button', { name: 'Chèn biến' })).toBeDisabled()
     const editor = page.getByRole('textbox', { name: 'nội dung thông báo' })
     await editor.click()
-    await page.keyboard.type('Kính gửi ')
-    await page.getByRole('button', { name: 'Chèn biến' }).click()
-    await page.getByRole('menuitem', { name: /Họ và tên/ }).click()
-    await expect(editor.getByText('Ten_Day_Du')).toBeVisible()
-    await page.getByLabel('Khóa biến 1').fill('Khac')
-    await page.getByRole('button', { name: 'Lưu' }).click()
-    await expect(page.getByTestId('body-errors')).toContainText('chưa được khai báo')
-    await page.getByLabel('Khóa biến 1').fill('Ten_Day_Du')
+    await page.keyboard.type('Kính gửi toàn thể cán bộ')
 
     await page.getByRole('button', { name: 'Lưu' }).click()
     await expect(page).toHaveURL(/\/manage\/notifications\/0198b000-/)
@@ -199,6 +189,40 @@ test.describe('desktop 1440', () => {
     await expect(page.getByTestId('dirty-flag')).toHaveCount(0)
     await expect(page.getByTestId('title-input')).toHaveValue('Thông báo lịch họp') // the form survived the URL change
     await expect(page.getByTestId('start-from')).toHaveCount(0)
+  })
+
+  test('values first: upload the sheet, its first row becomes the placeholders, write the text, insert them with "Chèn biến"', async ({ page }) => {
+    await installFake(page)
+    await page.goto('/manage/notifications/new')
+    await page.getByTestId('title-input').fill('Thông báo hệ số lương')
+    await expect(page.getByTestId('placeholder-help')).toContainText('dòng đầu')
+    await expect(page.getByRole('button', { name: 'Chèn biến' })).toBeDisabled()
+
+    // 1. Upload the Excel values (the draft is saved first): the cells of the first row become the placeholders.
+    await page.getByRole('button', { name: 'Tải danh sách' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Tải danh sách người nhận' })
+    await dialog.getByTestId('import-file').setInputFiles({
+      name: 'nang-luong-2026.xlsx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      buffer: makeXlsx([['MSCB', 'Hệ số lương', 'Ngày hiệu lực', 'Ghi chú'], ['T0003', '4,06', '01/07/2026', 'x']]),
+    })
+    await expect(dialog.getByTestId('import-report')).toContainText('người nhận')
+    await dialog.getByRole('button', { name: 'Áp dụng danh sách' }).click()
+    await expect(page.getByTestId('import-summary')).toContainText('Đang dùng danh sách')
+    const help = page.getByTestId('placeholder-help')
+    for (const name of ['Hệ số lương', 'Ngày hiệu lực', 'Ghi chú']) await expect(help).toContainText(name)
+
+    // 2. Write the template text, 3. insert a placeholder with "Chèn biến".
+    const editor = page.getByRole('textbox', { name: 'nội dung thông báo' })
+    await editor.click()
+    await page.keyboard.type('Kính gửi, hệ số lương mới của bạn là ')
+    await page.getByRole('button', { name: 'Chèn biến' }).click()
+    await page.getByRole('menuitem', { name: /Hệ số lương/ }).click()
+    await expect(editor.getByText('HeSoLuong')).toBeVisible()
+
+    // The preview as a recipient from the sheet shows that person's value.
+    await pickEmployee(page, 'T0003')
+    await expect(page.getByTestId('markdown-preview')).toContainText('4,06')
   })
 
   test('the salary draft: targeting count, import report and apply, preview as a recipient (screenshots)', async ({ page }) => {
@@ -243,7 +267,7 @@ test.describe('desktop 1440', () => {
     await expect(dialog).toHaveCount(0)
     await toast(page, 'Đã áp dụng danh sách người nhận.')
     await expect(page.getByTestId('import-summary')).toContainText('Đang dùng danh sách')
-    await expect(page.getByLabel('Khóa biến 5')).toHaveValue('GhiChu') // the new column became a variable
+    await expect(page.getByTestId('placeholder-help')).toContainText('Ghi chú') // the new column became a placeholder, named by its header
 
     // Preview as a recipient.
     await pickEmployee(page, 'T0003')
@@ -251,8 +275,10 @@ test.describe('desktop 1440', () => {
     await expect(preview).toContainText('4,06')
     await expect(preview).toContainText('Nâng lương thường xuyên năm 2026')
     await expect(page.getByTestId('preview-status')).toContainText('Thuộc đối tượng nhận')
-    await pickEmployee(page, 'T0005')
-    await expect(page.getByTestId('preview-status')).toContainText('Chưa thuộc đối tượng nhận')
+    // The picker offers recipients only: an inactive person nobody chose is not in the list.
+    await page.getByRole('combobox', { name: 'Xem trước với tư cách…' }).fill('T0005')
+    await expect(page.getByText('Không có người nhận nào khớp.')).toBeVisible()
+    await pickEmployee(page, 'T0004')
     await pickEmployee(page, 'T0003')
     await expect(page.getByTestId('attachments-panel')).toBeVisible()
     await expectNoHorizontalScroll(page)
@@ -367,6 +393,7 @@ test.describe('mobile 375', () => {
     await openEditor(page, SEED_ID(4))
     await expectNoHorizontalScroll(page)
     await shot(page, 'editor-375')
+    await page.getByRole('switch', { name: 'Tất cả nhân sự (đã có email)' }).check() // the picker offers recipients only
     await page.getByTestId('pane-preview').click()
     await expect(page.getByTestId('markdown-preview')).toBeVisible()
     await expect(page.getByTestId('editor-pane')).toBeHidden()

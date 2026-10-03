@@ -289,6 +289,14 @@ export async function installFake(page: Page, customize?: (s: State) => void): P
       const norm = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').toLowerCase()
       return json(route, EMPLOYEES.filter((e) => !q || e.code.toLowerCase().startsWith(q) || norm(e.fullName).includes(norm(q))))
     }
+    if (path === 'notifications/audience-members') {
+      const b = body as { audienceAll?: boolean; groupIds?: number[]; employeeCodes?: string[]; importId?: string | null; q?: string }
+      const norm = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').toLowerCase()
+      const imported = new Set(Object.keys(state.notifications.find((x) => x.importId === b.importId)?.importRows ?? {}))
+      const q = norm(b.q ?? '')
+      const members = EMPLOYEES.filter((e) => e.status === 'active' && (b.audienceAll || (b.groupIds ?? []).length > 0 || (b.employeeCodes ?? []).includes(e.code) || imported.has(e.code)))
+      return json(route, members.filter((e) => !q || norm(e.code).startsWith(q) || norm(e.fullName).includes(q)))
+    }
     if (path === 'notifications/audience-estimate') return json(route, { count: estimate(state, body as never) })
     if (path === 'notifications/images') return json(route, { url: `/api/files/0198d000-0000-7000-8000-000000000001`, fileId: '0198d000-0000-7000-8000-000000000001' })
 
@@ -390,7 +398,13 @@ export async function installFake(page: Page, customize?: (s: State) => void): P
         T0004: [{ HeSoLuong: '3,66', NgayHieuLuc: '01/07/2026', GhiChu: 'y' }],
         T0001: [{ HeSoLuong: '4,98', NgayHieuLuc: '01/07/2026', GhiChu: 'z' }],
       }
-      if (!n.variables.some((v) => v.key === 'GhiChu')) n.variables.push({ key: 'GhiChu', label: 'Ghi chú', type: 'text' })
+      for (const c of [
+        { key: 'HeSoLuong', label: 'Hệ số lương' },
+        { key: 'NgayHieuLuc', label: 'Ngày hiệu lực' },
+        { key: 'GhiChu', label: 'Ghi chú' },
+      ]) {
+        if (!n.variables.some((v) => v.key === c.key)) n.variables.push({ ...c, type: 'text' })
+      }
       n.version += 0
       return json(route, toDetail(state, n))
     }

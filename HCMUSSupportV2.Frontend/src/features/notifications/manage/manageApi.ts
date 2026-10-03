@@ -1,5 +1,6 @@
 import {
   AudienceEstimateRequest,
+  AudienceMembersRequest,
   AudienceLookupClient,
   GroupsClient,
   ManageNotificationsClient,
@@ -269,6 +270,14 @@ export async function uploadBodyImage(file: File): Promise<string> {
 export async function estimateAudience(input: { audienceAll: boolean; groupIds: number[]; employeeCodes: string[]; importId: string | null }): Promise<number> {
   const r = await lookupApi.estimate(AudienceEstimateRequest.fromJS({ audienceAll: input.audienceAll, groupIds: input.groupIds, employeeCodes: input.employeeCodes, importId: input.importId ?? undefined }))
   return r.count ?? 0
+}
+
+/** The people the (unsaved) targeting choices reach, optionally filtered by MSCB or name. */
+export async function audienceMembers(input: { audienceAll: boolean; groupIds: number[]; employeeCodes: string[]; importId: string | null }, q: string): Promise<EmployeeRef[]> {
+  const list = await lookupApi.members(
+    AudienceMembersRequest.fromJS({ audienceAll: input.audienceAll, groupIds: input.groupIds, employeeCodes: input.employeeCodes, importId: input.importId ?? undefined, q: q || undefined, limit: 20 }),
+  )
+  return list.map((e) => ({ code: e.code ?? '', fullName: e.fullName ?? null, status: e.status ?? null, unit: e.unit ?? null }))
 }
 
 export async function searchEmployees(q: string): Promise<EmployeeRef[]> {

@@ -3,6 +3,7 @@ import {
   deleteNotification,
   deleteSeries,
   deleteTag,
+  audienceMembers,
   estimateAudience,
   fetchManageDetail,
   fetchManagePage,
@@ -95,6 +96,19 @@ export function useAudienceEstimate(input: AudienceInput, enabled = true) {
     enabled: enabled && !nothing,
     placeholderData: keepPreviousData,
     staleTime: 15_000,
+    retry: false,
+  })
+}
+
+/** The recipients of the unsaved targeting choices (for the "preview as" picker), narrowed by what is typed. */
+export function useAudienceMembers(input: AudienceInput, q: string) {
+  const groupIds = [...input.groupIds].sort((a, b) => a - b)
+  const employeeCodes = [...input.employeeCodes].sort()
+  return useQuery({
+    queryKey: ['manage', 'audience-members', input.audienceAll, groupIds, employeeCodes, input.importId, q] as const,
+    queryFn: () => audienceMembers({ audienceAll: input.audienceAll, groupIds, employeeCodes, importId: input.importId }, q),
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
     retry: false,
   })
 }

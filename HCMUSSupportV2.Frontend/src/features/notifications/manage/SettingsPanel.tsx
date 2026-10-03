@@ -63,7 +63,7 @@ export default function SettingsPanel({ form, onChange, errors, disabled, onMana
                 return <Chip key={key} size="small" variant="tag" label={t.name} {...props} />
               })
             }
-            renderInput={(params) => <TextField {...params} label="Thẻ" error={Boolean(errors.tagIds)} helperText={errors.tagIds} />}
+            renderInput={(params) => <TextField {...params} label="Thẻ" error={Boolean(errors.tagIds)} helperText={errors.tagIds ?? 'Thẻ giúp người nhận lọc thông báo.'} />}
           />
           <Button size="small" onClick={onManageTags} sx={{ mt: 0.5 }}>
             Quản lý thẻ và chuỗi
