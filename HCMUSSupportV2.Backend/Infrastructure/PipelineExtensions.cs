@@ -1,4 +1,5 @@
 using HCMUSSupportV2.Backend.Data;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -20,7 +21,7 @@ public static class PipelineExtensions
         app.UseHttpsRedirection();
 
         app.UseDefaultFiles();
-        app.UseStaticFiles();
+        app.UseStaticFiles(new StaticFileOptions { OnPrepareResponse = NoCacheIndexHtml });
 
         app.UseRateLimiter();
         return app;
@@ -30,9 +31,19 @@ public static class PipelineExtensions
     {
         app.MapHealthChecks("/healthz");
         app.MapControllers();
-        // SPA fallback for client-side routes; unknown /api/* paths must stay 404, not index.html.
-        app.MapFallbackToFile("{*path:regex(^(?!api(/|$)).*$)}", "index.html");
+        // SPA fallback for client-side routes; unknown /api/* and /assets/* paths must stay 404, not index.html
+        // (a stale hashed script answered with HTML fails in the browser with a module-script MIME type error).
+        app.MapFallbackToFile("{*path:regex(^(?!(api|assets)(/|$)).*$)}", "index.html",
+            new StaticFileOptions { OnPrepareResponse = NoCacheIndexHtml });
         return app;
+    }
+
+    // index.html names the content-hashed bundles, so it must be revalidated after every frontend build;
+    // the hashed files under /assets can be cached freely.
+    private static void NoCacheIndexHtml(StaticFileResponseContext ctx)
+    {
+        if (ctx.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+            ctx.Context.Response.Headers.CacheControl = "no-cache";
     }
 
     /// <summary>

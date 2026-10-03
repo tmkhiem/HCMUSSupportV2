@@ -146,14 +146,6 @@ public static partial class NotificationMarkdown
                     if (!IsSafeLinkUrl(auto.IsEmail ? "mailto:" + auto.Url : auto.Url))
                         issues.Add(new MarkdownIssue(IssueCodes.ForbiddenUrl, "Liên kết không hợp lệ.", line, col));
                     break;
-                case LinkReferenceDefinition def:
-                    break; // handled below: definitions are not part of the tree
-                    // Footnote definitions ("[^1]: note") look like link definitions to the parser.
-                    if (def.Label?.StartsWith('^') == true)
-                        issues.Add(new MarkdownIssue(IssueCodes.UnsupportedSyntax, "Không hỗ trợ chú thích cuối trang.", line, col));
-                    else
-                        issues.Add(new MarkdownIssue(IssueCodes.ForbiddenUrl, "Không cho phép liên kết kiểu tham chiếu ([a]: url); hãy dùng [chữ](url).", line, col));
-                    break;
                 case LiteralInline lit:
                     if (HighlightPattern().IsMatch(lit.Content.ToString()))
                         issues.Add(new MarkdownIssue(IssueCodes.UnsupportedSyntax, "Không hỗ trợ ==đánh dấu==.", line, col));
