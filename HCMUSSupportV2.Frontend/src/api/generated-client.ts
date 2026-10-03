@@ -240,6 +240,51 @@ export class AudienceLookupClient {
         return Promise.resolve<AudienceEstimateDto>(null as any);
     }
 
+    members(request: AudienceMembersRequest): Promise<EmployeeLookupDto[]> {
+        let url_ = this.baseUrl + "/api/manage/notifications/audience-members";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMembers(_response);
+        });
+    }
+
+    protected processMembers(response: Response): Promise<EmployeeLookupDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(EmployeeLookupDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EmployeeLookupDto[]>(null as any);
+    }
+
     employees(q: string | null | undefined, limit: number | undefined): Promise<EmployeeLookupDto[]> {
         let url_ = this.baseUrl + "/api/manage/notifications/employees?";
         if (q !== undefined && q !== null)
@@ -5493,6 +5538,78 @@ export interface IEmployeeLookupDto {
     fullName?: string;
     unit?: string | undefined;
     status?: string;
+}
+
+export class AudienceMembersRequest implements IAudienceMembersRequest {
+    audienceAll?: boolean;
+    groupIds?: number[] | undefined;
+    employeeCodes?: string[] | undefined;
+    importId?: string | undefined;
+    q?: string | undefined;
+    limit?: number | undefined;
+
+    constructor(data?: IAudienceMembersRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.audienceAll = _data["audienceAll"];
+            if (Array.isArray(_data["groupIds"])) {
+                this.groupIds = [] as any;
+                for (let item of _data["groupIds"])
+                    this.groupIds!.push(item);
+            }
+            if (Array.isArray(_data["employeeCodes"])) {
+                this.employeeCodes = [] as any;
+                for (let item of _data["employeeCodes"])
+                    this.employeeCodes!.push(item);
+            }
+            this.importId = _data["importId"];
+            this.q = _data["q"];
+            this.limit = _data["limit"];
+        }
+    }
+
+    static fromJS(data: any): AudienceMembersRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AudienceMembersRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["audienceAll"] = this.audienceAll;
+        if (Array.isArray(this.groupIds)) {
+            data["groupIds"] = [];
+            for (let item of this.groupIds)
+                data["groupIds"].push(item);
+        }
+        if (Array.isArray(this.employeeCodes)) {
+            data["employeeCodes"] = [];
+            for (let item of this.employeeCodes)
+                data["employeeCodes"].push(item);
+        }
+        data["importId"] = this.importId;
+        data["q"] = this.q;
+        data["limit"] = this.limit;
+        return data;
+    }
+}
+
+export interface IAudienceMembersRequest {
+    audienceAll?: boolean;
+    groupIds?: number[] | undefined;
+    employeeCodes?: string[] | undefined;
+    importId?: string | undefined;
+    q?: string | undefined;
+    limit?: number | undefined;
 }
 
 export class PageOfManageNotificationListItem implements IPageOfManageNotificationListItem {

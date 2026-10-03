@@ -75,4 +75,33 @@ public class AudienceLookupTests(PostgresFixture database) : IAsyncLifetime
         var nothing = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/employees?q=khong-ton-tai-%25");
         Assert.Empty(nothing.AsArray());
     }
+
+    [Fact]
+    public async Task Audience_members_lists_only_the_people_the_choices_reach_and_filters_them_by_name()
+    {
+        var a = await _host.EmployeeAsync(fullName: "Lê Thị Đào Tạo");
+        var b = await _host.EmployeeAsync(fullName: "Trần Văn Khác");
+        var outsider = await _host.EmployeeAsync(fullName: "Người Ngoài Đào Tạo");
+        var inactive = await _host.EmployeeAsync(status: EmployeeStatuses.Inactive, fullName: "Đã Nghỉ Đào Tạo");
+        var group = await _host.CreateGroupAsync(a, inactive);
+        var editor = await _host.EditorApiAsync();
+
+        var none = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/audience-members", new { });
+        Assert.Empty(none.AsArray());
+
+        var members = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/audience-members",
+            new { groupIds = new[] { group }, employeeCodes = new[] { b } });
+        var codes = members.AsArray().Select(n => (string?)n!["code"]).ToList();
+        Assert.Contains(a, codes);
+        Assert.Contains(b, codes);
+        Assert.DoesNotContain(outsider, codes);
+        Assert.DoesNotContain(inactive, codes);
+
+        var filtered = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/audience-members",
+            new { groupIds = new[] { group }, employeeCodes = new[] { b }, q = "dao tao" });
+        Assert.Equal(a, (string?)Assert.Single(filtered.AsArray())!["code"]);
+
+        var employee = await _host.SignInAsync(await _host.EmployeeAsync());
+        Assert.Equal(HttpStatusCode.Forbidden, (await employee.PostAsync($"{Manage}/audience-members", new { audienceAll = true })).StatusCode);
+    }
 }
