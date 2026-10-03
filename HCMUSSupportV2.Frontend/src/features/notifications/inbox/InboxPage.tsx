@@ -4,7 +4,6 @@ import Button from '@mui/material/Button'
 import Skeleton from '@mui/material/Skeleton'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
-import { alpha, useTheme } from '@mui/material/styles'
 import { Outlet, useSearchParams } from 'react-router-dom'
 import { PageHeader, PageState, errorMessage } from '../../../ui'
 import InboxFilterBar from './InboxFilterBar'
@@ -22,7 +21,6 @@ const FLY_IN_ROWS = 10
  * Dialog through `<Outlet />` over this list, so the list (scroll position, loaded pages) stays mounted underneath.
  */
 export function Component() {
-  const theme = useTheme()
   const [params, setParams] = useSearchParams()
   const filters = parseFilters(params)
   const search = params.toString() ? `?${params.toString()}` : ''
@@ -47,8 +45,18 @@ export function Component() {
           zIndex: 10,
           mt: 1.5,
           py: 1,
-          // The rows scroll under the bar; fade the page colour in behind it so they never peek through the gutter.
-          background: `linear-gradient(to bottom, ${theme.palette.background.default} 75%, ${alpha(theme.palette.background.default, 0)})`,
+          // The rows scroll under the bar; blur them (fading out at the bottom) so they never peek through the gutter.
+          // A pseudo-element carries the blur so the page's gradient shows through unchanged.
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            zIndex: -1,
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            maskImage: 'linear-gradient(to bottom, #000 75%, transparent)',
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 75%, transparent)',
+          },
         }}
       >
         <InboxFilterBar filters={filters} tags={tags.data ?? []} activeCount={countActiveFilters(filters)} onChange={setFilters} />

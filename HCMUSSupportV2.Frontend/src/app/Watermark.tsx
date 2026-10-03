@@ -17,6 +17,8 @@ export default function Watermark() {
         alignItems: 'flex-end',
         justifyContent: 'flex-end',
         p: 4,
+        // A slight blue wash under the logo so the white, blurred cards stand out from the page.
+        background: 'linear-gradient(160deg, #F2F6FC 0%, #DCE8F8 100%)',
       }}
     >
       <Box
