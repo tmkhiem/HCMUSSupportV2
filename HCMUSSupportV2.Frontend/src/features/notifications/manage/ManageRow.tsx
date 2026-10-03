@@ -16,6 +16,7 @@ import { useId, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { formatNumber } from '../../../lib/format'
 import { flyInSx } from '../../../ui'
+import TagChip from '../TagChip'
 import StatusChip from './StatusChip'
 import { rowDateLabel } from './labels'
 import type { ManageItem } from './manageTypes'
@@ -71,7 +72,7 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
         </Stack>
         <Stack direction="row" sx={{ mt: 0.75, flexWrap: 'wrap', alignItems: 'center', gap: 0.75, color: 'text.secondary' }}>
           {item.seriesName && <Chip size="small" variant="outlined" label={item.seriesName} />}
-          {firstTag && <Chip size="small" variant="tag" label={firstTag.name} />}
+          {firstTag && <TagChip tag={firstTag} />}
           {otherTags.length > 0 && (
             <Chip size="small" variant="outlined" label={`+${otherTags.length}`} title={otherTags.map((t) => t.name).join(', ')} />
           )}

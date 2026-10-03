@@ -106,6 +106,31 @@ const sectionLabel: CSSProperties = {
   letterSpacing: '0.01em',
 }
 
+/** Text fields share the cards' blurred white surface (search boxes, selects, date fields). */
+const FIELD_SURFACE = {
+  backgroundColor: ACRYLIC_BG,
+  backdropFilter: ACRYLIC_BLUR,
+  WebkitBackdropFilter: ACRYLIC_BLUR,
+  boxShadow: BLOCKY_SHADOW,
+  transition: 'background-color 200ms, box-shadow 200ms',
+  '&:hover': { backgroundColor: alpha('#fff', 0.7) },
+  '&.Mui-focused': { backgroundColor: alpha('#fff', 0.9), boxShadow: `${BLOCKY_SHADOW}, 0 0 0 3px ${alpha(PRIMARY, 0.25)}` },
+  '&.Mui-error': { backgroundColor: alpha('#d32f2f', 0.1) },
+  '&.Mui-disabled': { backgroundColor: alpha(TEXT_PRIMARY, 0.04), boxShadow: 'none' },
+} as const
+
+const INLINE_LABEL = {
+  flexDirection: 'row',
+  flexWrap: 'nowrap',
+  alignItems: 'center',
+  columnGap: 12,
+  '& > .MuiInputLabel-root': { marginBottom: 0, paddingLeft: 0, flex: 'none', whiteSpace: 'nowrap' },
+  '& > .MuiInputBase-root, & > .MuiPickersInputBase-root': { flex: 1, minWidth: 140 },
+  '&:has(> .MuiFormHelperText-root)': { flexWrap: 'wrap' },
+  '& > .MuiFormHelperText-root': { flexBasis: '100%' },
+  '&:has(textarea)': { flexDirection: 'column', alignItems: 'stretch', '& > .MuiInputLabel-root': { marginBottom: 6, paddingLeft: 16 } },
+} as const
+
 /** Palette colours that Chip and Button `outlined` get a tinted (borderless) look for. */
 const TINT_COLORS = ['primary', 'secondary', 'error', 'info', 'success', 'warning'] as const
 
@@ -171,8 +196,14 @@ export const theme = createTheme({
       defaultProps: { elevation: 0 },
       styleOverrides: {
         rounded: { borderRadius: CARD },
-        // No outlines anywhere: an "outlined" paper is a quietly tinted surface.
-        outlined: { border: 'none', backgroundColor: alpha(PRIMARY, 0.05) },
+        // No outlines anywhere: an "outlined" paper is the same blurred white surface as an acrylic card.
+        outlined: {
+          border: 'none',
+          backgroundColor: ACRYLIC_BG,
+          backdropFilter: ACRYLIC_BLUR,
+          WebkitBackdropFilter: ACRYLIC_BLUR,
+          boxShadow: BLOCKY_SHADOW,
+        },
       },
       variants: [
         {
@@ -292,7 +323,7 @@ export const theme = createTheme({
         },
         { props: { variant: 'outlined', size: 'small' }, style: { padding: '4px 12px' } },
         { props: { variant: 'outlined', size: 'large' }, style: { padding: '8px 24px' } },
-        { props: { variant: 'outlined', color: 'inherit' }, style: { backgroundColor: alpha(TEXT_PRIMARY, 0.07), '&:hover': { border: 'none', backgroundColor: alpha(TEXT_PRIMARY, 0.12) } } },
+        { props: { variant: 'outlined', color: 'inherit' }, style: { backgroundColor: alpha(TEXT_PRIMARY, 0.1), '&:hover': { border: 'none', backgroundColor: alpha(TEXT_PRIMARY, 0.16) } } },
         ...TINT_COLORS.map((color) => ({
           props: { variant: 'outlined' as const, color },
           style: ({ theme: t }: { theme: Theme }) => ({
@@ -358,7 +389,12 @@ export const theme = createTheme({
 
     MuiAlert: { styleOverrides: { root: { borderRadius: RADIUS }, message: { fontSize: '0.9375rem' } } },
 
-    MuiTextField: { defaultProps: { size: 'small' } },
+    // Labels sit to the left of the field, on one line; helper text wraps underneath. Multiline fields keep the label on top.
+    MuiTextField: {
+      defaultProps: { size: 'small' },
+      styleOverrides: { root: INLINE_LABEL },
+    },
+    MuiPickersTextField: { styleOverrides: { root: INLINE_LABEL } },
     // Fields are solid tinted pills with no outline. The label sits above the field as a caption (UI-STYLE-GUIDE §4.6),
     // so there is no notch and the placeholder is always visible.
     MuiInputLabel: {
@@ -383,12 +419,7 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: PILL,
-          backgroundColor: alpha(TEXT_PRIMARY, 0.06),
-          transition: 'background-color 200ms',
-          '&:hover': { backgroundColor: alpha(TEXT_PRIMARY, 0.09) },
-          '&.Mui-focused': { backgroundColor: alpha(PRIMARY, 0.1) },
-          '&.Mui-error': { backgroundColor: alpha('#d32f2f', 0.08) },
-          '&.Mui-disabled': { backgroundColor: alpha(TEXT_PRIMARY, 0.04) },
+          ...FIELD_SURFACE,
         },
         input: {
           paddingLeft: 20,
@@ -407,12 +438,7 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: PILL,
-          backgroundColor: alpha(TEXT_PRIMARY, 0.06),
-          transition: 'background-color 200ms',
-          '&:hover': { backgroundColor: alpha(TEXT_PRIMARY, 0.09) },
-          '&.Mui-focused': { backgroundColor: alpha(PRIMARY, 0.1) },
-          '&.Mui-error': { backgroundColor: alpha('#d32f2f', 0.08) },
-          '&.Mui-disabled': { backgroundColor: alpha(TEXT_PRIMARY, 0.04) },
+          ...FIELD_SURFACE,
         },
         sectionsContainer: { paddingLeft: 20 },
         notchedOutline: { border: 'none', '& legend': { display: 'none' } },
@@ -426,7 +452,18 @@ export const theme = createTheme({
 
     MuiAccordion: { styleOverrides: { root: { borderRadius: CARD, '&::before': { display: 'none' }, '&:first-of-type, &:last-of-type': { borderRadius: CARD } } } },
 
-    MuiTableContainer: { styleOverrides: { root: { borderRadius: CARD } } },
+    // Tables sit on the same blurred white surface as the cards.
+    MuiTableContainer: {
+      styleOverrides: {
+        root: {
+          borderRadius: CARD,
+          backgroundColor: ACRYLIC_BG,
+          backdropFilter: ACRYLIC_BLUR,
+          WebkitBackdropFilter: ACRYLIC_BLUR,
+          boxShadow: BLOCKY_SHADOW,
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         // The one place table headers are styled (style guide §4.5): primary background, white 700 text.

@@ -38,7 +38,7 @@ export function Component() {
 
   return (
     <>
-      <PageHeader title="Tin tức" eyebrow="Thông báo" subtitle="Thông báo dành cho bạn" />
+      <PageHeader title="Tin tức" subtitle="Thông báo dành cho bạn" />
 
       <Box
         sx={{

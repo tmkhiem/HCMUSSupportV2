@@ -59,7 +59,7 @@ export default function StartFromPanel({ onCloned }: { onCloned: (detail: Manage
         Chép nội dung của kỳ trước thành bản nháp mới, rồi chỉnh số liệu và tải danh sách mới.
       </Typography>
       <Stack spacing={1.5}>
-        <TextField select size="small" label="Chuỗi" value={(series.data ?? []).some((s) => s.id === seriesId) ? seriesId : ''} onChange={(e) => setSeriesId(e.target.value === '' ? null : Number(e.target.value))}>
+        <TextField select size="small" label="Chuỗi thông báo" value={(series.data ?? []).some((s) => s.id === seriesId) ? seriesId : ''} onChange={(e) => setSeriesId(e.target.value === '' ? null : Number(e.target.value))}>
           <MenuItem value="">Tất cả chuỗi</MenuItem>
           {(series.data ?? []).map((s) => (
             <MenuItem key={s.id} value={s.id}>

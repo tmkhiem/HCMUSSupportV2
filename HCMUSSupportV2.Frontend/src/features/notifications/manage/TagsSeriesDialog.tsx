@@ -6,7 +6,6 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -16,8 +15,8 @@ import Stack from '@mui/material/Stack'
 import { useTheme } from '@mui/material/styles'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
-import { alpha } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
+import TagChip from '../TagChip'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useState } from 'react'
@@ -47,7 +46,7 @@ export default function TagsSeriesDialog({ open, onClose, initialTab = 'tags' }:
       </DialogTitle>
       <Tabs value={tab} onChange={(_, v: 'tags' | 'series') => setTab(v)} sx={{ px: 2 }} aria-label="Loại danh mục">
         <Tab value="tags" label="Thẻ" id="tab-tags" aria-controls="panel-tags" />
-        <Tab value="series" label="Chuỗi" id="tab-series" aria-controls="panel-series" />
+        <Tab value="series" label="Chuỗi thông báo" id="tab-series" aria-controls="panel-series" />
       </Tabs>
       <DialogContent dividers>
         {tab === 'tags' ? (
@@ -133,7 +132,7 @@ function TagsPanel() {
                 </Editor>
               ) : (
                 <>
-                  <Chip label={t.name} size="small" variant="tag" sx={t.color ? { bgcolor: alpha(t.color, 0.14), color: t.color } : undefined} />
+                  <TagChip tag={t} />
                   <Box sx={{ flex: 1 }} />
                   {confirmId === t.id ? (
                     <>

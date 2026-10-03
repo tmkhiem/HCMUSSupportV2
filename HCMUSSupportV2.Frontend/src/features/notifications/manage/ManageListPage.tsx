@@ -90,7 +90,7 @@ export function Component() {
         subtitle="Soạn, gửi và theo dõi thông báo đến nhân sự."
         actions={
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<LabelOutlined />} onClick={() => setDialog('tags')}>
+            <Button variant="outlined" startIcon={<LabelOutlined />} color="inherit" onClick={() => setDialog('tags')}>
               Thẻ và chuỗi
             </Button>
             <Button variant="contained" startIcon={<AddIcon />} component={RouterLink} to="/manage/notifications/new">
@@ -287,7 +287,7 @@ function FilterBar({ filters, onChange, tags, series }: FilterBarProps) {
             </MenuItem>
           ))}
         </TextField>
-        <TextField select size="small" label="Chuỗi" slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} value={series.some((s) => s.id === filters.series) ? filters.series : ''} onChange={(e) => onChange({ ...filters, series: e.target.value === '' ? null : Number(e.target.value) })}>
+        <TextField select size="small" label="Chuỗi thông báo" slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} value={series.some((s) => s.id === filters.series) ? filters.series : ''} onChange={(e) => onChange({ ...filters, series: e.target.value === '' ? null : Number(e.target.value) })}>
           <MenuItem value="">Tất cả chuỗi</MenuItem>
           {series.map((s) => (
             <MenuItem key={s.id} value={s.id}>

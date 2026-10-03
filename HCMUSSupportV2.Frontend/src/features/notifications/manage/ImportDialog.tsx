@@ -201,7 +201,7 @@ export function ReportView({ report }: { report: ImportReport }) {
       )}
 
       {report.columns.length > 0 && (
-        <TableContainer sx={{ bgcolor: 'rgba(38, 50, 56, 0.04)', borderRadius: 1, maxHeight: 280 }}>
+        <TableContainer sx={{ borderRadius: 1, maxHeight: 280 }}>
           <Table size="small" stickyHeader aria-label="Các cột của tệp">
             <TableHead>
               <TableRow>

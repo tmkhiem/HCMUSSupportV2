@@ -61,8 +61,8 @@ export function Component() {
                   hint={hint}
                 />
               </Box>
-              <Stack spacing={0.5} sx={{ alignSelf: 'flex-start' }}>
-                <Typography variant="caption" color="text.secondary" id="trip-year-label" sx={{ pl: 1, fontWeight: 600 }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignSelf: 'flex-start', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary" id="trip-year-label" sx={{ fontWeight: 600 }}>
                   Năm
                 </Typography>
                 <Select

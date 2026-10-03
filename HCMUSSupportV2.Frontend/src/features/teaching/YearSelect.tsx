@@ -12,7 +12,7 @@ const pillSx = {
   '& .MuiSelect-select': { borderRadius: 999, fontWeight: 600 },
 }
 
-/** The pill filter select of UI-STYLE-GUIDE §4.6: filled pill, no outline, label as a caption above it. */
+/** The pill filter select of UI-STYLE-GUIDE §4.6: filled pill, no outline, label beside it. */
 export default function YearSelect({
   years,
   value,
@@ -24,8 +24,8 @@ export default function YearSelect({
 }) {
   const labelId = useId()
   return (
-    <Stack spacing={0.5}>
-      <Typography id={labelId} variant="caption" color="text.secondary" sx={{ pl: 1, fontWeight: 600 }}>
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+      <Typography id={labelId} variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
         Năm học
       </Typography>
       <Select

@@ -2,13 +2,13 @@ import ClearIcon from '@mui/icons-material/Clear'
 import FilterListOutlined from '@mui/icons-material/FilterListOutlined'
 import Badge from '@mui/material/Badge'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
 import Collapse from '@mui/material/Collapse'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import { useTheme } from '@mui/material/styles'
+import TagChip, { tagColor } from '../TagChip'
 import TextField from '@mui/material/TextField'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -149,16 +149,19 @@ export default function InboxFilterBar({ filters, tags, activeCount, onChange }:
               {tags.map((tag) => {
                 const selected = filters.tags.includes(tag.id)
                 return (
-                  <Chip
+                  <TagChip
                     key={tag.id}
-                    label={tag.name}
-                    size="small"
+                    tag={tag}
                     clickable
                     aria-pressed={selected}
-                    color={selected ? 'primary' : 'default'}
-                    variant={selected ? 'filled' : 'outlined'}
                     onClick={() => onChange({ ...filters, tags: toggleTag(filters.tags, tag.id) })}
-                    sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.8125rem' }}
+                    // Filter chips are dimmed to 50% until selected; tags shown on a notification stay at 100%.
+                    sx={{
+                      opacity: selected ? 1 : 0.5,
+                      transition: 'opacity 150ms',
+                      '&:hover': { opacity: 1 },
+                      ...(selected && { bgcolor: tagColor(tag), color: '#fff', '&:hover': { opacity: 1, bgcolor: tagColor(tag) } }),
+                    }}
                   />
                 )
               })}
