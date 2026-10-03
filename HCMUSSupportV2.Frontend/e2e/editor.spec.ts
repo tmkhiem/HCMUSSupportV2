@@ -172,9 +172,10 @@ test.describe('desktop 1440', () => {
 
     // Empty title: refused with the field message.
     await page.getByRole('button', { name: 'Lưu' }).click()
-    await expect(page.getByText('Tiêu đề không được để trống.')).toBeVisible()
+    await expect(page.getByText('Tiêu đề không được để trống.').first()).toBeVisible()
 
     await page.getByTestId('title-input').fill('Thông báo lịch họp')
+    await page.getByTestId('step-2').click() // a new notification is written step by step: Nội dung
     // No placeholders yet: the help text says they come from the first row of the recipient sheet, and the insert button is off.
     await expect(page.getByTestId('placeholder-help')).toContainText('dòng đầu')
     await expect(page.getByRole('button', { name: 'Chèn biến' })).toBeDisabled()
@@ -191,14 +192,56 @@ test.describe('desktop 1440', () => {
     await expect(page.getByTestId('start-from')).toHaveCount(0)
   })
 
+  test('a new notification is a step flow: Tiếp saves, the review step lists what is missing and links back', async ({ page }) => {
+    await installFake(page)
+    await page.goto('/manage/notifications/new')
+    const help = page.getByTestId('step-help')
+    await expect(help).toContainText('Đặt tiêu đề')
+
+    // Step 1 needs a title: Tiếp saves, the server refuses, and we stay.
+    await page.getByTestId('step-next').click()
+    await expect(page.getByText('Tiêu đề không được để trống.').first()).toBeVisible()
+    await expect(help).toContainText('Đặt tiêu đề')
+
+    await page.getByTestId('title-input').fill('Thông báo thử')
+    await page.getByTestId('step-next').click()
+    await expect(help).toContainText('Chọn ai sẽ nhận')
+    await expect(page).toHaveURL(new RegExp('/manage/notifications/0198b000-')) // the first Tiếp created the draft
+    await expect(page.getByTestId('targeting-panel')).toBeVisible()
+
+    await page.getByTestId('step-next').click()
+    await expect(help).toContainText('Soạn nội dung')
+    const editor = page.getByRole('textbox', { name: 'nội dung thông báo' })
+    await editor.click()
+    await page.keyboard.type('Nội dung thử')
+    await page.getByTestId('step-next').click()
+    await expect(help).toContainText('Có thể bỏ qua')
+    await page.getByTestId('step-next').click()
+
+    // Review: no recipients yet, so "Đăng" is off and the checklist says where to go.
+    const review = page.getByTestId('review-step')
+    await expect(review).toContainText('Chưa chọn người nhận nào.')
+    await expect(page.getByTestId('review-publish')).toBeDisabled()
+    await review.getByRole('button', { name: /Về bước .Người nhận./ }).click()
+    await expect(help).toContainText('Chọn ai sẽ nhận')
+    await page.getByRole('switch', { name: 'Tất cả nhân sự (đã có email)' }).check()
+    await page.getByTestId('step-4').click()
+    await expect(review).toContainText('Gửi đến 380 người nhận.')
+    await expect(page.getByTestId('review-publish')).toBeEnabled()
+    await page.getByTestId('review-publish').click()
+    await expect(page.getByRole('dialog', { name: 'Đăng thông báo?' })).toBeVisible()
+  })
+
   test('values first: upload the sheet, its first row becomes the placeholders, write the text, insert them with "Chèn biến"', async ({ page }) => {
     await installFake(page)
     await page.goto('/manage/notifications/new')
     await page.getByTestId('title-input').fill('Thông báo hệ số lương')
+    await page.getByTestId('step-2').click()
     await expect(page.getByTestId('placeholder-help')).toContainText('dòng đầu')
     await expect(page.getByRole('button', { name: 'Chèn biến' })).toBeDisabled()
 
-    // 1. Upload the Excel values (the draft is saved first): the cells of the first row become the placeholders.
+    // 1. Upload the Excel values on step 2 (the draft is saved first): the cells of the first row become the placeholders.
+    await page.getByTestId('step-1').click()
     await page.getByRole('button', { name: 'Tải danh sách' }).click()
     const dialog = page.getByRole('dialog', { name: 'Tải danh sách người nhận' })
     await dialog.getByTestId('import-file').setInputFiles({
@@ -209,6 +252,7 @@ test.describe('desktop 1440', () => {
     await expect(dialog.getByTestId('import-report')).toContainText('người nhận')
     await dialog.getByRole('button', { name: 'Áp dụng danh sách' }).click()
     await expect(page.getByTestId('import-summary')).toContainText('Đang dùng danh sách')
+    await page.getByTestId('step-2').click()
     const help = page.getByTestId('placeholder-help')
     for (const name of ['Hệ số lương', 'Ngày hiệu lực', 'Ghi chú']) await expect(help).toContainText(name)
 
@@ -360,6 +404,7 @@ test.describe('desktop 1440', () => {
     await installFake(page)
     await page.goto('/manage/notifications/new')
     await page.getByTestId('title-input').fill('Thông báo có tệp')
+    await page.getByTestId('step-3').click() // Thiết lập: the attachments live here
     await page.getByTestId('attachment-file').setInputFiles({ name: 'quyet-dinh.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic') })
     await expect(page.getByTestId('attachments-panel')).toContainText('quyet-dinh-nang-luong.pdf')
     await expect(page).toHaveURL(/\/manage\/notifications\/0198b000-/)

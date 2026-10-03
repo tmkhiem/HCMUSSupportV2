@@ -30,11 +30,14 @@ import AttachmentsPanel from './AttachmentsPanel'
 import ConfirmDialog from './ConfirmDialog'
 import ImportDialog from './ImportDialog'
 import PreviewPanel from './PreviewPanel'
+import ReviewStep from './ReviewStep'
 import RevisionsDialog from './RevisionsDialog'
 import SettingsPanel from './SettingsPanel'
 import StartFromPanel from './StartFromPanel'
 import StatsPanel from './StatsPanel'
 import StatusChip from './StatusChip'
+import StepFlow from './StepFlow'
+import type { StepDef } from './StepFlow'
 import TagsSeriesDialog from './TagsSeriesDialog'
 import TargetingPanel from './TargetingPanel'
 import PlaceholderHelp from './PlaceholderHelp'
@@ -44,6 +47,30 @@ import { cloneNotification, createNotification, publishNotification, updateNotif
 import { useDeleteNotification, useStoreDetail } from './manageQueries'
 import type { DraftForm, EmployeeRef, ManageAttachment, ManageDetail, ManageRevision } from './manageTypes'
 import PngIcon from '../../../ui/PngIcon'
+
+/** The steps of a new notification, each with the help shown above it. */
+const STEPS: readonly StepDef[] = [
+  {
+    label: 'Bắt đầu',
+    help: 'Đặt tiêu đề và tóm tắt. Muốn tiết kiệm công, chọn một thông báo cũ trong cùng chuỗi để lấy sẵn nội dung và placeholder, rồi chỉnh lại.',
+  },
+  {
+    label: 'Người nhận',
+    help: 'Chọn ai sẽ nhận. Muốn mỗi người thấy giá trị riêng (ví dụ hệ số lương mới), tải tệp Excel lên trước: các ô ở dòng đầu của tệp trở thành placeholder dùng ở bước sau.',
+  },
+  {
+    label: 'Nội dung',
+    help: 'Soạn nội dung, chèn placeholder bằng nút “Chèn biến” và xem kết quả ở khung bên phải. Chọn một người nhận để xem đúng những gì họ sẽ thấy.',
+  },
+  {
+    label: 'Thiết lập',
+    help: 'Gắn thông báo vào một chuỗi để người nhận xem “Các kỳ trước”, thêm thẻ và tệp đính kèm. Có thể bỏ qua bước này.',
+  },
+  {
+    label: 'Xem lại và đăng',
+    help: 'Kiểm tra lần cuối rồi lưu nháp hoặc đăng. Thông báo sẽ được gửi ngay đến người nhận đã chọn.',
+  },
+]
 
 type Dialog = 'publish' | 'delete' | 'revisions' | 'import' | 'tags' | null
 
@@ -73,6 +100,9 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
   const [previewAs, setPreviewAs] = useState<EmployeeRef | null>(null)
   const [pane, setPane] = useState<'edit' | 'preview'>('edit')
   const [menu, setMenu] = useState<HTMLElement | null>(null)
+  // A notification that is not loaded from the server (a new one) is written step by step.
+  const wizard = initial === null
+  const [step, setStep] = useState(0)
 
   const dirty = isDirty(form, baseline)
   const dirtyRef = useRef(dirty)
@@ -245,6 +275,128 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
     </Stack>
   )
 
+  // The sections of the form. A new notification shows them one step at a time; an existing one shows them all.
+  const startFromNode = (
+    <>
+        {!saved && <StartFromPanel onCloned={(copy) => { dirtyRef.current = false; void navigate(`/manage/notifications/${copy.id}`) }} />}
+    </>
+  )
+  const titleNode = (
+        <AcrylicCard sx={{ p: 2.5 }} component="section" aria-label="Tiêu đề">
+          <SectionLabel>Tiêu đề</SectionLabel>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Tiêu đề và tóm tắt hiện trong danh sách thông báo của người nhận. Tóm tắt là một dòng ngắn dưới tiêu đề.
+          </Typography>
+          <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+            <TextField
+              label="Tiêu đề"
+              required
+              fullWidth
+              value={form.title}
+              onChange={(e) => patch({ title: e.target.value })}
+              error={Boolean(errors.title)}
+              helperText={errors.title?.[0]}
+              slotProps={{ htmlInput: { maxLength: 500, 'data-testid': 'title-input' } }}
+            />
+            <TextField
+              label="Tóm tắt"
+              fullWidth
+              value={form.summary}
+              onChange={(e) => patch({ summary: e.target.value })}
+              placeholder={saved && !saved.summaryIsCustom ? saved.summary : 'Không bắt buộc: để trống để lấy từ đoạn đầu của nội dung'}
+              helperText={errors.summary?.[0]}
+              error={Boolean(errors.summary)}
+              slotProps={{ htmlInput: { maxLength: 1000, 'data-testid': 'summary-input' } }}
+            />
+          </Stack>
+        </AcrylicCard>
+  )
+  const targetingNode = (
+        <TargetingPanel
+          value={{ audienceAll: form.audienceAll, groups: form.groups, employees: form.employees }}
+          onChange={(t) => patch(t)}
+          importSummary={saved?.import ?? null}
+          notificationId={saved?.id ?? null}
+          status={status}
+          deliveredCount={saved?.recipientCount ?? 0}
+          onUpload={() => void openImport()}
+          uploading={busy === 'save'}
+          error={errors.audience?.[0] ?? errors.groupIds?.[0] ?? errors.employeeCodes?.[0]}
+        />
+  )
+  const contentNode = (
+        <Stack spacing={2} component="section" aria-label="Nội dung thông báo">
+          <Box sx={{ pt: 1 }}>
+            <SectionLabel>Nội dung thông báo</SectionLabel>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Soạn nội dung bên trái, kết quả hiện bên phải. Chọn một người nhận ở khung kết quả để xem đúng những gì người đó sẽ thấy.
+            </Typography>
+          </Box>
+
+          {/* One card: the Markdown template on the left, the live preview on the right. */}
+          <AcrylicCard sx={{ overflow: 'hidden' }}>
+            {!isLg && (
+              <ToggleButtonGroup exclusive size="small" value={pane} onChange={(_, v: 'edit' | 'preview' | null) => v && setPane(v)} aria-label="Chế độ hiển thị" sx={{ m: 2, mb: 0 }}>
+                <ToggleButton value="edit">Soạn thảo</ToggleButton>
+                <ToggleButton value="preview" data-testid="pane-preview">Kết quả</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'stretch' }}>
+              <Box sx={{ display: isLg || pane === 'edit' ? 'block' : 'none', minWidth: 0, p: 1.5 }}>{editorPane}</Box>
+              <Box sx={{ display: isLg || pane === 'preview' ? 'block' : 'none', minWidth: 0, p: 2.5, bgcolor: 'rgba(38, 50, 56, 0.04)' }}>
+                <PreviewPanel markdown={form.bodyMd} notificationId={saved?.id ?? null} version={saved?.version} employee={previewAs} onEmployee={setPreviewAs} audience={audience} />
+              </Box>
+            </Box>
+          </AcrylicCard>
+
+          <PlaceholderHelp variables={form.variables} serverErrors={errors.variables} />
+        </Stack>
+  )
+  const settingsNode = (
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'start' }}>
+          <SettingsPanel
+            form={form}
+            onChange={patch}
+            errors={{ seriesId: errors.seriesId?.[0], tagIds: errors.tagIds?.[0] }}
+            onManageTags={() => setDialog('tags')}
+          />
+          <Stack spacing={2}>
+            <AttachmentsPanel
+              notificationId={saved?.id ?? null}
+              attachments={saved?.attachments ?? []}
+              ensureSaved={ensureSaved}
+              onChange={(attachments: ManageAttachment[]) => setSaved((s) => (s ? { ...s, attachments } : s))}
+            />
+            {saved && live && <StatsPanel notificationId={saved.id} />}
+          </Stack>
+        </Box>
+  )
+  const reviewNode = (
+    <ReviewStep
+      form={form}
+      saved={saved}
+      audience={audience}
+      errors={errors}
+      stepLabels={STEPS.map((x) => x.label)}
+      goTo={setStep}
+      onSave={() => void save()}
+      onPublish={() => {
+        setDialogError(null)
+        setDialog('publish')
+      }}
+      busy={busy !== null}
+    />
+  )
+
+  /** "Tiếp": saves what was entered (the first time this creates the draft), then moves on. A failed save stays put. */
+  const next = async () => {
+    if (step === 0 || dirty) {
+      const detail = await save()
+      if (!detail) return
+    }
+    setStep((i) => Math.min(i + 1, STEPS.length - 1))
+  }
+
   return (
     <>
       <PageHeader
@@ -273,7 +425,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
             >
               Lưu
             </Button>
-            {canPublish && (
+            {canPublish && !wizard && (
               <Button variant="contained" size="small" startIcon={<SendOutlined />} disabled={busy !== null} onClick={() => { setDialogError(null); setDialog('publish') }}>
                 Đăng
               </Button>
@@ -324,93 +476,34 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
           </Alert>
         )}
 
-        {!saved && <StartFromPanel onCloned={(copy) => { dirtyRef.current = false; void navigate(`/manage/notifications/${copy.id}`) }} />}
-
-        <AcrylicCard sx={{ p: 2.5 }} component="section" aria-label="Tiêu đề">
-          <SectionLabel>Tiêu đề</SectionLabel>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Tiêu đề và tóm tắt hiện trong danh sách thông báo của người nhận. Tóm tắt là một dòng ngắn dưới tiêu đề.
-          </Typography>
-          <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-            <TextField
-              label="Tiêu đề"
-              required
-              fullWidth
-              value={form.title}
-              onChange={(e) => patch({ title: e.target.value })}
-              error={Boolean(errors.title)}
-              helperText={errors.title?.[0]}
-              slotProps={{ htmlInput: { maxLength: 500, 'data-testid': 'title-input' } }}
-            />
-            <TextField
-              label="Tóm tắt"
-              fullWidth
-              value={form.summary}
-              onChange={(e) => patch({ summary: e.target.value })}
-              placeholder={saved && !saved.summaryIsCustom ? saved.summary : 'Không bắt buộc: để trống để lấy từ đoạn đầu của nội dung'}
-              helperText={errors.summary?.[0]}
-              error={Boolean(errors.summary)}
-              slotProps={{ htmlInput: { maxLength: 1000, 'data-testid': 'summary-input' } }}
-            />
-          </Stack>
-        </AcrylicCard>
-
-        <TargetingPanel
-          value={{ audienceAll: form.audienceAll, groups: form.groups, employees: form.employees }}
-          onChange={(t) => patch(t)}
-          importSummary={saved?.import ?? null}
-          notificationId={saved?.id ?? null}
-          status={status}
-          deliveredCount={saved?.recipientCount ?? 0}
-          onUpload={() => void openImport()}
-          uploading={busy === 'save'}
-          error={errors.audience?.[0] ?? errors.groupIds?.[0] ?? errors.employeeCodes?.[0]}
-        />
-
-        <Stack spacing={2} component="section" aria-label="Nội dung thông báo">
-          <Box sx={{ pt: 1 }}>
-            <SectionLabel>Nội dung thông báo</SectionLabel>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Soạn nội dung bên trái, kết quả hiện bên phải. Chọn một người nhận ở khung kết quả để xem đúng những gì người đó sẽ thấy.
-            </Typography>
-          </Box>
-
-          {/* One card: the Markdown template on the left, the live preview on the right. */}
-          <AcrylicCard sx={{ overflow: 'hidden' }}>
-            {!isLg && (
-              <ToggleButtonGroup exclusive size="small" value={pane} onChange={(_, v: 'edit' | 'preview' | null) => v && setPane(v)} aria-label="Chế độ hiển thị" sx={{ m: 2, mb: 0 }}>
-                <ToggleButton value="edit">Soạn thảo</ToggleButton>
-                <ToggleButton value="preview" data-testid="pane-preview">Kết quả</ToggleButton>
-              </ToggleButtonGroup>
-            )}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'stretch' }}>
-              <Box sx={{ display: isLg || pane === 'edit' ? 'block' : 'none', minWidth: 0, p: 1.5 }}>{editorPane}</Box>
-              <Box sx={{ display: isLg || pane === 'preview' ? 'block' : 'none', minWidth: 0, p: 2.5, bgcolor: 'rgba(38, 50, 56, 0.04)' }}>
-                <PreviewPanel markdown={form.bodyMd} notificationId={saved?.id ?? null} version={saved?.version} employee={previewAs} onEmployee={setPreviewAs} audience={audience} />
-              </Box>
-            </Box>
-          </AcrylicCard>
-
-          <PlaceholderHelp variables={form.variables} serverErrors={errors.variables} />
-        </Stack>
-
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'start' }}>
-          <SettingsPanel
-            form={form}
-            onChange={patch}
-            errors={{ seriesId: errors.seriesId?.[0], tagIds: errors.tagIds?.[0] }}
-            onManageTags={() => setDialog('tags')}
+        {wizard ? (
+          <StepFlow
+            steps={STEPS}
+            step={step}
+            onStep={setStep}
+            panels={[
+              <Stack key="start" spacing={2}>
+                {startFromNode}
+                {titleNode}
+              </Stack>,
+              targetingNode,
+              contentNode,
+              settingsNode,
+              reviewNode,
+            ]}
+            onBack={() => setStep((i) => Math.max(i - 1, 0))}
+            onNext={() => void next()}
+            busy={busy !== null}
           />
-          <Stack spacing={2}>
-            <AttachmentsPanel
-              notificationId={saved?.id ?? null}
-              attachments={saved?.attachments ?? []}
-              ensureSaved={ensureSaved}
-              onChange={(attachments: ManageAttachment[]) => setSaved((s) => (s ? { ...s, attachments } : s))}
-            />
-            {saved && live && <StatsPanel notificationId={saved.id} />}
-          </Stack>
-        </Box>
+        ) : (
+          <>
+            {startFromNode}
+            {titleNode}
+            {targetingNode}
+            {contentNode}
+            {settingsNode}
+          </>
+        )}
       </Stack>
 
       {/* dialogs */}
