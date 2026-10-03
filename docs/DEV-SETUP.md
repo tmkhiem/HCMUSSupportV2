@@ -45,7 +45,8 @@ folder. The `*.local.json` pattern is gitignored. Fill in:
 
 - `ConnectionStrings:Default`: your database from §3.
 - `Auth:DevLogin:Enabled: true`. Sign in with the dev roster `T0001` (admin), `T0002` (editor) and `T0003`… (employees),
-  which is seeded in Development.
+  which is seeded in Development. When debugging from Visual Studio (Debug configuration, SPA served from `wwwroot`),
+  open `/dev-login` and sign in with the MSCB and the password `assembler`. The page is compiled out of Release builds.
 - `Hrm:DevApiClient:Token`: any random string of 24 or more characters. The sync tool uses it locally.
 - `Auth:Google:*`: **leave these empty on secondary machines**. Dev-login is enough. Real Google sign-in only works on a
   machine and port whose redirect URI is registered (`http://localhost:5161/api/auth/callback`), and the client secret
