@@ -54,10 +54,10 @@ Follow OPERATIONS in order; this is the checklist form with the D18 additions.
 6. [ ] Edit `/etc/hcmus-support/env`: the Google client id and the **rotated** secret, `Admin__BootstrapEmails__0` (the first administrator).
 7. [ ] Deploy (OPERATIONS 3.1: `.\deploy\deploy.ps1 -TargetHost support.hcmus.edu.vn -SshUser deploy`, `-WhatIf` first).
 8. [ ] Load the data (OPERATIONS 3.2), **on the production database**, in this order and each step as a dry run first:
-   - [ ] create the one-off `legacy-migration` API client (SQL in [MIGRATION.md](MIGRATION.md) "One-time setup") and the Sync client (Quản trị -> API clients is not built; use the SQL, PROGRESS follow-up 21);
+   - [ ] create the one-off `legacy-migration` API client (scope `legacy.import`) and the Sync client (scope `hrm.ingest`) in Quản trị -> API clients (copy each token when shown; SQL fallback in [MIGRATION.md](MIGRATION.md) "One-time setup");
    - [ ] `sync legacy-git --path <SupportHCMUSData checkout>` **or** `sync hrm --datasets all` from the HRM box (not both on a schedule), then the roster, roles, datasets (`sync legacy-migrate --path ... --admin <email:mscb> --admin <email:mscb> --apply`) and `tools/legacy-news ... --apply`;
    - [ ] run each tool a second time: it must report nothing to do (the idempotency proof of D15);
-   - [ ] **revoke the `legacy-migration` client** (`UPDATE api_clients SET revoked_at = now() ...`) and keep only the Sync client;
+   - [ ] **revoke the `legacy-migration` client** (the "Thu hồi" button in Quản trị -> API clients) and keep only the Sync client;
    - [ ] review the reports (counts and MSCBs on screen; the `--report` files hold emails and names: keep them out of git and delete them afterwards).
 9. [ ] **Parity against production**: run `tools/parity-check` with an admin browser session (`--cookie`, see [PARITY.md](PARITY.md) "Running it against another host") for the 5 sampled MSCBs and a bulk sample. It must exit 0. Sign in as the owner with Google and open Tin tức and two Hồ sơ pages.
 10. [ ] Smoke test (OPERATIONS 3.2 step 6) and ask two or three real staff (different units, one with teaching and research, one with only a profile) to sign in and compare against what they remember seeing in v1.

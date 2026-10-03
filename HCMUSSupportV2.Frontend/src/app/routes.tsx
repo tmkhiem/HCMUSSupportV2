@@ -120,6 +120,7 @@ export const routes: RouteObject[] = [
           page('nhat-ky', 'Nhật ký', () => import('../features/admin/AuditPage')),
           page('dong-bo', 'Đồng bộ', () => import('../features/admin/SyncPage')),
           page('du-lieu', 'Dữ liệu', () => import('../features/admin/DatasetsPage')),
+          page('api-clients', 'API clients', () => import('../features/admin/ApiClientsPage')),
         ],
       },
 

@@ -144,6 +144,41 @@ test.describe('admin pages (desktop)', () => {
     expect(calls.applied).toHaveLength(1)
   })
 
+  test('API clients: list, create shows the token once, revoke', async ({ page }) => {
+    const calls = await stubAdminApi(page)
+    await page.goto('/quan-tri/api-clients')
+    await expect(h1(page, 'API clients')).toBeVisible()
+    const table = page.getByRole('table', { name: 'API clients' })
+    await expect(table.getByRole('row', { name: /sync-hrm/ })).toContainText('Đang hoạt động')
+    await expect(table.getByRole('row', { name: /legacy-migration/ })).toContainText('Đã thu hồi')
+    await shoot(page, 'api-clients-1440')
+
+    await page.getByRole('button', { name: 'Tạo API client' }).click()
+    const create = page.getByRole('dialog', { name: 'Tạo API client' })
+    await expect(create.getByRole('button', { name: 'Tạo', exact: true })).toBeDisabled()
+    await create.getByLabel(/^Tên/).fill('ci-sync')
+    await create.getByRole('checkbox', { name: /hrm\.ingest/ }).check()
+    await create.getByRole('button', { name: 'Tạo', exact: true }).click()
+
+    const tokenDialog = page.getByRole('dialog', { name: /Token của/ })
+    await expect(tokenDialog.getByTestId('api-token')).toHaveValue(/^tok_SYNTHETIC/)
+    await expect(tokenDialog).toContainText('chỉ hiển thị một lần')
+    await expect(tokenDialog.getByRole('button', { name: 'Sao chép token' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(tokenDialog).toBeVisible() // must be dismissed deliberately
+    await shoot(page, 'api-clients-token-1440')
+    await tokenDialog.getByRole('button', { name: 'Tôi đã lưu token' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByText('tok_SYNTHETIC')).toHaveCount(0)
+    expect(calls.clientCreates).toEqual([{ name: 'ci-sync', scopes: ['hrm.ingest'] }])
+    await expect(table.getByRole('row', { name: /ci-sync/ })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Thu hồi ci-sync' }).click()
+    await page.getByRole('dialog', { name: /Thu hồi/ }).getByRole('button', { name: 'Thu hồi', exact: true }).click()
+    await expect(table.getByRole('row', { name: /ci-sync/ })).toContainText('Đã thu hồi')
+    expect(calls.clientRevokes).toHaveLength(1)
+  })
+
   test('Nhóm: list filters (kind chips, search, archived) and restore', async ({ page }) => {
     const calls = await stubAdminApi(page)
     await page.goto('/quan-ly/nhom')
@@ -321,6 +356,7 @@ test.describe('admin pages (mobile 375)', () => {
     ['/quan-tri/nhat-ky', 'nhat-ky-375'],
     ['/quan-tri/dong-bo', 'dong-bo-375'],
     ['/quan-tri/du-lieu', 'du-lieu-375'],
+    ['/quan-tri/api-clients', 'api-clients-375'],
     ['/quan-ly/nhom', 'nhom-list-375'],
     ['/quan-ly/nhom/1', 'nhom-rule-375'],
     ['/quan-ly/nhom/2', 'nhom-static-375'],

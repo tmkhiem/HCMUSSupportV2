@@ -4732,6 +4732,188 @@ export class AuditClient {
     }
 }
 
+export class ApiClientsClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    list(): Promise<ApiClientDto[]> {
+        let url_ = this.baseUrl + "/api/admin/api-clients";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processList(_response);
+        });
+    }
+
+    protected processList(response: Response): Promise<ApiClientDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ApiClientDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ApiClientDto[]>(null as any);
+    }
+
+    create(request: CreateApiClientRequest): Promise<ApiClientCreatedDto> {
+        let url_ = this.baseUrl + "/api/admin/api-clients";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: Response): Promise<ApiClientCreatedDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = ApiClientCreatedDto.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ApiClientCreatedDto>(null as any);
+    }
+
+    scopes(): Promise<ApiScopeDto[]> {
+        let url_ = this.baseUrl + "/api/admin/api-clients/scopes";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processScopes(_response);
+        });
+    }
+
+    protected processScopes(response: Response): Promise<ApiScopeDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ApiScopeDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ApiScopeDto[]>(null as any);
+    }
+
+    revoke(id: number): Promise<ApiClientDto> {
+        let url_ = this.baseUrl + "/api/admin/api-clients/{id}/revoke";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRevoke(_response);
+        });
+    }
+
+    protected processRevoke(response: Response): Promise<ApiClientDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ApiClientDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ApiClientDto>(null as any);
+    }
+}
+
 export class SystemInfoDto implements ISystemInfoDto {
     version?: string;
     environment?: string;
@@ -13620,6 +13802,198 @@ export class AdminPageOfAuditEntryDto implements IAdminPageOfAuditEntryDto {
 export interface IAdminPageOfAuditEntryDto {
     items?: AuditEntryDto[];
     nextCursor?: string | undefined;
+}
+
+export class ApiClientDto implements IApiClientDto {
+    id?: number;
+    name?: string;
+    scopes?: string[];
+    createdAt?: Date;
+    lastUsedAt?: Date | undefined;
+    revokedAt?: Date | undefined;
+
+    constructor(data?: IApiClientDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            if (Array.isArray(_data["scopes"])) {
+                this.scopes = [] as any;
+                for (let item of _data["scopes"])
+                    this.scopes!.push(item);
+            }
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : undefined as any;
+            this.lastUsedAt = _data["lastUsedAt"] ? new Date(_data["lastUsedAt"].toString()) : undefined as any;
+            this.revokedAt = _data["revokedAt"] ? new Date(_data["revokedAt"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): ApiClientDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ApiClientDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        if (Array.isArray(this.scopes)) {
+            data["scopes"] = [];
+            for (let item of this.scopes)
+                data["scopes"].push(item);
+        }
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : undefined as any;
+        data["lastUsedAt"] = this.lastUsedAt ? this.lastUsedAt.toISOString() : undefined as any;
+        data["revokedAt"] = this.revokedAt ? this.revokedAt.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IApiClientDto {
+    id?: number;
+    name?: string;
+    scopes?: string[];
+    createdAt?: Date;
+    lastUsedAt?: Date | undefined;
+    revokedAt?: Date | undefined;
+}
+
+export class ApiScopeDto implements IApiScopeDto {
+    scope?: string;
+    description?: string;
+
+    constructor(data?: IApiScopeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.scope = _data["scope"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): ApiScopeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ApiScopeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scope"] = this.scope;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface IApiScopeDto {
+    scope?: string;
+    description?: string;
+}
+
+export class ApiClientCreatedDto implements IApiClientCreatedDto {
+    client?: ApiClientDto;
+    token?: string;
+
+    constructor(data?: IApiClientCreatedDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.client = _data["client"] ? ApiClientDto.fromJS(_data["client"]) : undefined as any;
+            this.token = _data["token"];
+        }
+    }
+
+    static fromJS(data: any): ApiClientCreatedDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ApiClientCreatedDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["client"] = this.client ? this.client.toJSON() : undefined as any;
+        data["token"] = this.token;
+        return data;
+    }
+}
+
+export interface IApiClientCreatedDto {
+    client?: ApiClientDto;
+    token?: string;
+}
+
+export class CreateApiClientRequest implements ICreateApiClientRequest {
+    name?: string | undefined;
+    scopes?: string[] | undefined;
+
+    constructor(data?: ICreateApiClientRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            if (Array.isArray(_data["scopes"])) {
+                this.scopes = [] as any;
+                for (let item of _data["scopes"])
+                    this.scopes!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): CreateApiClientRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateApiClientRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        if (Array.isArray(this.scopes)) {
+            data["scopes"] = [];
+            for (let item of this.scopes)
+                data["scopes"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ICreateApiClientRequest {
+    name?: string | undefined;
+    scopes?: string[] | undefined;
 }
 
 function formatDate(d: Date) {

@@ -1,6 +1,7 @@
 import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined'
 import FactCheckOutlined from '@mui/icons-material/FactCheckOutlined'
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined'
+import KeyOutlined from '@mui/icons-material/KeyOutlined'
 import SyncOutlined from '@mui/icons-material/SyncOutlined'
 import TableChartOutlined from '@mui/icons-material/TableChartOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
@@ -38,6 +39,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { to: '/quan-tri/nhat-ky', title: 'Nhật ký', text: 'Tra cứu nhật ký thao tác của quản trị', icon: <FactCheckOutlined color="primary" /> },
   { to: '/quan-tri/dong-bo', title: 'Đồng bộ', text: 'Lịch sử đồng bộ HRM và các vấn đề cần xử lý', icon: <SyncOutlined color="primary" /> },
   { to: '/quan-tri/du-lieu', title: 'Dữ liệu', text: 'Nhập dữ liệu giảng dạy, đề tài và bài báo từ Excel', icon: <TableChartOutlined color="primary" /> },
+  { to: '/quan-tri/api-clients', title: 'API clients', text: 'Tạo và thu hồi khóa truy cập cho công cụ Sync', icon: <KeyOutlined color="primary" /> },
 ]
 
 function tileValue(t: DashboardTile): string {

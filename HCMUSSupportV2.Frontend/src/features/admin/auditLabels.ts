@@ -18,6 +18,8 @@ const LABELS: Record<string, string> = {
   'group.members_imported': 'Nhập thành viên nhóm',
   'group.recomputed': 'Tính lại nhóm',
   'sync.issue_resolve': 'Xử lý vấn đề đồng bộ',
+  'apiclient.created': 'Tạo API client',
+  'apiclient.revoked': 'Thu hồi API client',
   'profile.sensitive_reveal': 'Xem thông tin nhạy cảm',
 }
 

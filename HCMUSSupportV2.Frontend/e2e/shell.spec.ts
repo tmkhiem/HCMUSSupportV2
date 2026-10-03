@@ -84,6 +84,7 @@ test.describe('desktop shell', () => {
       '/quan-tri/nhat-ky': 'Nhật ký',
       '/quan-tri/dong-bo': 'Đồng bộ',
       '/quan-tri/du-lieu': 'Dữ liệu',
+      '/quan-tri/api-clients': 'API clients',
     }
     for (const [path, title] of Object.entries(routes)) {
       await page.goto(path)

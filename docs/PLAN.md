@@ -480,7 +480,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet. (Delivered as D14c: backend `api/manage/employees` and the page at `quan-ly/nhan-su`.)
 - [x] Nhóm (editor): master-detail, rule builder with preview (`features/manage/groups`; static groups add members by MSCB list or csv/xlsx import with dry run, because editors have no employee-search endpoint).
 - [x] Quản trị: dashboard, Phân quyền, Xem thử, Nhật ký, Đồng bộ (runs and issue resolution), Dữ liệu (dataset imports) (`features/admin`).
-- [ ] API clients admin UI (`api_clients`: create, show token once, revoke). Not built: no HTTP endpoints exist for it yet.
+- [x] API clients admin UI (`api_clients`: list, create with server-generated token shown once, revoke; audited). Backend `api/admin/api-clients` (policy `ManageApiClients`), page `/quan-tri/api-clients`.
 - **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/quan-tri/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.
 
 ### D15 · Legacy migration (one-off, idempotent)

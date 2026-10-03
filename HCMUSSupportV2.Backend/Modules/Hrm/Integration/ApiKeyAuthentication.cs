@@ -24,6 +24,15 @@ public static class ApiScopes
 
     /// <summary>The one-off legacy migration (D15): <c>/api/integration/v1/legacy/*</c>. Admin-grade: it writes roster emails, roles and news.</summary>
     public const string LegacyImport = "legacy.import";
+
+    /// <summary>Every scope the backend knows, with a Vietnamese description for the admin page. A new scope is added here and nowhere else.</summary>
+    public static readonly IReadOnlyList<(string Scope, string Description)> Known =
+    [
+        (HrmIngest, "Đẩy dữ liệu HRM vào hệ thống (công cụ Sync): /api/integration/v1/*"),
+        (LegacyImport, "Nhập dữ liệu từ hệ thống cũ (một lần): email, quyền và tin tức. Quyền rất cao, thu hồi ngay sau khi dùng."),
+    ];
+
+    public static bool IsKnown(string scope) => Known.Any(k => k.Scope == scope);
 }
 
 public static class ApiTokens

@@ -41,9 +41,11 @@ Verified against the real data repo on a temporary database (since dropped): a f
 
 Otherwise nothing. The branches `feat/d09-notification-editor`, `feat/d14b-admin-pages`, `feat/d14c-employee-emails`, `feat/d12-education-pages`, `feat/d13-research-teaching-pages`, `integration/d12-d13-followups` and the three follow-up branches are merged and can be deleted from `origin`.
 
+**API clients admin UI** (the last D14b leftover): done on the branch `feat/api-clients-admin` (not merged, not pushed). Backend `api/admin/api-clients` (list, scopes, create, revoke; policy `ManageApiClients`; audited as `apiclient.created` / `apiclient.revoked`; the token is returned once and stored as the same SHA-256 hash the ApiKey scheme checks), frontend page `/quan-tri/api-clients` with a show-token-once dialog. No migration (the table already existed; `has-pending-model-changes` is clean). Tests: 4 backend (`Admin/ApiClientsAdminTests`), 3 vitest, 2 Playwright mock (admin project), 1 real-backend e2e plus the "every Quản trị page" loop. Real e2e ran on a temporary database `hcmus_support_dev_m2_apiclients`, now dropped. Docs: BACKEND, FRONTEND, PLAN, INGEST, SYNC, MIGRATION, CUTOVER. Known and unrelated: `NotificationEngineTests.Editing_after_publish_bumps_the_version_and_writes_revisions` fails on `main` too.
+
 ## Not started
 
-- **API clients admin UI** (D14b leftover): create, show token once, revoke `api_clients`. The backend has no HTTP endpoints for it yet.
+Nothing. (The API clients admin UI, the last D14b leftover, is done, see below.)
 
 ## Decisions taken on my own overnight
 
@@ -90,7 +92,7 @@ Otherwise nothing. The branches `feat/d09-notification-editor`, `feat/d14b-admin
     - imported news deliveries are marked **read** (v1 had no read state); `--no-mark-read` changes that;
     - guessed series and tags are listed for review, not final;
     - the update-info banner is pinned until 2036-01-01, and the stale v1 form cards (Sáng kiến, NCKH) lived in the v1 frontend repo, not the data repo, so they are not migrated.
-21. **No admin screen for API clients**: running the migration outside Development needs an `api_clients` row with scope `legacy.import` (SQL in MIGRATION.md), revoked afterwards.
+21. **API clients admin screen** (resolved on `feat/api-clients-admin`): create the `legacy-migration` (scope `legacy.import`) and Sync (`hrm.ingest`) clients in Quản trị -> API clients and revoke the first one afterwards; the SQL in MIGRATION.md is only a fallback.
 22. **Late joiners and `audience_all`**: a person who later gets a first email is backfilled with the two 2025 surveys and the banner (normal behaviour); the legacy posts have no `expires_at`.
 
 23. **D18 decisions for you** (details in [PARITY.md](PARITY.md) and [CUTOVER.md](CUTOVER.md)):

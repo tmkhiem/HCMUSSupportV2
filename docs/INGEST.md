@@ -15,7 +15,7 @@ Authorization: ApiKey <token>
   (`WWW-Authenticate: ApiKey`). Valid key without the scope: **403**.
 - Ingest routes are exempt from the cookie antiforgery check and use the `integration` rate-limit policy
   (`RateLimiting:Integration`, default 600 requests per minute per IP).
-- **Creating a client.** `ApiClientService.CreateAsync(name, scopes)` returns the token (the admin page, D14b, will call
+- **Creating a client.** Admins use *Quản trị -> API clients* (the token is shown once). In code, `ApiClientService.CreateAsync(name, scopes)` returns the token (the admin page calls
   it). In **Development** only, set `Hrm:DevApiClient:Token` (24+ characters) in the git-ignored
   `appsettings.Development.local.json` and the app creates a client named `dev` with scope `hrm.ingest` for that token
   at startup.

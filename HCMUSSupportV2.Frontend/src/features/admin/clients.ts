@@ -1,5 +1,6 @@
 import {
   AdminEmployeesClient,
+  ApiClientsClient,
   AuditClient,
   DashboardClient,
   DatasetsClient,
@@ -19,3 +20,4 @@ export const auditClient = new AuditClient(undefined, clientFetch)
 export const groupsClient = new GroupsClient(undefined, clientFetch)
 export const syncAdminClient = new SyncAdminClient(undefined, clientFetch)
 export const datasetsClient = new DatasetsClient(undefined, clientFetch)
+export const apiClientsClient = new ApiClientsClient(undefined, clientFetch)

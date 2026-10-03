@@ -288,7 +288,25 @@ Only indexes on `audit_log`: `ix_audit_log_at_id (at DESC, id DESC)` for keyset 
 
 - The roster sync (D04) may overwrite `employees.status` for `source=hrm` rows; an admin's manual status change on such a
   row is not protected from the next sync.
-- Not in D14a: `sync_runs` / `sync_issues` endpoints (D04 owns them), dataset imports and API clients.
+- Not in D14a: `sync_runs` / `sync_issues` endpoints (D04 owns them), dataset imports and API clients (the last now exist, see "API clients admin" below).
+
+
+## API clients admin (`Modules/Admin/ApiClients`)
+
+`ApiClientsController`, route `api/admin/api-clients`, policy `ManageApiClients` (admin only; editor 403, anonymous 401).
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/admin/api-clients` | all clients, newest first, revoked ones included: `id`, `name`, `scopes`, `createdAt`, `lastUsedAt`, `revokedAt`. Never the token or its hash. |
+| `GET /api/admin/api-clients/scopes` | the scopes the backend knows (`ApiScopes.Known`: `hrm.ingest`, `legacy.import`), each with a Vietnamese description. A new scope is added there only. |
+| `POST /api/admin/api-clients` | body `{ name, scopes[] }` -> 201 `{ client, token }`. 400 for a blank or over-100-character name, no scope or an unknown scope. |
+| `POST /api/admin/api-clients/{id}/revoke` | sets `revoked_at`; idempotent (an already revoked client is returned as is, with no second audit entry). 404 for an unknown id. |
+
+- The token (`ApiTokens.NewToken()`, 256 bits) is generated on the server, stored only as `ApiTokens.Hash` (SHA-256 hex, exactly what
+  `ApiKeyAuthenticationHandler` looks up) and appears **only** in the create response. It is not in the list, not in the audit log and not logged.
+- Audit actions: `apiclient.created` and `apiclient.revoked` (target type `api_client`, target id = client id, details = name and scopes).
+- A revoked key is rejected on its next request (401).
+- Tests: `Admin/ApiClientsAdminTests` (403 for editor and employee, 401 anonymous, scopes list, token returned once and stored as the hash, key accepted then rejected after revoke, audit without the token, validation 400/404).
 
 ## Nhân sự & email: MSCB to email mapping (D14c, `Modules/Admin/EmployeeEmails`)
 
@@ -390,7 +408,7 @@ truncation guard.
 
 **ApiKey scheme.** `Authorization: ApiKey <token>`; `ApiKeyAuthenticationHandler` hashes the token (SHA-256) and looks it up
 in `api_clients` (revoked clients are rejected), then issues `scope` claims. Policy `IngestHrm` requires `hrm.ingest`.
-`ApiClientService.CreateAsync/RevokeAsync` manages clients (admin UI is D14b); in Development `Hrm:DevApiClient:Token` seeds one.
+`ApiClientService.CreateAsync/RevokeAsync` manages clients (admin API: "API clients admin" below, page *Quản trị -> API clients*); in Development `Hrm:DevApiClient:Token` seeds one.
 
 **Writing a new snapshot dataset.** Add a `Col[]`, a row DTO and an `IngestChildAsync(new ChildSpec<...>(...))` method in
 `IngestService`; `MergeEngine` does the COPY + MERGE and counts. Quarantine and issue rules are in INGEST.md.

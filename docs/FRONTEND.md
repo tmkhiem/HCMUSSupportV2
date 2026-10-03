@@ -314,14 +314,15 @@ Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `Summa
 
 ## Admin and group pages (D14b)
 
-Code: `src/features/admin/` (Quản trị `AdminHomePage`, `RolesPage`, `ViewAsPage`, `AuditPage`, `SyncPage`, `DatasetsPage`) and
+Code: `src/features/admin/` (Quản trị `AdminHomePage`, `RolesPage`, `ViewAsPage`, `AuditPage`, `SyncPage`, `DatasetsPage`, `ApiClientsPage`) and
 `src/features/manage/groups/` (`GroupsPage` master-detail, `GroupEditor`, `GroupMembers`, `RuleBuilder`, `ruleModel`).
 
-- **Routes.** `/quan-tri` (admin) with `phan-quyen`, `xem-thu`, `nhat-ky`, `dong-bo`, `du-lieu`; `/quan-ly/nhom[/:id]` (editor and admin).
+- **Routes.** `/quan-tri` (admin) with `phan-quyen`, `xem-thu`, `nhat-ky`, `dong-bo`, `du-lieu`, `api-clients`; `/quan-ly/nhom[/:id]` (editor and admin).
   `nhom` is one lazy route with two empty child routes, so the same `GroupsPage` stays mounted while a group is picked (the list keeps its
   search and filters; the page reads the id with `useMatch`). Below `md` it shows either the list or the detail.
 - **Clients.** `features/admin/clients.ts` instantiates the generated `RolesClient`, `ViewAsClient`, `AdminEmployeesClient`,
-  `DashboardClient`, `AuditClient`, `GroupsClient`, `SyncAdminClient` (sync runs and issues) and `DatasetsClient`.
+  `DashboardClient`, `AuditClient`, `GroupsClient`, `SyncAdminClient` (sync runs and issues), `DatasetsClient` and `ApiClientsClient`.
+- **API clients** (`ApiClientsPage`, `/quan-tri/api-clients`, reached from a tile on Quản trị; the sidebar has only the one Quản trị entry). A table of clients (name, scope chips, created, last used, status) with "Thu hồi" (confirm dialog) for active ones. "Tạo API client" opens a dialog (name and one checkbox per scope; the scope list and descriptions come from `GET api-clients/scopes`, so a new backend scope appears without a frontend change). On success the **show-token-once dialog** displays the token in a read-only field with a copy button (`CopyButton`) and a warning; it ignores Esc and backdrop clicks and only "Tôi đã lưu token" closes it, after which the token exists nowhere in the page state. Tests: vitest `ApiClientsPage.test.tsx`; Playwright `admin` project (`API clients: list, create shows the token once, revoke`, plus the 375 px no-horizontal-scroll check, screenshots in `docs/screenshots/d14b/`); real backend `e2e/real.spec.ts` (create, copy token, the integration API accepts it, revoke, rejected with 401, audit entry).
 - **Lists** use keyset paging (`useInfiniteQuery`, `nextCursor`, "Tải thêm"). Search inputs are debounced 300 ms.
 - **Phân quyền.** Search (q, role filter), row opens a drawer with editor and admin switches; Lưu = `PUT admin/roles/{code}`; the server's 409
   (last admin) message is shown in the drawer. Role changes apply at once on the server.
