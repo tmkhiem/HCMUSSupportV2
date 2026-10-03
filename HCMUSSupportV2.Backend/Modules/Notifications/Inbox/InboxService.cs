@@ -19,7 +19,6 @@ public record InboxItemDto(
     DateTimeOffset? PublishedAt,
     DateTimeOffset DeliveredAt,
     bool IsNew,
-    bool UpdatedAfterDelivery,
     long? SeriesId,
     bool HasAttachments);
 
@@ -37,7 +36,6 @@ public record InboxDetailDto(
     DateTimeOffset? PublishedAt,
     DateTimeOffset DeliveredAt,
     bool IsNew,
-    bool UpdatedAfterDelivery,
     long? SeriesId,
     bool HasAttachments,
     string BodyMd,
@@ -62,7 +60,6 @@ public class InboxService(AppDbContext db, IFileStore files)
             SELECT * FROM (
               SELECT n.id, n.title, n.summary, n.published_at, d.delivered_at,
                      (e.previous_login_at IS NULL OR d.delivered_at > e.previous_login_at) AS is_new,
-                     (n.content_updated_at IS NOT NULL AND n.content_updated_at > d.delivered_at) AS updated,
                      n.series_id,
                      EXISTS (SELECT 1 FROM notification_attachments a WHERE a.notification_id = n.id) AS has_attachments
               FROM notification_deliveries d
@@ -108,7 +105,7 @@ public class InboxService(AppDbContext db, IFileStore files)
         cmd.CommandText = sql.ToString();
 
         var rows = new List<(Guid Id, string Title, string Summary, DateTimeOffset? PublishedAt, DateTimeOffset DeliveredAt,
-            bool IsNew, bool Updated, long? SeriesId, bool HasAtt)>();
+            bool IsNew, long? SeriesId, bool HasAtt)>();
         await db.Database.OpenConnectionAsync(ct);
         try
         {
@@ -116,7 +113,7 @@ public class InboxService(AppDbContext db, IFileStore files)
             while (await r.ReadAsync(ct))
                 rows.Add((r.GetGuid(0), r.GetString(1), r.GetString(2),
                     r.IsDBNull(3) ? null : r.GetFieldValue<DateTimeOffset>(3), r.GetFieldValue<DateTimeOffset>(4),
-                    r.GetBoolean(5), r.GetBoolean(6), r.IsDBNull(7) ? null : r.GetInt64(7), r.GetBoolean(8)));
+                    r.GetBoolean(5), r.IsDBNull(6) ? null : r.GetInt64(6), r.GetBoolean(7)));
         }
         finally { await db.Database.CloseConnectionAsync(); }
 
@@ -132,7 +129,7 @@ public class InboxService(AppDbContext db, IFileStore files)
         var byId = tags.GroupBy(t => t.NotificationId).ToDictionary(g => g.Key, g => g.Select(t => t.Tag).ToList());
 
         var items = rows.Select(x => new InboxItemDto(x.Id, x.Title, x.Summary, byId.GetValueOrDefault(x.Id) ?? [], x.PublishedAt,
-            x.DeliveredAt, x.IsNew, x.Updated, x.SeriesId, x.HasAtt)).ToList();
+            x.DeliveredAt, x.IsNew, x.SeriesId, x.HasAtt)).ToList();
         string? next = null;
         if (hasMore)
         {
@@ -185,8 +182,7 @@ public class InboxService(AppDbContext db, IFileStore files)
         }
 
         return new InboxDetailDto(n.Id, n.Title, n.Summary, tags, n.PublishedAt, d.DeliveredAt,
-            row.prev == null || d.DeliveredAt > row.prev, n.ContentUpdatedAt != null && n.ContentUpdatedAt > d.DeliveredAt,
-            n.SeriesId, attachments.Count > 0, n.BodyMd, NotificationEditorService.ParseVariables(n.Variables),
+            row.prev == null || d.DeliveredAt > row.prev, n.SeriesId, attachments.Count > 0, n.BodyMd, NotificationEditorService.ParseVariables(n.Variables),
             JsonNode.Parse(d.Vars ?? "[]")!, attachments, series);
     }
 

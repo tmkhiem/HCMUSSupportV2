@@ -319,7 +319,7 @@ test.describe('desktop 1440', () => {
     await expect(page.getByTestId('dirty-flag')).toBeVisible()
     await expect(page.getByTestId('markdown-preview')).toContainText('Bản đầu')
     await page.getByRole('button', { name: 'Lưu', exact: true }).click()
-    await toast(page, 'Người nhận thấy nhãn “Đã cập nhật”')
+    await toast(page, 'Đã lưu.')
     await expect(page.getByText(/Phiên bản 4/)).toBeVisible()
   })
 

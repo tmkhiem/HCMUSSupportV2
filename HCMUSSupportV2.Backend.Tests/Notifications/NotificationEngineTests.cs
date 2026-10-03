@@ -126,10 +126,10 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal("V1", (string?)revisions[2]!["title"]); // the first revision is the content as published
         Assert.Equal("Nội dung 3", (string?)revisions[0]!["bodyMd"]);
 
-        // The recipient sees the new content and "updated after delivery".
+        // The recipient sees the new content (and no "updated" marker).
         var inbox = await _host.SignInAsync(reader);
         var item = (await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray().Single();
-        Assert.True((bool?)item["updatedAfterDelivery"]);
+        Assert.Null(item["updatedAfterDelivery"]);
         Assert.Equal("V3", (string?)item["title"]);
     }
 

@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router-dom'
 import { formatDate } from '../../../lib/format'
 import { flyInSx } from '../../../ui'
+import TagChip from '../TagChip'
 import type { InboxItem } from './inboxTypes'
 
 export interface InboxRowProps {
@@ -67,9 +68,8 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
         direction="row"
         sx={{ flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', gap: 0.75, ml: { md: 'auto' }, pl: { xs: 2.5, md: 0 }, pt: { xs: 0.5, md: 0 } }}
       >
-        {item.updatedAfterDelivery && <Chip size="small" color="info" variant="outlined" label="Đã cập nhật" />}
         {item.hasAttachments && <AttachFileOutlined fontSize="small" titleAccess="Có tệp đính kèm" sx={{ color: 'text.secondary', opacity: 0.7 }} />}
-        {firstTag && <Chip size="small" variant="tag" label={firstTag.name} />}
+        {firstTag && <TagChip tag={firstTag} />}
         {otherTags.length > 0 && (
           <Chip
             size="small"
@@ -80,10 +80,10 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
         )}
         <Typography
           component="time"
-          dateTime={item.deliveredAt.toISOString()}
+          dateTime={(item.publishedAt ?? item.deliveredAt).toISOString()}
           sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'text.secondary', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', ml: 0.5 }}
         >
-          {formatDate(item.deliveredAt)}
+          {formatDate(item.publishedAt ?? item.deliveredAt)}
         </Typography>
       </Stack>
     </Paper>

@@ -18,6 +18,7 @@ import { ApiError } from '../../../api/http'
 import { formatDate } from '../../../lib/format'
 import { errorMessage } from '../../../ui'
 import NotificationBody from '../body/NotificationBody'
+import TagChip from '../TagChip'
 import { AttachmentList, SeriesPrevious } from './DetailSections'
 import { useInboxDetail } from './inboxQueries'
 import PngIcon from '../../../ui/PngIcon'
@@ -78,13 +79,12 @@ export function Component() {
                 sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'primary.main' }}
               >
                 <CalendarMonthOutlined sx={{ fontSize: 16 }} />
-                {formatDate(data.deliveredAt)}
+                {formatDate(data.publishedAt ?? data.deliveredAt)}
               </Typography>
               {data.series && <Chip size="small" variant="outlined" icon={<PngIcon name="layers" size={18} />} label={data.series.name} />}
               {data.tags.map((t) => (
-                <Chip key={t.id} size="small" variant="tag" label={t.name} />
+                <TagChip key={t.id} tag={t} />
               ))}
-              {data.updatedAfterDelivery && <Chip size="small" color="info" variant="outlined" label="Đã cập nhật" />}
             </Stack>
           </>
         ) : (

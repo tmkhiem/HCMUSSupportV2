@@ -41,6 +41,21 @@ public class FanOutService(AppDbContext db, ILogger<FanOutService> logger)
         RETURNING employee_code
         """;
 
+    // Deliveries of people who are no longer in any audience of the notification (recipients removed by an edit).
+    private const string PruneSql = """
+        DELETE FROM notification_deliveries d
+        WHERE d.notification_id = @nid
+          AND NOT (
+            (@all AND EXISTS (SELECT 1 FROM employee_emails m WHERE m.employee_code = d.employee_code))
+            OR EXISTS (SELECT 1 FROM notification_audiences a JOIN group_members gm ON gm.group_id = a.group_id
+                       WHERE a.notification_id = @nid AND a.kind = 'group' AND gm.employee_code = d.employee_code)
+            OR EXISTS (SELECT 1 FROM notification_audiences a
+                       WHERE a.notification_id = @nid AND a.kind = 'employee' AND a.employee_code = d.employee_code)
+            OR EXISTS (SELECT 1 FROM notification_audiences a
+                       JOIN notification_recipient_imports i ON i.id = a.import_id AND i.status = 'applied'
+                       WHERE a.notification_id = @nid AND a.kind = 'import' AND i.rows ? d.employee_code))
+        """;
+
     private const string CountersSql = """
         UPDATE notifications n SET recipient_count = c.total
         FROM (SELECT count(*)::int AS total
@@ -86,6 +101,16 @@ public class FanOutService(AppDbContext db, ILogger<FanOutService> logger)
                 cmd.Add("codes", NpgsqlDbType.Array | NpgsqlDbType.Text, codeArray);
                 await using var r = await cmd.ExecuteReaderAsync(ct);
                 while (await r.ReadAsync(ct)) inserted.Add(r.GetString(0));
+            }
+
+            // A full run (not a late-joiner backfill) also takes the notification away from removed recipients.
+            if (codeArray is null)
+            {
+                await using var cmd = new NpgsqlCommand(PruneSql, conn);
+                cmd.Parameters.AddWithValue("nid", notificationId);
+                cmd.Parameters.AddWithValue("all", all);
+                var removed = await cmd.ExecuteNonQueryAsync(ct);
+                if (removed > 0) logger.LogInformation("Notification {Id}: {Count} deliveries removed", notificationId, removed);
             }
 
             await using (var cmd = new NpgsqlCommand(CountersSql, conn))

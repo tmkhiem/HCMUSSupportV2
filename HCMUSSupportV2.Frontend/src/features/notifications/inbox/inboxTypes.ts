@@ -17,7 +17,6 @@ export interface InboxItem {
   deliveredAt: Date
   /** Delivered after the previous sign-in ("chưa đọc"). Not shown anywhere yet. */
   isNew: boolean
-  updatedAfterDelivery: boolean
   seriesId: number | null
   hasAttachments: boolean
 }

@@ -61,7 +61,7 @@ test.describe('desktop 1440', () => {
     await expect(first).toContainText('28/09/2026')
     await expect(first.getByRole('img', { name: 'Có tệp đính kèm' })).toBeVisible()
     await expect(rows(page).first()).toContainText(SALARY_2026) // newest delivery first
-    await expect(row(page, 'Khảo sát mức độ hài lòng')).toContainText('Đã cập nhật')
+    await expect(row(page, 'Khảo sát mức độ hài lòng')).not.toContainText('Đã cập nhật')
 
     await expect(page.getByTestId('unread-dot')).toHaveCount(0)
     await expect(page.locator('[data-unread]')).toHaveCount(0)

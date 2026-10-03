@@ -138,7 +138,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
         onCreated?.(detail.id)
         void navigate(`/manage/notifications/${detail.id}`, { replace: true })
       }
-      setToast(created ? 'Đã tạo bản nháp.' : live ? 'Đã lưu. Người nhận thấy nhãn “Đã cập nhật”.' : 'Đã lưu.')
+      setToast(created ? 'Đã tạo bản nháp.' : 'Đã lưu.')
       return detail
     } catch (e) {
       fail(e, 'Không lưu được thông báo. Vui lòng thử lại.')
@@ -330,7 +330,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
         {status === 'scheduled' && saved?.publishAt && <Alert severity="info">Sẽ tự động đăng lúc {formatDateTime(saved.publishAt)}.</Alert>}
         {status === 'published' && (
           <Alert severity="info">
-            Thông báo đã đăng. Sửa nội dung rồi lưu sẽ hiện nhãn “Đã cập nhật” cho người đã nhận; thêm người nhận sẽ gửi tiếp, còn bỏ người nhận không thu hồi.
+            Thông báo đã đăng. Thêm người nhận sẽ gửi tiếp (họ thấy thông báo khi đăng nhập, vẫn hiển thị theo ngày đăng gốc); bỏ người nhận sẽ gỡ thông báo khỏi trang thông báo của họ.
           </Alert>
         )}
 

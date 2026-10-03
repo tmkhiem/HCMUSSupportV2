@@ -33,7 +33,6 @@ interface ItemSource {
   publishedAt?: Date | string | undefined
   deliveredAt?: Date | string
   isNew?: boolean
-  updatedAfterDelivery?: boolean
   seriesId?: number | undefined
   hasAttachments?: boolean
 }
@@ -48,7 +47,6 @@ export function toInboxItem(d: ItemSource): InboxItem {
     publishedAt: toDate(d.publishedAt),
     deliveredAt: toDate(d.deliveredAt) ?? new Date(0),
     isNew: d.isNew ?? false,
-    updatedAfterDelivery: d.updatedAfterDelivery ?? false,
     seriesId: d.seriesId ?? null,
     hasAttachments: d.hasAttachments ?? false,
   }

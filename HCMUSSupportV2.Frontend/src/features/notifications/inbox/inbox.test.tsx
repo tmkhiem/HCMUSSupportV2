@@ -18,7 +18,6 @@ const item = (over: Partial<InboxItem> = {}): InboxItem => ({
   publishedAt: new Date(2026, 8, 28),
   deliveredAt: new Date(2026, 8, 28, 9),
   isNew: false,
-  updatedAfterDelivery: false,
   seriesId: null,
   hasAttachments: false,
   ...over,
@@ -73,9 +72,8 @@ describe('InboxRow', () => {
     expect(screen.getByText('28/09/2026')).toBeInTheDocument()
   })
 
-  it('shows Đã cập nhật and the attachment icon when they apply', () => {
-    renderRow({ updatedAfterDelivery: true, hasAttachments: true })
-    expect(screen.getByText('Đã cập nhật')).toBeInTheDocument()
+  it('shows the attachment icon', () => {
+    renderRow({ hasAttachments: true })
     expect(screen.getByTitle('Có tệp đính kèm')).toBeInTheDocument()
   })
 })
