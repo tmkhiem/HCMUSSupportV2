@@ -58,7 +58,7 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
           sx={{ width: 8, height: 8, flexShrink: 0, borderRadius: '50%', bgcolor: unread ? 'primary.main' : 'transparent' }}
         />
         {unread && <Box component="span" sx={visuallyHidden}>Chưa đọc: </Box>}
-        <Typography component="h3" noWrap title={item.title} sx={{ fontSize: '0.925rem', fontWeight: unread ? 800 : 500, lineHeight: 1.35 }}>
+        <Typography component="h3" noWrap title={item.title} sx={{ fontSize: '1rem', fontWeight: unread ? 800 : 500, lineHeight: 1.35 }}>
           {item.title}
         </Typography>
       </Box>
@@ -66,7 +66,7 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
       {item.summary && (
         <Typography
           noWrap
-          sx={{ flex: { md: '1 1 0' }, minWidth: 0, color: 'text.secondary', opacity: 0.85, fontSize: '0.875rem', pl: { xs: 2.5, md: 0 } }}
+          sx={{ flex: { md: '1 1 0' }, minWidth: 0, color: 'text.secondary', opacity: 0.85, fontSize: '0.9375rem', pl: { xs: 2.5, md: 0 } }}
         >
           <Box component="span" aria-hidden sx={{ mr: 1, opacity: 0.5, display: { xs: 'none', md: 'inline' } }}>
             —
@@ -90,13 +90,12 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
             variant="outlined"
             label={`+${otherTags.length}`}
             title={otherTags.map((t) => t.name).join(', ')}
-            sx={{ bgcolor: 'common.white', color: 'text.secondary' }}
           />
         )}
         <Typography
           component="time"
           dateTime={item.deliveredAt.toISOString()}
-          sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', ml: 0.5 }}
+          sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'text.secondary', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', ml: 0.5 }}
         >
           {formatDate(item.deliveredAt)}
         </Typography>

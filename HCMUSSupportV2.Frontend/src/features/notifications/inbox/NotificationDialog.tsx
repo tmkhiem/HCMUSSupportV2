@@ -2,7 +2,6 @@ import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined'
 import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined'
 import CloseIcon from '@mui/icons-material/Close'
 import LayersOutlined from '@mui/icons-material/LayersOutlined'
-import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined'
 import PushPinOutlined from '@mui/icons-material/PushPinOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -28,6 +27,7 @@ import NotificationBody from '../body/NotificationBody'
 import { AttachmentList, SeriesPrevious } from './DetailSections'
 import { useAcknowledge, useInboxDetail, useMarkRead } from './inboxQueries'
 import { VIEW_AS_HINT, needsAck } from './inboxTypes'
+import PngIcon from '../../../ui/PngIcon'
 
 /**
  * `/tin-tuc/:id`: the detail as a Dialog over the list (the parent route keeps the list mounted). Deep-linkable.
@@ -94,15 +94,15 @@ export function Component() {
             <Typography
               id={titleId}
               component="h2"
-              sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pr: 5, fontSize: { xs: '1.375rem', md: '1.75rem' }, fontWeight: 900, lineHeight: 1.25, letterSpacing: '-0.01em' }}
+              sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pr: 5, fontSize: { xs: '1.5rem', md: '1.875rem' }, fontWeight: 900, lineHeight: 1.25, letterSpacing: '-0.01em' }}
             >
-              <NotificationsOutlined color="primary" sx={{ fontSize: '1.3em', mt: '0.05em', flexShrink: 0 }} />
+              <PngIcon name="bell" size={32} sx={{ mt: '0.1em' }} />
               <span>{data.title}</span>
             </Typography>
             <Stack direction="row" sx={{ mt: 2, alignItems: 'center', flexWrap: 'wrap', gap: 1.25 }} data-testid="detail-meta">
               <Typography
                 component="span"
-                sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'primary.main' }}
+                sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'primary.main' }}
               >
                 <CalendarMonthOutlined sx={{ fontSize: 16 }} />
                 {formatDate(data.deliveredAt)}
@@ -116,7 +116,7 @@ export function Component() {
             </Stack>
           </>
         ) : (
-          <Typography id={titleId} component="h2" sx={{ fontWeight: 900, fontSize: '1.375rem', pr: 5 }}>
+          <Typography id={titleId} component="h2" sx={{ fontWeight: 900, fontSize: '1.5rem', pr: 5 }}>
             {notFound ? 'Không tìm thấy thông báo' : 'Thông báo'}
           </Typography>
         )}

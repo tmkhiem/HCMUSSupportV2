@@ -209,7 +209,7 @@ function Editor({ group }: { group: GroupDto }) {
             ) : (
               <Stack spacing={1}>
                 <Alert severity="info">Quy tắc này dùng điều kiện lồng nhau nên chưa chỉnh sửa được bằng bộ dựng. Chỉ xem.</Alert>
-                <Box component="pre" sx={{ m: 0, p: 2, borderRadius: 1, bgcolor: 'action.hover', overflow: 'auto', fontSize: 12 }}>
+                <Box component="pre" sx={{ m: 0, p: 2, borderRadius: 1, bgcolor: 'action.hover', overflow: 'auto', fontSize: 13 }}>
                   {JSON.stringify(group.rule, null, 2)}
                 </Box>
               </Stack>

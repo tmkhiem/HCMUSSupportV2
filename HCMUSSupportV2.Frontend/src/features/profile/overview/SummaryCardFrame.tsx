@@ -32,7 +32,7 @@ export default function SummaryCardFrame({
       aria-label={title}
       sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}
     >
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', pb: 1.5, mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', pb: 1, mb: 1.5 }}>
         {icon}
         <SectionLabel component="h2" sx={{ color: 'text.primary' }}>
           {title}
@@ -44,10 +44,10 @@ export default function SummaryCardFrame({
         to={to}
         underline="hover"
         aria-label={`Chi tiết ${title}`}
-        sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 700, fontSize: 13, alignSelf: 'flex-start' }}
+        sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 700, fontSize: 14, alignSelf: 'flex-start' }}
       >
         Chi tiết
-        <ArrowOutwardOutlined sx={{ fontSize: 14 }} />
+        <ArrowOutwardOutlined sx={{ fontSize: 15 }} />
       </Link>
     </AcrylicCard>
   )

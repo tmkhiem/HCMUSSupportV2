@@ -1,18 +1,17 @@
 import ClearIcon from '@mui/icons-material/Clear'
 import MailOutlinedIcon from '@mui/icons-material/MailOutlined'
-import SearchIcon from '@mui/icons-material/Search'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
-import { alpha, useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import Box from '@mui/material/Box'
 import { useEffect, useRef, useState } from 'react'
 import { STATUS_LABEL } from './employeesFormat'
 import type { EmployeeFilters, EmployeeStatus } from './employeesTypes'
+import PngIcon from '../../ui/PngIcon'
 
 export const SEARCH_DEBOUNCE_MS = 400
 
@@ -27,8 +26,6 @@ export interface EmployeeFilterBarProps {
  * "Chưa có email" and "Cần kiểm tra" (an email that conflicts with HRM). The URL is the state of record.
  */
 export default function EmployeeFilterBar({ filters, onChange }: EmployeeFilterBarProps) {
-  const theme = useTheme()
-
   // Typing is local; the URL gets the value 400 ms after the last keystroke.
   const [draft, setDraft] = useState(filters.q)
   const committed = useRef(filters.q)
@@ -68,7 +65,6 @@ export default function EmployeeFilterBar({ filters, onChange }: EmployeeFilterB
         display: 'flex',
         flexDirection: 'column',
         gap: 1.5,
-        borderColor: alpha(theme.palette.primary.main, 0.2),
       }}
     >
       <TextField
@@ -83,7 +79,7 @@ export default function EmployeeFilterBar({ filters, onChange }: EmployeeFilterB
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ opacity: 0.5 }} />
+                <PngIcon name="search" size={20} />
               </InputAdornment>
             ),
             endAdornment: draft ? (
@@ -110,7 +106,7 @@ export default function EmployeeFilterBar({ filters, onChange }: EmployeeFilterB
           label="Trạng thái"
           value={filters.status}
           onChange={(e) => onChange({ ...filters, status: e.target.value as '' | EmployeeStatus })}
-          sx={{ minWidth: 180, flex: { xs: '1 1 100%', sm: '0 0 auto' }, bgcolor: 'common.white', borderRadius: 1 }}
+          sx={{ minWidth: 180, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
         >
           <MenuItem value="">Tất cả trạng thái</MenuItem>
           {(Object.keys(STATUS_LABEL) as EmployeeStatus[]).map((s) => (

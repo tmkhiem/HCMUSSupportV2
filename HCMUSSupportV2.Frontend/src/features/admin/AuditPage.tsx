@@ -97,7 +97,7 @@ export function Component() {
                       {[r.targetType, r.targetId].filter(Boolean).join(' ') || '—'}
                     </TableCell>
                     <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' }, maxWidth: 360 }}>
-                      <Box component="code" sx={{ fontSize: 12, overflowWrap: 'anywhere' }}>{details(r.details) || '—'}</Box>
+                      <Box component="code" sx={{ fontSize: 13, overflowWrap: 'anywhere' }}>{details(r.details) || '—'}</Box>
                     </TableCell>
                   </TableRow>
                 ))}

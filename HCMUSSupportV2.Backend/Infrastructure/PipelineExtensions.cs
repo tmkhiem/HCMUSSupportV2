@@ -38,11 +38,13 @@ public static class PipelineExtensions
         return app;
     }
 
-    // index.html names the content-hashed bundles, so it must be revalidated after every frontend build;
-    // the hashed files under /assets can be cached freely.
+    // index.html names the content-hashed bundles, and the other files in wwwroot (bg-logo.svg, icons/) keep their
+    // names across builds, so all of them must be revalidated (ETag, 304 when unchanged) after every frontend build.
+    // Without a Cache-Control header the browser may reuse a copy it considers fresh from Last-Modified alone and a
+    // replaced file would not show up. Only the content-hashed files under /assets can be cached freely.
     private static void NoCacheIndexHtml(StaticFileResponseContext ctx)
     {
-        if (ctx.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+        if (!ctx.Context.Request.Path.StartsWithSegments("/assets"))
             ctx.Context.Response.Headers.CacheControl = "no-cache";
     }
 

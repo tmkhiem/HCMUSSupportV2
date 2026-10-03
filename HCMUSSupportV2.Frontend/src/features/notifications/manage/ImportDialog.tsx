@@ -148,7 +148,7 @@ function CodeList({ codes, total }: { codes: string[]; total?: number }) {
   const shown = codes.slice(0, MAX_SHOWN)
   const more = (total ?? codes.length) - shown.length
   return (
-    <Box component="span" sx={{ fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '0.8125rem' }}>
+    <Box component="span" sx={{ fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '0.875rem' }}>
       {shown.join(', ')}
       {more > 0 ? ` … và ${formatNumber(more)} mã khác` : ''}
     </Box>
@@ -201,7 +201,7 @@ export function ReportView({ report }: { report: ImportReport }) {
       )}
 
       {report.columns.length > 0 && (
-        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, maxHeight: 280 }}>
+        <TableContainer sx={{ bgcolor: 'rgba(38, 50, 56, 0.04)', borderRadius: 1, maxHeight: 280 }}>
           <Table size="small" stickyHeader aria-label="Các cột của tệp">
             <TableHead>
               <TableRow>

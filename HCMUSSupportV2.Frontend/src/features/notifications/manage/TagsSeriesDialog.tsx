@@ -16,6 +16,7 @@ import Stack from '@mui/material/Stack'
 import { useTheme } from '@mui/material/styles'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
+import { alpha } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -84,10 +85,11 @@ function Swatches({ value, onChange }: { value: string | null; onChange: (c: str
             borderRadius: '50%',
             bgcolor: c,
             cursor: 'pointer',
-            border: 2,
-            borderColor: value === c ? 'text.primary' : 'transparent',
-            outlineOffset: 2,
+            transition: 'transform 150ms',
+            transform: value === c ? 'scale(1.3)' : 'none',
+            boxShadow: value === c ? (t) => `0 0 0 3px ${t.palette.background.paper}, 0 0 0 5px ${c}` : 'none',
             p: 0,
+            border: 0,
           }}
         />
       ))}
@@ -131,7 +133,7 @@ function TagsPanel() {
                 </Editor>
               ) : (
                 <>
-                  <Chip label={t.name} size="small" variant="tag" sx={t.color ? { borderColor: t.color, color: t.color } : undefined} />
+                  <Chip label={t.name} size="small" variant="tag" sx={t.color ? { bgcolor: alpha(t.color, 0.14), color: t.color } : undefined} />
                   <Box sx={{ flex: 1 }} />
                   {confirmId === t.id ? (
                     <>

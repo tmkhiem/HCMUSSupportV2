@@ -57,7 +57,7 @@ export default function TargetingPanel({ value, onChange, importSummary, notific
       <SectionLabel>Người nhận</SectionLabel>
 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mt: 1, mb: 1.5 }} aria-live="polite" data-testid="recipient-count">
-        <Typography component="span" sx={{ fontSize: '1.75rem', fontWeight: 800, lineHeight: 1, color: 'primary.main', fontVariantNumeric: 'tabular-nums' }}>
+        <Typography component="span" sx={{ fontSize: '1.875rem', fontWeight: 800, lineHeight: 1, color: 'primary.main', fontVariantNumeric: 'tabular-nums' }}>
           {nothingChosen ? '0' : estimate.data === undefined ? '…' : formatNumber(estimate.data)}
         </Typography>
         <Typography component="span" color="text.secondary">
@@ -80,7 +80,7 @@ export default function TargetingPanel({ value, onChange, importSummary, notific
         <GroupMultiPicker value={value.groups} disabled={disabled} onChange={(groups) => onChange({ ...value, groups })} />
         <EmployeeMultiPicker value={value.employees} disabled={disabled} onChange={(employees) => onChange({ ...value, employees })} />
 
-        <Box sx={{ border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 1, p: 1.5 }}>
+        <Box sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 2 }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <GroupsOutlined fontSize="small" color="action" />
             <Typography sx={{ fontWeight: 600, flex: 1, minWidth: 140 }}>Danh sách từ tệp</Typography>

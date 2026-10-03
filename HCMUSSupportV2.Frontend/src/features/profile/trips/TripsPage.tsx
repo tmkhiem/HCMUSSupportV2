@@ -1,5 +1,4 @@
 import EventAvailableOutlined from '@mui/icons-material/EventAvailableOutlined'
-import FlightTakeoffOutlined from '@mui/icons-material/FlightTakeoffOutlined'
 import Box from '@mui/material/Box'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
@@ -13,6 +12,7 @@ import CareerBreadcrumb from '../CareerBreadcrumb'
 import { useBusinessTrips } from '../educationApi'
 import { tripStats } from '../educationFormat'
 import TripsTable from './TripsTable'
+import PngIcon from '../../../ui/PngIcon'
 
 const pillSx = {
   borderRadius: 999,
@@ -49,7 +49,7 @@ export function Component() {
               >
                 <StatCard
                   index={1}
-                  icon={<FlightTakeoffOutlined color="primary" />}
+                  icon={<PngIcon name="airplane-departure" size={28} />}
                   label="Số chuyến"
                   value={stats.tripCount}
                   hint={hint}

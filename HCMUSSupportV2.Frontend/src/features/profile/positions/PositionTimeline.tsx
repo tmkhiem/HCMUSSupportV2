@@ -13,7 +13,7 @@ import { formatTenure } from '../careerFormat'
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <Box sx={{ minWidth: 0 }}>
-      <SectionLabel sx={{ fontSize: 10 }}>{label}</SectionLabel>
+      <SectionLabel sx={{ fontSize: 13 }}>{label}</SectionLabel>
       <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
         {value}
       </Typography>
@@ -62,9 +62,7 @@ export default function PositionTimeline({ items, index }: { items: PositionEntr
                   width: current ? 22 : 16,
                   height: current ? 22 : 16,
                   borderRadius: '50%',
-                  border: 3,
-                  borderColor: 'primary.main',
-                  bgcolor: current ? 'primary.main' : 'background.paper',
+                  bgcolor: current ? 'primary.main' : (t) => alpha(t.palette.primary.main, 0.45),
                   boxShadow: current ? (t) => `0 0 0 5px ${alpha(t.palette.primary.main, 0.18)}` : undefined,
                 }}
               />

@@ -33,9 +33,6 @@ export default function DegreeCards({ items }: { items: DegreeEntry[] }) {
               width: '100%',
               minWidth: 0,
               overflow: 'hidden',
-              borderTop: 4,
-              borderTopStyle: 'solid',
-              borderTopColor: 'primary.main',
             }}
           >
             <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>

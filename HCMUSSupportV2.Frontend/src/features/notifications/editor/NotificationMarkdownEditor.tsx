@@ -80,10 +80,10 @@ const editorSx: SxProps<Theme> = (theme) => ({
     px: 2.5,
     py: 2,
     outline: 'none',
-    '& h1': { fontSize: '1.375rem' },
-    '& h2': { fontSize: '1.2rem' },
-    '& h3': { fontSize: '1.075rem' },
-    '& h4': { fontSize: '0.975rem' },
+    '& h1': { fontSize: '1.5rem' },
+    '& h2': { fontSize: '1.3rem' },
+    '& h3': { fontSize: '1.15rem' },
+    '& h4': { fontSize: '1.0625rem' },
     '& table': { borderCollapse: 'collapse', width: '100%' },
     '& table th:not([data-tool-cell]):not([class*="tableToolsColumn"])': {
       backgroundColor: theme.palette.primary.main,
@@ -91,7 +91,7 @@ const editorSx: SxProps<Theme> = (theme) => ({
       fontWeight: 700,
       textAlign: 'left',
     },
-    '& table :is(th, td):not([data-tool-cell]):not([class*="tableToolsColumn"])': { border: `1px solid ${theme.palette.divider}`, p: '6px 12px', fontSize: '0.875rem' },
+    '& table :is(th, td):not([data-tool-cell]):not([class*="tableToolsColumn"])': { border: `1px solid ${theme.palette.divider}`, p: '6px 12px', fontSize: '0.9375rem' },
     '& img': { maxWidth: '100%', height: 'auto', borderRadius: '5px' },
   },
 })

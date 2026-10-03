@@ -60,7 +60,6 @@ export function Component() {
                 startIcon={<DoneAllIcon />}
                 disabled={!canReadAll || readAll.isPending}
                 onClick={() => readAll.mutate()}
-                sx={{ bgcolor: 'common.white' }}
               >
                 Đánh dấu tất cả đã đọc
               </Button>

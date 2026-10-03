@@ -60,7 +60,7 @@ export default function RevisionsDialog({ open, notificationId, currentVersion, 
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails id={`rev-${r.version}`}>
-                  <Typography variant="h6" component="h3" sx={{ mb: 1, fontSize: '1.05rem' }}>
+                  <Typography variant="h6" component="h3" sx={{ mb: 1, fontSize: '1.125rem' }}>
                     {r.title}
                   </Typography>
                   <NotificationBody markdown={r.bodyMd} />

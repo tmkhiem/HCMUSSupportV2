@@ -22,7 +22,7 @@ function fileIcon(contentType: string) {
 }
 
 const sectionSx = { mt: 3.5 } as const
-const listSx = { border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'common.white', py: 0, overflow: 'hidden' } as const
+const listSx = { borderRadius: 1, bgcolor: 'rgba(38, 50, 56, 0.05)', py: 0, overflow: 'hidden' } as const
 
 /** Download links (`GET /api/notifications/{id}/attachments/{fileId}`, authorised per delivery). */
 export function AttachmentList({ notificationId, attachments }: { notificationId: string; attachments: InboxAttachment[] }) {

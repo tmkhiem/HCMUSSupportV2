@@ -86,11 +86,11 @@ export function Component() {
             >
               Support HCMUS
             </Typography>
-            <Stack spacing={1} sx={{ maxWidth: 512, mx: { xs: 'auto', lg: 0 }, fontSize: '1.125rem', lineHeight: 1.6 }}>
+            <Stack spacing={1} sx={{ maxWidth: 512, mx: { xs: 'auto', lg: 0 }, fontSize: '1.1875rem', lineHeight: 1.6 }}>
               <p style={{ margin: 0 }}>Chào mừng quý Thầy Cô đã truy cập Support HCMUS!</p>
               <p style={{ margin: 0 }}>Quý Thầy Cô vui lòng đăng nhập với email chính thức của Trường (Google).</p>
             </Stack>
-            <SectionLabel sx={{ display: { xs: 'none', lg: 'block' }, mt: 4, fontSize: 10, letterSpacing: '0.4em', opacity: 0.4 }}>
+            <SectionLabel sx={{ display: { xs: 'none', lg: 'block' }, mt: 4, fontSize: 13, opacity: 0.6 }}>
               {UNIVERSITY}
             </SectionLabel>
           </FlyIn>
@@ -115,7 +115,7 @@ export function Component() {
                 <DevLoginPanel />
               </Suspense>
             )}
-            <SectionLabel sx={{ display: { lg: 'none' }, mt: 6, fontSize: 10, letterSpacing: '0.2em', opacity: 0.4, textAlign: 'center' }}>
+            <SectionLabel sx={{ display: { lg: 'none' }, mt: 6, fontSize: 13, opacity: 0.6, textAlign: 'center' }}>
               {UNIVERSITY}
             </SectionLabel>
           </Box>

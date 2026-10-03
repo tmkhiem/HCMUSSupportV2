@@ -30,7 +30,7 @@ export function Component() {
   return (
     <>
       <FlyIn index={0} from="top" sx={{ mb: 1.5, pr: { lg: 8 } }}>
-        <Breadcrumbs aria-label="Đường dẫn" sx={{ fontSize: '0.8125rem' }}>
+        <Breadcrumbs aria-label="Đường dẫn" sx={{ fontSize: '0.875rem' }}>
           <Link component={RouterLink} to="/quan-ly/thong-bao" underline="hover" color="text.secondary">
             Quản lý thông báo
           </Link>

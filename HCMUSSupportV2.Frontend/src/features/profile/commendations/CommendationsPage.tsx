@@ -1,4 +1,3 @@
-import EmojiEventsOutlined from '@mui/icons-material/EmojiEventsOutlined'
 import MilitaryTechOutlined from '@mui/icons-material/MilitaryTechOutlined'
 import Box from '@mui/material/Box'
 import Tab from '@mui/material/Tab'
@@ -11,6 +10,7 @@ import StatCard from '../../../ui/StatCard'
 import { useCommendations } from '../careerApi'
 import CareerBreadcrumb from '../CareerBreadcrumb'
 import CommendationGroups from './CommendationGroups'
+import PngIcon from '../../../ui/PngIcon'
 
 type TabKey = 'award' | 'title'
 
@@ -38,7 +38,7 @@ export function Component() {
               <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}>
                 <StatCard
                   index={1}
-                  icon={<EmojiEventsOutlined color="primary" />}
+                  icon={<PngIcon name="cup" size={28} />}
                   label="Khen thưởng"
                   value={data.awardCount}
                   hint="Số lần được khen thưởng"
@@ -59,7 +59,7 @@ export function Component() {
                   scrollButtons="auto"
                   allowScrollButtonsMobile
                   aria-label="Loại khen thưởng"
-                  sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
+                  sx={{ mb: 3 }}
                 >
                   <Tab value="award" label={`Khen thưởng (${data.awardCount})`} id="tab-award" aria-controls="panel-commendations" />
                   <Tab value="title" label={`Danh hiệu (${data.titleCount})`} id="tab-title" aria-controls="panel-commendations" />

@@ -18,7 +18,7 @@ import { isBlank } from '../../lib/format'
 export function SectionCard({ title, index, children }: { title: string; index: number; children: ReactNode }) {
   return (
     <AcrylicCard index={index} role="region" aria-label={title} sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}>
-      <SectionLabel sx={{ pb: 1.5, mb: 0.5, borderBottom: 1, borderColor: 'divider', color: 'text.primary' }}>{title}</SectionLabel>
+      <SectionLabel sx={{ pb: 1, mb: 0.5, color: 'text.primary' }}>{title}</SectionLabel>
       {children}
     </AcrylicCard>
   )

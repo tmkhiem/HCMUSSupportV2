@@ -35,8 +35,7 @@ export default function StatCard({ icon, label, value, hint, onClick, emphasis, 
         p: 2.5,
         height: '100%',
         ...(emphasis && {
-          bgcolor: (t) => alpha(t.palette.warning.main, 0.14),
-          borderColor: (t) => alpha(t.palette.warning.main, 0.4),
+          bgcolor: (t) => alpha(t.palette.warning.main, 0.16),
         }),
       }}
     >

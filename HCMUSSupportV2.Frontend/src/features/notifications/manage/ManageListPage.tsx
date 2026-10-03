@@ -1,7 +1,6 @@
 import AddIcon from '@mui/icons-material/Add'
 import ClearIcon from '@mui/icons-material/Clear'
 import LabelOutlined from '@mui/icons-material/LabelOutlined'
-import SearchIcon from '@mui/icons-material/Search'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -28,6 +27,7 @@ import type { ManageFilters } from './manageFilters'
 import { useDeleteNotification, useManageList, useManageSeries, useManageTags, useStoreDetail } from './manageQueries'
 import { STATUS_LABEL, STATUS_ORDER } from './manageTypes'
 import type { ManageItem } from './manageTypes'
+import PngIcon from '../../../ui/PngIcon'
 
 const SEARCH_DEBOUNCE_MS = 400
 const FLY_IN_ROWS = 10
@@ -90,7 +90,7 @@ export function Component() {
         subtitle="Soạn, gửi và theo dõi thông báo đến nhân sự."
         actions={
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<LabelOutlined />} onClick={() => setDialog('tags')} sx={{ bgcolor: 'common.white' }}>
+            <Button variant="outlined" startIcon={<LabelOutlined />} onClick={() => setDialog('tags')}>
               Thẻ và chuỗi
             </Button>
             <Button variant="contained" startIcon={<AddIcon />} component={RouterLink} to="/quan-ly/thong-bao/moi">
@@ -258,7 +258,7 @@ function FilterBar({ filters, onChange, tags, series }: FilterBarProps) {
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ opacity: 0.5 }} />
+                  <PngIcon name="search" size={20} />
                 </InputAdornment>
               ),
               endAdornment: draft ? (

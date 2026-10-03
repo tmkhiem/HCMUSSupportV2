@@ -1,8 +1,8 @@
 import Box from '@mui/material/Box'
 
 /**
- * Self-hosted bg-logo, bottom-right at 0.2 opacity (PLAN §7.1). `public/bg-logo.svg` is a placeholder mark;
- * drop the official asset in as `public/bg-logo.svg` (or change the file name here).
+ * Self-hosted bg-logo, bottom-right at 0.2 opacity (PLAN §7.1). Replace `public/bg-logo.svg` to change it; the `?v=` hash
+ * (from vite.config.ts) changes with the file's content, so the new logo shows up without a hard refresh.
  */
 export default function Watermark() {
   return (
@@ -21,7 +21,7 @@ export default function Watermark() {
     >
       <Box
         component="img"
-        src={`${import.meta.env.BASE_URL}bg-logo.svg`}
+        src={`${import.meta.env.BASE_URL}bg-logo.svg?v=${__BG_LOGO_VERSION__}`}
         alt=""
         sx={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'right bottom', opacity: 0.2 }}
       />

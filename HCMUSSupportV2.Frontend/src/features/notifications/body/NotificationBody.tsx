@@ -61,7 +61,7 @@ const components: Components = {
   },
   table({ children }) {
     return (
-      <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, maxWidth: '100%' }}>
+      <TableContainer sx={{ bgcolor: 'rgba(38, 50, 56, 0.04)', borderRadius: 1, maxWidth: '100%' }}>
         <Table size="small">{children}</Table>
       </TableContainer>
     )

@@ -18,7 +18,7 @@ function Bar({ label, value, detail }: { label: string; value: number; detail: s
           {detail} · {pct(value)}
         </Typography>
       </Box>
-      <LinearProgress variant="determinate" value={Math.min(100, value)} aria-label={`${label} ${pct(value)}`} sx={{ height: 8, borderRadius: 4 }} />
+      <LinearProgress variant="determinate" value={Math.min(100, value)} aria-label={`${label} ${pct(value)}`} sx={{ height: 8, borderRadius: 999 }} />
     </Box>
   )
 }
@@ -44,7 +44,7 @@ export default function StatsPanel({ notificationId }: { notificationId: string 
                   <LineChart
                     height={160}
                     margin={{ left: 4, right: 12, top: 12, bottom: 4 }}
-                    xAxis={[{ scaleType: 'point', data: days.map((d) => d.date.slice(5).split('-').reverse().join('/')), tickLabelStyle: { fontSize: 10 } }]}
+                    xAxis={[{ scaleType: 'point', data: days.map((d) => d.date.slice(5).split('-').reverse().join('/')), tickLabelStyle: { fontSize: 12 } }]}
                     yAxis={[{ min: 0, max: 100, width: 36, valueFormatter: (v: number) => `${v}%` }]}
                     series={[{ data: days.map((d) => d.cumulativePercent), color: theme.palette.primary.main, label: 'Đã đọc (cộng dồn)', showMark: true, valueFormatter: (v: number | null) => (v == null ? '—' : pct(v)) }]}
                     hideLegend

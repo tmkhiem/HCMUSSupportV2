@@ -54,9 +54,7 @@ export default function HeroCard({ hero }: { hero: ProfileHero }) {
         sx={{
           width: { xs: 112, md: 144 },
           height: { xs: 112, md: 144 },
-          borderRadius: 1,
-          border: 4,
-          borderColor: 'common.white',
+          borderRadius: 4,
           bgcolor: 'primary.main',
           fontSize: { xs: 36, md: 48 },
           fontWeight: 800,
@@ -71,7 +69,7 @@ export default function HeroCard({ hero }: { hero: ProfileHero }) {
           spacing={1.5}
           sx={{ alignItems: { xs: 'center', md: 'baseline' }, justifyContent: { xs: 'center', md: 'flex-start' }, mb: 0.5 }}
         >
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 900, letterSpacing: '-0.03em', overflowWrap: 'anywhere', fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 900, letterSpacing: '-0.03em', overflowWrap: 'anywhere', fontSize: { xs: '1.875rem', md: '2.125rem' } }}>
             {hero.fullName}
           </Typography>
           <Chip variant="tag" label={hero.code} size="small" />

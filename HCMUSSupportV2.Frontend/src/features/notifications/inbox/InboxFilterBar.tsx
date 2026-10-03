@@ -1,7 +1,6 @@
 import ClearIcon from '@mui/icons-material/Clear'
 import FilterListOutlined from '@mui/icons-material/FilterListOutlined'
 import MarkEmailUnreadOutlined from '@mui/icons-material/MarkEmailUnreadOutlined'
-import SearchIcon from '@mui/icons-material/Search'
 import Badge from '@mui/material/Badge'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -10,7 +9,7 @@ import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
-import { alpha, useTheme } from '@mui/material/styles'
+import { useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -25,6 +24,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toggleTag } from './inboxFilters'
 import type { InboxFilters } from './inboxFilters'
 import type { InboxTag } from './inboxTypes'
+import PngIcon from '../../../ui/PngIcon'
 
 export const SEARCH_DEBOUNCE_MS = 400
 
@@ -95,7 +95,6 @@ export default function InboxFilterBar({ filters, tags, activeCount, onChange }:
         display: 'flex',
         flexDirection: 'column',
         gap: { xs: 1.25, md: 2 },
-        borderColor: alpha(theme.palette.primary.main, 0.2),
       }}
     >
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -111,7 +110,7 @@ export default function InboxFilterBar({ filters, tags, activeCount, onChange }:
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ opacity: 0.5 }} />
+                  <PngIcon name="search" size={20} />
                 </InputAdornment>
               ),
               endAdornment: draft ? (
@@ -147,7 +146,7 @@ export default function InboxFilterBar({ filters, tags, activeCount, onChange }:
             aria-label="Bộ lọc"
             aria-expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
-            sx={{ flexShrink: 0, border: 1, borderColor: 'divider', width: 40, height: 40 }}
+            sx={{ flexShrink: 0, bgcolor: 'action.hover', width: 40, height: 40 }}
           >
             <Badge color="primary" badgeContent={activeCount} invisible={activeCount === 0}>
               <FilterListOutlined />
@@ -172,12 +171,7 @@ export default function InboxFilterBar({ filters, tags, activeCount, onChange }:
                     color={selected ? 'primary' : 'default'}
                     variant={selected ? 'filled' : 'outlined'}
                     onClick={() => onChange({ ...filters, tags: toggleTag(filters.tags, tag.id) })}
-                    sx={{
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      fontSize: '0.65rem',
-                      bgcolor: selected ? undefined : 'common.white',
-                    }}
+                    sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.8125rem' }}
                   />
                 )
               })}

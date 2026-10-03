@@ -45,7 +45,7 @@ export default function LoadMore({ loading, onLoadMore }: LoadMoreProps) {
         onClick={onLoadMore}
         disabled={loading}
         startIcon={loading ? <CircularProgress size={16} /> : <ExpandMoreIcon />}
-        sx={{ bgcolor: 'common.white', px: 4, borderColor: 'divider' }}
+        sx={{ px: 4 }}
       >
         Tải thêm
       </Button>

@@ -86,7 +86,7 @@ export function Component() {
           <SectionLabel>Markdown phát ra ({lastMeta || '—'})</SectionLabel>
           <pre
             data-testid="md-out"
-            style={{ margin: '8px 0 0', padding: 12, background: 'rgba(38,50,56,.06)', whiteSpace: 'pre-wrap', fontSize: 13 }}
+            style={{ margin: '8px 0 0', padding: 12, background: 'rgba(38,50,56,.06)', whiteSpace: 'pre-wrap', fontSize: 14 }}
           >
             {markdown}
           </pre>

@@ -44,7 +44,7 @@ function PublicationRow({ pub, index, myCode }: { pub: Publication; index: numbe
           sx={{ mt: 1, display: 'inline-flex', alignItems: 'center', gap: 0.5, maxWidth: '100%', overflowWrap: 'anywhere' }}
         >
           {isDoi ? `DOI: ${link.replace('https://doi.org/', '')}` : 'Xem bài báo'}
-          <OpenInNewOutlined sx={{ fontSize: 14, flexShrink: 0 }} aria-hidden />
+          <OpenInNewOutlined sx={{ fontSize: 15, flexShrink: 0 }} aria-hidden />
         </Link>
       )}
     </AcrylicCard>

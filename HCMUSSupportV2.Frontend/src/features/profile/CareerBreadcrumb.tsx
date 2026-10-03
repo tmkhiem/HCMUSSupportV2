@@ -8,7 +8,7 @@ import FlyIn from '../../ui/FlyIn'
 export default function CareerBreadcrumb({ current }: { current: string }) {
   return (
     <FlyIn index={0} from="top" sx={{ mb: 1.5, pr: { lg: 8 } }}>
-      <Breadcrumbs aria-label="Đường dẫn" sx={{ fontSize: '0.8125rem' }}>
+      <Breadcrumbs aria-label="Đường dẫn" sx={{ fontSize: '0.875rem' }}>
         <Link component={RouterLink} to="/ho-so" underline="hover" color="text.secondary">
           Hồ sơ cá nhân
         </Link>

@@ -8,6 +8,7 @@ import { useTheme } from '@mui/material/styles'
 import Typography from '@mui/material/Typography'
 import { Link, useLocation } from 'react-router-dom'
 import { useCurrentUser } from '../auth/authContext'
+import PngIcon from '../ui/PngIcon'
 import { activeNavIndex, visibleNav } from './nav'
 import { useNavBadges } from './useNavBadges'
 
@@ -36,10 +37,10 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', background: sidebar.gradient }}>
       {mobile ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 3 }}>
           <Typography
             component="span"
-            sx={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: 'primary.main', textShadow: sidebar.glow, whiteSpace: 'nowrap' }}
+            sx={{ fontSize: '1.875rem', fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: 'primary.main', textShadow: sidebar.glow, whiteSpace: 'nowrap' }}
           >
             Support HCMUS
           </Typography>
@@ -51,7 +52,7 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
         <Box sx={{ px: 4, pt: 5, pb: 5, mb: 1 }}>
           <Typography
             component="span"
-            sx={{ fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'primary.main', textShadow: sidebar.glow, whiteSpace: 'nowrap' }}
+            sx={{ fontSize: '1.1875rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'primary.main', textShadow: sidebar.glow, whiteSpace: 'nowrap' }}
           >
             Support HCMUS
           </Typography>
@@ -69,21 +70,15 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
             data-testid="nav-indicator"
             sx={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: navRowHeight,
+              top: 4,
+              left: 12,
+              width: 'calc(100% - 24px)',
+              height: navRowHeight - 8,
               zIndex: 0,
               pointerEvents: 'none',
               boxSizing: 'border-box',
+              borderRadius: 999,
               bgcolor: sidebar.sunkenBackground,
-              boxShadow: sidebar.sunkenShadow,
-              borderTop: 1,
-              borderBottom: 1,
-              borderColor: 'grey.100',
-              borderLeft: 4,
-              borderLeftColor: 'primary.main',
-              borderLeftStyle: 'solid',
               opacity: active < 0 ? 0 : 1,
               transform: `translateY(${Math.max(active, 0) * navRowHeight}px)`,
               transition: `transform ${motion.flyInMs}ms ${motion.ease}, opacity 200ms`,
@@ -92,7 +87,6 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
           <List disablePadding sx={{ position: 'relative', zIndex: 1 }}>
             {entries.map((entry, i) => {
               const isActive = i === active
-              const Icon = entry.icon
               const count = entry.badge ? badges[entry.badge] : undefined
               return (
                 <ListItemButton
@@ -107,23 +101,20 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
                     boxSizing: 'border-box',
                     px: 4,
                     gap: 2.5,
-                    borderLeft: 4,
-                    borderLeftStyle: 'solid',
-                    borderLeftColor: 'transparent',
                     '&:hover': { bgcolor: 'transparent' },
                     '&:hover .nav-icon': { transform: 'scale(1.1)', opacity: 1 },
                   }}
                 >
-                  <Box sx={{ width: 32, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+                  <Box sx={{ width: 36, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
                     <Badge badgeContent={count} color="error" max={99} overlap="circular">
-                      <Icon
+                      <PngIcon
+                        name={entry.icon}
+                        size={32}
                         className="nav-icon"
                         sx={{
-                          fontSize: 26,
-                          color: isActive ? 'primary.main' : 'text.secondary',
-                          opacity: isActive ? 1 : 0.7,
+                          opacity: isActive ? 1 : 0.8,
                           transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                          transition: `transform ${motion.flyInMs}ms ${motion.ease}, color ${motion.flyInMs}ms, opacity ${motion.flyInMs}ms`,
+                          transition: `transform ${motion.flyInMs}ms ${motion.ease}, opacity ${motion.flyInMs}ms`,
                         }}
                       />
                     </Badge>

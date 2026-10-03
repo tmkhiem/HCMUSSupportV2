@@ -41,9 +41,9 @@ export default function DevLoginPanel() {
       onSubmit={submit}
       data-testid="dev-login"
       spacing={1}
-      sx={{ width: '100%', mt: 3, p: 1.5, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}
+      sx={{ width: '100%', mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}
     >
-      <SectionLabel sx={{ fontSize: 10, opacity: 0.6 }}>Đăng nhập thử (dev)</SectionLabel>
+      <SectionLabel sx={{ fontSize: 13, opacity: 0.6 }}>Đăng nhập thử (dev)</SectionLabel>
       {error && (
         <Alert severity="error" sx={{ py: 0 }}>
           {error}

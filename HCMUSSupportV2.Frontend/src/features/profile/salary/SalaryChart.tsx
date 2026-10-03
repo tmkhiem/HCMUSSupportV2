@@ -35,7 +35,7 @@ export default function SalaryChart({ history, index }: { history: SalaryEntry[]
               data: points.map((p) => p.date),
               valueFormatter: (v: Date, ctx: { location: string }) =>
                 ctx.location === 'tick' ? formatDate(v, 'year') : formatDate(v),
-              tickLabelStyle: { fontSize: 11 },
+              tickLabelStyle: { fontSize: 13 },
             },
           ]}
           yAxis={[{ min: 0, valueFormatter: (v: number) => formatDecimal(v, 1), width: 44 }]}

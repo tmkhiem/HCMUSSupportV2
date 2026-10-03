@@ -1,4 +1,3 @@
-import SearchOutlined from '@mui/icons-material/SearchOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
@@ -17,6 +16,7 @@ import { errorMessage } from '../../ui/errorMessage'
 import PageHeader from '../../ui/PageHeader'
 import { rolesClient, viewAsClient } from './clients'
 import { useDebounced } from '../../lib/useDebounced'
+import PngIcon from '../../ui/PngIcon'
 
 export function Component() {
   const qc = useQueryClient()
@@ -71,7 +71,7 @@ export function Component() {
                 placeholder="MSCB hoặc họ tên"
                 slotProps={{
                   ...params.slotProps,
-                  input: { ...params.slotProps.input, startAdornment: <><SearchOutlined fontSize="small" sx={{ mr: 1 }} />{params.slotProps.input.startAdornment}</> },
+                  input: { ...params.slotProps.input, startAdornment: <><PngIcon name="search" size={20} sx={{ mr: 1 }} />{params.slotProps.input.startAdornment}</> },
                 }}
               />
             )}

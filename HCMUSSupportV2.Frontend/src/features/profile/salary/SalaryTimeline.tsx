@@ -11,7 +11,7 @@ import { salaryStepLabel } from '../careerFormat'
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <Box sx={{ minWidth: 0 }}>
-      <SectionLabel sx={{ fontSize: 10 }}>{label}</SectionLabel>
+      <SectionLabel sx={{ fontSize: 13 }}>{label}</SectionLabel>
       <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
         {value}
       </Typography>
@@ -55,9 +55,7 @@ export default function SalaryTimeline({ history, index }: { history: SalaryEntr
                     width: 16,
                     height: 16,
                     borderRadius: '50%',
-                    border: 3,
-                    borderColor: 'primary.main',
-                    bgcolor: first ? 'primary.main' : 'background.paper',
+                    bgcolor: first ? 'primary.main' : (t) => alpha(t.palette.primary.main, 0.45),
                   }}
                 />
               </Box>

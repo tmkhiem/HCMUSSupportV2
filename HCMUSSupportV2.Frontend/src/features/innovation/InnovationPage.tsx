@@ -1,5 +1,4 @@
 import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
-import SearchOutlined from '@mui/icons-material/SearchOutlined'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
@@ -18,6 +17,7 @@ import { recognitionYear, typeLabel } from './innovationFormat'
 import InnovationDialog from './InnovationDialog'
 import InnovationStats from './InnovationStats'
 import { useInnovations } from './innovationApi'
+import PngIcon from '../../ui/PngIcon'
 
 function useDebounced(value: string, ms: number) {
   const [debounced, setDebounced] = useState(value)
@@ -79,7 +79,7 @@ export function Component() {
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchOutlined fontSize="small" />
+                      <PngIcon name="search" size={20} />
                     </InputAdornment>
                   ),
                 },

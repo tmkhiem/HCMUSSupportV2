@@ -74,7 +74,7 @@ export default function AppLayout() {
           bgcolor: 'background.paper',
           px: 2,
           py: 1,
-          borderRadius: 1,
+          borderRadius: 999,
           '&:focus': { top: 8 },
         }}
       >
@@ -97,8 +97,6 @@ export default function AppLayout() {
               width: sidebarWidth,
               boxSizing: 'border-box',
               border: 'none',
-              borderRight: 1,
-              borderColor: 'grey.100',
               boxShadow: '6px 0 32px -12px rgba(0,0,0,.22)',
               background: theme.custom.sidebar.gradient,
             },
@@ -143,8 +141,6 @@ export default function AppLayout() {
               px: 3,
               gap: 2,
               bgcolor: '#fff',
-              borderBottom: 1,
-              borderColor: 'grey.100',
               boxShadow: '0 1px 2px rgba(0,0,0,.05)',
               position: 'relative',
               zIndex: 50,
@@ -153,7 +149,7 @@ export default function AppLayout() {
             <IconButton aria-label="Mở menu" edge="start" onClick={() => setDrawerOpen(true)}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="sectionLabel" noWrap sx={{ flex: 1, textAlign: 'center', color: 'text.primary', fontSize: 12 }}>
+            <Typography variant="sectionLabel" noWrap sx={{ flex: 1, textAlign: 'center', color: 'text.primary', fontSize: 15 }}>
               {title ?? APP_NAME}
             </Typography>
             <AccountMenu size={40} />

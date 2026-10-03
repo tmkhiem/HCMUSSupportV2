@@ -86,7 +86,7 @@ export default function AccountMenu({ size = 44 }: { size?: number }) {
         slotProps={{ paper: { sx: { mt: 1.5, width: 264, overflow: 'hidden' } } }}
       >
         <Box sx={{ px: 2.5, py: 2 }}>
-          <Typography noWrap title={me.fullName} sx={{ fontSize: 14, color: 'text.primary', fontWeight: 600 }}>
+          <Typography noWrap title={me.fullName} sx={{ fontSize: 15, color: 'text.primary', fontWeight: 600 }}>
             {me.fullName}
           </Typography>
           <Typography noWrap variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
@@ -99,7 +99,7 @@ export default function AccountMenu({ size = 44 }: { size?: number }) {
           </Stack>
         </Box>
         <Divider sx={{ mx: 2.5 }} />
-        <SectionLabel sx={{ px: 2.5, py: 1.5, fontSize: 10, opacity: 0.75 }}>
+        <SectionLabel sx={{ px: 2.5, py: 1.5, fontSize: 13, opacity: 0.75 }}>
           Phiên bản {info.data?.version ?? '—'}
         </SectionLabel>
         <Divider sx={{ mx: 2.5 }} />

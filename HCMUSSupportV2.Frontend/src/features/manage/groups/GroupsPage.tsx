@@ -1,6 +1,5 @@
 import AddOutlined from '@mui/icons-material/AddOutlined'
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined'
-import SearchOutlined from '@mui/icons-material/SearchOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -37,6 +36,7 @@ import { KIND_LABELS } from './groupKinds'
 import RuleBuilder from './RuleBuilder'
 import { emptyModel, modelComplete, ruleErrors, toRule } from './ruleModel'
 import type { RuleModel } from './ruleModel'
+import PngIcon from '../../../ui/PngIcon'
 
 const KIND_FILTERS = [
   { value: '', label: 'Tất cả' },
@@ -133,7 +133,7 @@ export function Component() {
             label="Tìm nhóm"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlined fontSize="small" /></InputAdornment> } }}
+            slotProps={{ input: { startAdornment: <InputAdornment position="start"><PngIcon name="search" size={20} /></InputAdornment> } }}
           />
           <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }} role="group" aria-label="Lọc theo loại">
             {KIND_FILTERS.map((f) => (

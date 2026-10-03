@@ -16,7 +16,7 @@ const chipSx = {
   cursor: 'default',
   userSelect: 'none',
   fontWeight: 600,
-  fontSize: '0.8125rem',
+  fontSize: '0.875rem',
 } as const
 
 /**

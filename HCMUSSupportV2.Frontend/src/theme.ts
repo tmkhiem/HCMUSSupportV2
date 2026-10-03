@@ -6,14 +6,20 @@
  * ad-hoc `sx`. Raw numbers live in `theme.custom` so shell code and pages share one source.
  */
 import { alpha, createTheme, keyframes } from '@mui/material/styles'
-import type { CSSProperties } from '@mui/material/styles'
+import type { CSSProperties, Theme } from '@mui/material/styles'
+import type {} from '@mui/x-date-pickers/themeAugmentation'
 
 export const PRIMARY = '#303F9F'
 const SECONDARY = '#ECEFF1'
 const TEXT_PRIMARY = '#263238'
 const TEXT_SECONDARY = '#546E7A'
 const BACKGROUND = '#F5F7F9'
-const GREY_100 = '#F5F5F5'
+
+/** Corner radii: `shape.borderRadius` for small surfaces, `CARD` for cards/papers, `DIALOG` for dialogs, `PILL` for controls. */
+const RADIUS = 16
+const CARD = 20
+const DIALOG = 28
+const PILL = 999
 
 const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)'
 
@@ -26,7 +32,7 @@ const ACRYLIC_BG = alpha('#fff', 0.4)
 const ACRYLIC_DARK_BG = alpha(TEXT_PRIMARY, 0.5)
 
 export interface CustomTokens {
-  acrylic: { background: string; darkBackground: string; backdropFilter: string; border: string }
+  acrylic: { background: string; darkBackground: string; backdropFilter: string }
   shadow: { blocky: string; blockyHover: string }
   motion: { ease: string; flyInMs: number; staggerMs: number; dialogMs: number; flyInDistance: string }
   layout: { sidebarWidth: number; navRowHeight: number; topBarHeight: number; avatarSize: number }
@@ -75,7 +81,6 @@ const custom: CustomTokens = {
     background: ACRYLIC_BG,
     darkBackground: ACRYLIC_DARK_BG,
     backdropFilter: ACRYLIC_BLUR,
-    border: `1px solid ${GREY_100}`,
   },
   shadow: { blocky: BLOCKY_SHADOW, blockyHover: BLOCKY_SHADOW_HOVER },
   motion: { ease: EASE_OUT, flyInMs: 300, staggerMs: 50, dialogMs: 250, flyInDistance: '10rem' },
@@ -83,8 +88,8 @@ const custom: CustomTokens = {
   sidebar: {
     gradient: 'radial-gradient(circle at top right, #fafcfc, #E3F2FD)',
     glow: '0 0 12px rgba(255,255,255,.9), 0 0 4px rgba(255,255,255,.4)',
-    sunkenBackground: '#F0F2F5',
-    sunkenShadow: 'inset 2px 2px 4px rgba(0,0,0,.05)',
+    sunkenBackground: alpha(PRIMARY, 0.12),
+    sunkenShadow: 'none',
   },
 }
 
@@ -93,13 +98,16 @@ const dialogZoomIn = keyframes`
   to   { opacity: 1; transform: scale(1); }
 `
 
+/** Labels, nav items and small headings: normal case, bold. Only chips are set in capitals. */
 const sectionLabel: CSSProperties = {
-  fontSize: 11,
-  fontWeight: 900,
+  fontSize: 14,
+  fontWeight: 700,
   lineHeight: 1.45,
-  textTransform: 'uppercase',
-  letterSpacing: '0.15em',
+  letterSpacing: '0.01em',
 }
+
+/** Palette colours that Chip and Button `outlined` get a tinted (borderless) look for. */
+const TINT_COLORS = ['primary', 'secondary', 'error', 'info', 'success', 'warning'] as const
 
 export const theme = createTheme({
   custom,
@@ -110,7 +118,7 @@ export const theme = createTheme({
     text: { primary: TEXT_PRIMARY, secondary: TEXT_SECONDARY },
     background: { default: BACKGROUND, paper: '#fff' },
   },
-  shape: { borderRadius: 5 },
+  shape: { borderRadius: RADIUS },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     fontWeightLight: 300,
@@ -122,13 +130,13 @@ export const theme = createTheme({
     h3: { fontWeight: 700 },
     h4: { fontWeight: 700 },
     h5: { fontWeight: 700, letterSpacing: '-0.01em' },
-    h6: { fontWeight: 700 },
-    subtitle1: { fontWeight: 600 },
-    subtitle2: { fontWeight: 700 },
-    body1: { fontSize: '0.925rem' },
-    body2: { fontSize: '0.85rem' },
-    caption: { fontSize: '0.75rem' },
-    button: { fontWeight: 700, textTransform: 'none', letterSpacing: 0 },
+    h6: { fontWeight: 700, fontSize: '1.3rem' },
+    subtitle1: { fontWeight: 600, fontSize: '1.0625rem' },
+    subtitle2: { fontWeight: 700, fontSize: '0.9375rem' },
+    body1: { fontSize: '1rem' },
+    body2: { fontSize: '0.9375rem' },
+    caption: { fontSize: '0.8125rem' },
+    button: { fontWeight: 700, fontSize: '0.9375rem', textTransform: 'none', letterSpacing: 0 },
     overline: sectionLabel,
     sectionLabel,
   },
@@ -161,7 +169,11 @@ export const theme = createTheme({
 
     MuiPaper: {
       defaultProps: { elevation: 0 },
-      styleOverrides: { rounded: { borderRadius: 5 } },
+      styleOverrides: {
+        rounded: { borderRadius: CARD },
+        // No outlines anywhere: an "outlined" paper is a quietly tinted surface.
+        outlined: { border: 'none', backgroundColor: alpha(PRIMARY, 0.05) },
+      },
       variants: [
         {
           props: { variant: 'acrylic' },
@@ -170,7 +182,6 @@ export const theme = createTheme({
             backgroundColor: t.custom.acrylic.background,
             backdropFilter: t.custom.acrylic.backdropFilter,
             WebkitBackdropFilter: t.custom.acrylic.backdropFilter,
-            border: t.custom.acrylic.border,
             boxShadow: t.custom.shadow.blocky,
             transition: `box-shadow ${t.custom.motion.flyInMs}ms ${t.custom.motion.ease}, transform ${t.custom.motion.flyInMs}ms ${t.custom.motion.ease}, background-color ${t.custom.motion.flyInMs}ms`,
             '&[data-interactive="true"]': {
@@ -194,7 +205,7 @@ export const theme = createTheme({
 
     MuiCard: {
       defaultProps: { variant: 'acrylic' },
-      styleOverrides: { root: { overflow: 'hidden' } },
+      styleOverrides: { root: { overflow: 'hidden', borderRadius: CARD } },
     },
 
     MuiCardContent: {
@@ -212,7 +223,7 @@ export const theme = createTheme({
           },
         },
         paper: {
-          borderRadius: 5,
+          borderRadius: DIALOG,
           backgroundColor: alpha('#fff', 0.92),
           backdropFilter: 'blur(16px) saturate(125%)',
           WebkitBackdropFilter: 'blur(16px) saturate(125%)',
@@ -222,7 +233,8 @@ export const theme = createTheme({
         },
       },
     },
-    MuiDialogTitle: { styleOverrides: { root: { fontWeight: 700 } } },
+    MuiDialogTitle: { styleOverrides: { root: { fontWeight: 700, fontSize: '1.25rem' } } },
+    MuiDialogContent: { styleOverrides: { dividers: { borderTop: 'none', borderBottom: 'none' } } },
 
     MuiBackdrop: {
       variants: [
@@ -239,27 +251,28 @@ export const theme = createTheme({
 
     MuiDrawer: {
       styleOverrides: {
-        paper: { borderRadius: 0 },
+        paper: { borderRadius: 0, '&.MuiDrawer-paperAnchorLeft': { borderRadius: `0 ${DIALOG}px ${DIALOG}px 0` } },
       },
     },
 
     MuiPopover: {
       styleOverrides: {
         paper: {
-          borderRadius: 5,
+          borderRadius: CARD,
           backgroundColor: alpha('#fff', 0.72),
           backdropFilter: ACRYLIC_BLUR,
           WebkitBackdropFilter: ACRYLIC_BLUR,
-          border: `1px solid ${GREY_100}`,
           boxShadow: BLOCKY_SHADOW,
         },
       },
     },
-    MuiMenuItem: { styleOverrides: { root: { fontSize: '0.875rem' } } },
+    MuiMenu: { styleOverrides: { list: { padding: 6 } } },
+    MuiMenuItem: { styleOverrides: { root: { fontSize: '0.9375rem', borderRadius: 14 } } },
+    MuiListItemButton: { styleOverrides: { root: { borderRadius: 14 } } },
 
     MuiTooltip: {
       styleOverrides: {
-        tooltip: { backgroundColor: TEXT_PRIMARY, borderRadius: 3, fontSize: 12, fontWeight: 500 },
+        tooltip: { backgroundColor: TEXT_PRIMARY, borderRadius: 10, fontSize: 13, fontWeight: 500 },
         arrow: { color: TEXT_PRIMARY },
       },
     },
@@ -267,30 +280,75 @@ export const theme = createTheme({
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
-        root: { borderRadius: 3, fontWeight: 700 },
-        sizeLarge: { minHeight: 44 },
+        root: { borderRadius: PILL, fontWeight: 700 },
+        sizeSmall: { fontSize: '0.875rem' },
+        sizeLarge: { minHeight: 48, fontSize: '1rem' },
+      },
+      variants: [
+        // "Outlined" is a tinted solid pill: no border, same padding as the other variants.
+        {
+          props: { variant: 'outlined' },
+          style: { border: 'none', padding: '6px 16px', '&.Mui-disabled': { border: 'none', backgroundColor: alpha(TEXT_PRIMARY, 0.06) } },
+        },
+        { props: { variant: 'outlined', size: 'small' }, style: { padding: '4px 12px' } },
+        { props: { variant: 'outlined', size: 'large' }, style: { padding: '8px 24px' } },
+        { props: { variant: 'outlined', color: 'inherit' }, style: { backgroundColor: alpha(TEXT_PRIMARY, 0.07), '&:hover': { border: 'none', backgroundColor: alpha(TEXT_PRIMARY, 0.12) } } },
+        ...TINT_COLORS.map((color) => ({
+          props: { variant: 'outlined' as const, color },
+          style: ({ theme: t }: { theme: Theme }) => ({
+            backgroundColor: alpha(t.palette[color].main, 0.1),
+            '&:hover': { border: 'none', backgroundColor: alpha(t.palette[color].main, 0.18) },
+          }),
+        })),
+      ],
+    },
+    MuiIconButton: { styleOverrides: { root: { borderRadius: '50%' } } },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: PILL,
+          border: 'none',
+          fontWeight: 700,
+          textTransform: 'none',
+          fontSize: '0.9375rem',
+          backgroundColor: alpha(TEXT_PRIMARY, 0.06),
+          '&.Mui-selected': { backgroundColor: alpha(PRIMARY, 0.16), color: PRIMARY, '&:hover': { backgroundColor: alpha(PRIMARY, 0.22) } },
+        },
       },
     },
-    MuiIconButton: { styleOverrides: { root: { borderRadius: 3 } } },
-    MuiToggleButton: { styleOverrides: { root: { borderRadius: 3, fontWeight: 700, textTransform: 'none' } } },
+    MuiToggleButtonGroup: {
+      styleOverrides: { grouped: { border: 'none', '&:not(:first-of-type)': { borderRadius: PILL, marginLeft: 4 }, '&:not(:last-of-type)': { borderRadius: PILL } } },
+    },
 
     MuiChip: {
       styleOverrides: {
-        root: { borderRadius: 999, fontWeight: 700 },
-        sizeSmall: { fontSize: '0.7rem', height: 22 },
+        root: { borderRadius: PILL, fontWeight: 700, fontSize: '0.9375rem' },
+        sizeSmall: { fontSize: '0.8125rem', height: 26 },
       },
       variants: [
+        // "Outlined" is a tinted solid: no border, the tint of its colour behind coloured text.
+        {
+          props: { variant: 'outlined' },
+          style: { border: 'none', backgroundColor: alpha(TEXT_PRIMARY, 0.08), color: TEXT_PRIMARY, '& .MuiChip-icon': { color: 'inherit' } },
+        },
+        ...TINT_COLORS.map((color) => ({
+          props: { variant: 'outlined' as const, color },
+          style: ({ theme: t }: { theme: Theme }) => ({
+            backgroundColor: alpha(t.palette[color].main, 0.14),
+            color: color === 'warning' || color === 'success' || color === 'info' ? t.palette[color].dark : t.palette[color].main,
+            '&.MuiChip-clickable:hover': { backgroundColor: alpha(t.palette[color].main, 0.22) },
+          }),
+        })),
         {
           props: { variant: 'tag' },
           style: {
-            height: 22,
-            fontSize: '0.7rem',
+            height: 26,
+            fontSize: '0.75rem',
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
             color: PRIMARY,
-            backgroundColor: alpha(PRIMARY, 0.1),
-            border: `1px solid ${alpha(PRIMARY, 0.5)}`,
+            backgroundColor: alpha(PRIMARY, 0.12),
           },
         },
       ],
@@ -298,29 +356,86 @@ export const theme = createTheme({
 
     MuiAvatar: { styleOverrides: { root: { fontWeight: 700 } } },
 
-    MuiAlert: { styleOverrides: { root: { borderRadius: 3 }, message: { fontSize: '0.875rem' } } },
+    MuiAlert: { styleOverrides: { root: { borderRadius: RADIUS }, message: { fontSize: '0.9375rem' } } },
 
     MuiTextField: { defaultProps: { size: 'small' } },
-    MuiOutlinedInput: {
+    // Fields are solid tinted pills with no outline. The label sits above the field as a caption (UI-STYLE-GUIDE §4.6),
+    // so there is no notch and the placeholder is always visible.
+    MuiInputLabel: {
+      defaultProps: { shrink: true },
       styleOverrides: {
-        root: { borderRadius: 3, backgroundColor: alpha('#fff', 0.6) },
-        notchedOutline: { borderColor: alpha(TEXT_PRIMARY, 0.12) },
+        root: {
+          position: 'static',
+          transform: 'none',
+          maxWidth: '100%',
+          pointerEvents: 'auto',
+          marginBottom: 6,
+          paddingLeft: 16,
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          color: TEXT_SECONDARY,
+          '&.Mui-focused': { color: PRIMARY },
+          '&.Mui-error': { color: '#d32f2f' },
+        },
       },
     },
-    MuiInputLabel: { styleOverrides: { root: { fontWeight: 600 } } },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: PILL,
+          backgroundColor: alpha(TEXT_PRIMARY, 0.06),
+          transition: 'background-color 200ms',
+          '&:hover': { backgroundColor: alpha(TEXT_PRIMARY, 0.09) },
+          '&.Mui-focused': { backgroundColor: alpha(PRIMARY, 0.1) },
+          '&.Mui-error': { backgroundColor: alpha('#d32f2f', 0.08) },
+          '&.Mui-disabled': { backgroundColor: alpha(TEXT_PRIMARY, 0.04) },
+        },
+        input: {
+          paddingLeft: 20,
+          paddingRight: 20,
+          '&.MuiInputBase-inputAdornedStart': { paddingLeft: 0 },
+          '&.MuiInputBase-inputAdornedEnd': { paddingRight: 0 },
+        },
+        adornedStart: { paddingLeft: 18 },
+        adornedEnd: { paddingRight: 12 },
+        multiline: { borderRadius: CARD, padding: '12px 20px' },
+        notchedOutline: { border: 'none', '& legend': { display: 'none' } },
+      },
+    },
+    // Date fields (MUI X) draw their own outline: same borderless tinted pill as the text fields.
+    MuiPickersOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: PILL,
+          backgroundColor: alpha(TEXT_PRIMARY, 0.06),
+          transition: 'background-color 200ms',
+          '&:hover': { backgroundColor: alpha(TEXT_PRIMARY, 0.09) },
+          '&.Mui-focused': { backgroundColor: alpha(PRIMARY, 0.1) },
+          '&.Mui-error': { backgroundColor: alpha('#d32f2f', 0.08) },
+          '&.Mui-disabled': { backgroundColor: alpha(TEXT_PRIMARY, 0.04) },
+        },
+        sectionsContainer: { paddingLeft: 20 },
+        notchedOutline: { border: 'none', '& legend': { display: 'none' } },
+      },
+    },
+    MuiSelect: { defaultProps: { displayEmpty: true } },
+    MuiAutocomplete: { styleOverrides: { inputRoot: { borderRadius: 28, paddingLeft: 16 } } },
 
-    MuiTabs: { styleOverrides: { indicator: { height: 3, borderRadius: '3px 3px 0 0' } } },
-    MuiTab: { styleOverrides: { root: { fontWeight: 700, textTransform: 'none' } } },
+    MuiTabs: { styleOverrides: { indicator: { height: 4, borderRadius: PILL } } },
+    MuiTab: { styleOverrides: { root: { fontWeight: 700, fontSize: '0.9375rem', textTransform: 'none' } } },
 
+    MuiAccordion: { styleOverrides: { root: { borderRadius: CARD, '&::before': { display: 'none' }, '&:first-of-type, &:last-of-type': { borderRadius: CARD } } } },
+
+    MuiTableContainer: { styleOverrides: { root: { borderRadius: CARD } } },
     MuiTableCell: {
       styleOverrides: {
         // The one place table headers are styled (style guide §4.5): primary background, white 700 text.
-        head: { backgroundColor: PRIMARY, color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' },
+        head: { backgroundColor: PRIMARY, color: '#fff', fontWeight: 700, whiteSpace: 'nowrap', fontSize: '0.9375rem' },
         stickyHeader: { backgroundColor: PRIMARY },
-        root: { borderBottomColor: alpha(TEXT_PRIMARY, 0.08) },
+        root: { borderBottomColor: alpha(TEXT_PRIMARY, 0.06) },
       },
     },
-    MuiLinearProgress: { styleOverrides: { root: { borderRadius: 3 } } },
+    MuiLinearProgress: { styleOverrides: { root: { borderRadius: PILL } } },
     MuiDivider: { styleOverrides: { root: { borderColor: alpha(TEXT_PRIMARY, 0.08) } } },
   },
 })

@@ -1,5 +1,4 @@
 import CloseOutlined from '@mui/icons-material/CloseOutlined'
-import SearchOutlined from '@mui/icons-material/SearchOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -34,6 +33,7 @@ import { rolesClient } from './clients'
 import { formatDateTime } from '../../lib/format'
 import { useDebounced } from '../../lib/useDebounced'
 import LoadMore from './LoadMore'
+import PngIcon from '../../ui/PngIcon'
 
 const STATUS_LABELS: Record<string, string> = { active: 'Đang làm việc', inactive: 'Ngưng hoạt động', retired: 'Đã nghỉ hưu' }
 
@@ -156,7 +156,7 @@ export function Component() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           sx={{ flex: 1 }}
-          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlined fontSize="small" /></InputAdornment> } }}
+          slotProps={{ input: { startAdornment: <InputAdornment position="start"><PngIcon name="search" size={20} /></InputAdornment> } }}
         />
         <TextField select size="small" label="Quyền" value={role} onChange={(e) => setRole(e.target.value)} sx={{ minWidth: 180 }}>
           <MenuItem value="">Tất cả</MenuItem>

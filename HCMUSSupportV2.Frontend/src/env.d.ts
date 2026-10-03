@@ -5,6 +5,9 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_AUTH?: string
 }
 
+/** Content hash of `public/bg-logo.svg` (vite.config.ts), appended as `?v=` so a replaced logo is never served from a stale cache. */
+declare const __BG_LOGO_VERSION__: string
+
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }

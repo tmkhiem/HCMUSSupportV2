@@ -51,7 +51,7 @@ export default function ViewAsBar({ actingAs, onExit }: ViewAsBarProps) {
             setBusy(false)
           }
         }}
-        sx={{ flexShrink: 0, py: 0, bgcolor: 'rgba(255,255,255,.5)', borderColor: 'rgba(0,0,0,.4)' }}
+        sx={{ flexShrink: 0, py: 0, bgcolor: 'rgba(255,255,255,.6)' }}
       >
         Thoát
       </Button>

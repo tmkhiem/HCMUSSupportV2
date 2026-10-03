@@ -59,7 +59,7 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
             component="h3"
             noWrap
             title={item.title}
-            sx={{ fontSize: '0.95rem', fontWeight: 700, minWidth: 0, flex: 1 }}
+            sx={{ fontSize: '1rem', fontWeight: 700, minWidth: 0, flex: 1 }}
           >
             <Box
               component={RouterLink}
@@ -71,10 +71,10 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
           </Typography>
         </Stack>
         <Stack direction="row" sx={{ mt: 0.75, flexWrap: 'wrap', alignItems: 'center', gap: 0.75, color: 'text.secondary' }}>
-          {item.seriesName && <Chip size="small" variant="outlined" label={item.seriesName} sx={{ bgcolor: 'common.white' }} />}
+          {item.seriesName && <Chip size="small" variant="outlined" label={item.seriesName} />}
           {firstTag && <Chip size="small" variant="tag" label={firstTag.name} />}
           {otherTags.length > 0 && (
-            <Chip size="small" variant="outlined" label={`+${otherTags.length}`} title={otherTags.map((t) => t.name).join(', ')} sx={{ bgcolor: 'common.white' }} />
+            <Chip size="small" variant="outlined" label={`+${otherTags.length}`} title={otherTags.map((t) => t.name).join(', ')} />
           )}
           {item.requiresAck && <Chip size="small" color="warning" variant="outlined" label="Cần xác nhận" />}
           <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums', ml: 0.5 }}>
@@ -94,7 +94,7 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
                 {item.readPercent.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%
               </Typography>
             </Box>
-            <LinearProgress variant="determinate" value={Math.min(100, item.readPercent)} aria-label={`Tỷ lệ đã đọc ${item.readPercent}%`} sx={{ height: 6, borderRadius: 3 }} />
+            <LinearProgress variant="determinate" value={Math.min(100, item.readPercent)} aria-label={`Tỷ lệ đã đọc ${item.readPercent}%`} sx={{ height: 6, borderRadius: 999 }} />
           </>
         ) : (
           <Typography variant="caption" color="text.secondary">

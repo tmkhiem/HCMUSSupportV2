@@ -33,9 +33,7 @@ function Count({ label, value, tone, testId }: CountProps) {
       sx={{
         p: 1.5,
         borderRadius: 1,
-        border: 1,
-        borderColor: (t) => (value > 0 && tone ? alpha(t.palette[tone].main, 0.4) : t.palette.divider),
-        bgcolor: (t) => (value > 0 && tone ? alpha(t.palette[tone].main, 0.08) : 'transparent'),
+        bgcolor: (t) => (value > 0 && tone ? alpha(t.palette[tone].main, 0.12) : alpha(t.palette.text.primary, 0.05)),
       }}
     >
       <SectionLabel noWrap>{label}</SectionLabel>

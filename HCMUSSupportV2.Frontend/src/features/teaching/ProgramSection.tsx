@@ -1,6 +1,4 @@
-import AccessTimeOutlined from '@mui/icons-material/AccessTimeOutlined'
 import ClassOutlined from '@mui/icons-material/ClassOutlined'
-import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -9,6 +7,7 @@ import StatCard from '../../ui/StatCard'
 import type { TeachingProgram } from './teachingApi'
 import { formatHours, moduleLabel, orderedModules, orderedTerms, programLabel, termLabel } from './teachingFormat'
 import TeachingGroup from './TeachingGroup'
+import PngIcon from '../../ui/PngIcon'
 
 /**
  * One training program: its heading, its own three stat cards (giờ chuẩn, số lớp, số môn) and its groups. Đại học groups
@@ -31,13 +30,13 @@ export default function ProgramSection({ program, year, index }: { program: Teac
       >
         <StatCard
           index={index}
-          icon={<AccessTimeOutlined color="primary" />}
+          icon={<PngIcon name="clock" size={28} />}
           label="Giờ quy đổi"
           value={formatHours(stats.totalStandardHours)}
           hint={`Năm học ${year}`}
         />
         <StatCard index={index + 1} icon={<ClassOutlined color="primary" />} label="Số lớp" value={formatNumber(stats.classes)} />
-        <StatCard index={index + 2} icon={<MenuBookOutlined color="primary" />} label="Số môn" value={formatNumber(stats.courses)} />
+        <StatCard index={index + 2} icon={<PngIcon name="book-open" size={28} />} label="Số môn" value={formatNumber(stats.courses)} />
       </Box>
       <Stack sx={{ mt: 2.5, gap: 3 }}>
         {terms.map((term, i) => (
