@@ -1,7 +1,14 @@
 namespace HCMUSSupportV2.Backend.Modules.Admin.EmployeeEmails;
 
-/// <summary>One mapped email. <c>HrmConflict</c> is true when the address is the HRM personal email of a different employee.</summary>
-public record ManagedEmailDto(string Email, bool IsPrimary, string? Note, string? AddedBy, DateTimeOffset AddedAt, bool HrmConflict);
+/// <summary>The employee whose HRM personal email equals a mapped address.</summary>
+public record HrmConflictOwnerDto(string Code, string FullName);
+
+/// <summary>
+/// One mapped email. <c>HrmConflict</c> is true when the address is the HRM personal email of a different employee
+/// (and an editor has not accepted it); <c>HrmConflictOwners</c> lists those employees.
+/// </summary>
+public record ManagedEmailDto(string Email, bool IsPrimary, string? Note, string? AddedBy, DateTimeOffset AddedAt, bool HrmConflict,
+    IReadOnlyList<HrmConflictOwnerDto> HrmConflictOwners);
 
 /// <summary>One row of the directory: the person, their unit and every mapped email.</summary>
 public record ManagedEmployeeDto(
@@ -59,5 +66,6 @@ public static class EmployeeEmailAuditActions
     public const string Added = "employee_email.added";
     public const string Removed = "employee_email.removed";
     public const string PrimarySet = "employee_email.primary_set";
+    public const string ConflictAccepted = "employee_email.hrm_conflict_accepted";
     public const string Imported = "employee_email.imported";
 }

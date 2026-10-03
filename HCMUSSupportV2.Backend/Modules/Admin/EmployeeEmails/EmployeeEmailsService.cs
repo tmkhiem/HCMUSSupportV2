@@ -103,9 +103,9 @@ public partial class EmployeeEmailsService(
             list.Any(m => m.HrmConflict));
     }
 
-    /// <summary>Mapped emails that equal the HRM personal email of a different employee.</summary>
+    /// <summary>Mapped emails that equal the HRM personal email of a different employee and were not accepted by an editor.</summary>
     private IQueryable<EmployeeEmail> ConflictingEmails() =>
-        db.Set<EmployeeEmail>().Where(m => db.Set<EmployeeProfile>().Any(p =>
+        db.Set<EmployeeEmail>().Where(m => m.HrmConflictAcceptedAt == null && db.Set<EmployeeProfile>().Any(p =>
             p.EmployeeCode != m.EmployeeCode && p.PersonalEmail != null && p.PersonalEmail.ToLower() == m.Email.ToLower()));
 
     private async Task<Dictionary<string, List<ManagedEmailDto>>> LoadEmailsAsync(IReadOnlyCollection<string> codes, CancellationToken ct)
@@ -114,8 +114,30 @@ public partial class EmployeeEmailsService(
             .OrderByDescending(m => m.IsPrimary).ThenBy(m => m.AddedAt).ThenBy(m => m.Email).ToListAsync(ct);
         var conflicts = (await ConflictingEmails().Where(m => codes.Contains(m.EmployeeCode)).Select(m => m.Email).ToListAsync(ct))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Who owns each conflicting address in HRM (lower-cased address to people).
+        var owners = new Dictionary<string, List<HrmConflictOwnerDto>>(StringComparer.OrdinalIgnoreCase);
+        if (conflicts.Count > 0)
+        {
+            var lowered = conflicts.Select(c => c.ToLowerInvariant()).ToList();
+            var found = await (
+                from p in db.Set<EmployeeProfile>().AsNoTracking()
+                where p.PersonalEmail != null && lowered.Contains(p.PersonalEmail.ToLower())
+                join e in db.Set<Employee>().AsNoTracking() on p.EmployeeCode equals e.Code
+                orderby e.Code
+                select new { p.EmployeeCode, Email = p.PersonalEmail!, e.FullName }).ToListAsync(ct);
+            foreach (var f in found)
+            {
+                if (!owners.TryGetValue(f.Email, out var list)) owners[f.Email] = list = [];
+                list.Add(new HrmConflictOwnerDto(f.EmployeeCode, f.FullName));
+            }
+        }
+
         return rows.GroupBy(m => m.EmployeeCode).ToDictionary(g => g.Key,
-            g => g.Select(m => new ManagedEmailDto(m.Email, m.IsPrimary, m.Note, m.AddedBy, m.AddedAt, conflicts.Contains(m.Email))).ToList());
+            g => g.Select(m => new ManagedEmailDto(m.Email, m.IsPrimary, m.Note, m.AddedBy, m.AddedAt, conflicts.Contains(m.Email),
+                conflicts.Contains(m.Email) && owners.TryGetValue(m.Email, out var o)
+                    ? o.Where(x => x.Code != m.EmployeeCode).ToList()
+                    : [])).ToList());
     }
 
     // ---- writes ----
@@ -238,6 +260,34 @@ public partial class EmployeeEmailsService(
         }
 
         if (changed) await audit.LogAsync(EmployeeEmailAuditActions.PrimarySet, "employee", code, new { email }, ct);
+        return (await GetAsync(code, ct))!;
+    }
+
+    /// <summary>
+    /// An editor confirms that the address belongs to this employee although it is another employee's HRM personal email.
+    /// The mapping stays and stops being reported as a conflict. Idempotent.
+    /// </summary>
+    public async Task<ManagedEmployeeDto> AcceptHrmConflictAsync(string code, string rawEmail, CancellationToken ct)
+    {
+        var email = rawEmail.Trim().ToLowerInvariant();
+        var changed = false;
+        await using (var tx = await BeginWriteAsync(ct))
+        {
+            if (!await db.Set<Employee>().AnyAsync(e => e.Code == code, ct)) throw NotFound();
+            var row = (await db.Set<EmployeeEmail>().Where(m => m.EmployeeCode == code).ToListAsync(ct))
+                .FirstOrDefault(m => string.Equals(m.Email, email, StringComparison.OrdinalIgnoreCase))
+                ?? throw new GroupsException(404, "Email not found", "Không tìm thấy email này của cán bộ.");
+            if (row.HrmConflictAcceptedAt is null)
+            {
+                row.HrmConflictAcceptedAt = time.GetUtcNow();
+                row.HrmConflictAcceptedBy = user.Code;
+                await db.SaveChangesAsync(ct);
+                changed = true;
+            }
+            await tx.CommitAsync(ct);
+        }
+
+        if (changed) await audit.LogAsync(EmployeeEmailAuditActions.ConflictAccepted, "employee", code, new { email }, ct);
         return (await GetAsync(code, ct))!;
     }
 

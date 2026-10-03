@@ -189,6 +189,44 @@ public class EmployeeEmailsTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(1, filtered.GetProperty("total").GetInt32());
     }
 
+    [Fact]
+    public async Task A_conflicting_email_names_its_hrm_owner_and_stops_being_flagged_once_accepted()
+    {
+        var editor = await _factory.SignInNewAsync(Roles.Editor);
+        var employee = await _factory.SignInNewAsync();
+        var tag = Tag();
+        var shared = $"keep.{tag}@test.hcmus.local";
+        var mapped = await NewEmployeeAsync([shared], $"Được Gắn {tag}");
+        var hrmOwner = await NewEmployeeAsync([], $"Chủ Hrm {tag}");
+        await _factory.WithDbAsync(async db =>
+        {
+            db.Set<EmployeeProfile>().Add(new EmployeeProfile { EmployeeCode = hrmOwner, PersonalEmail = shared });
+            await db.SaveChangesAsync();
+            return 0;
+        });
+
+        var before = (await (await editor.GetAsync(Url(mapped))).ReadAsync()).GetProperty("emails")[0];
+        Assert.True(before.GetProperty("hrmConflict").GetBoolean());
+        var owner = Assert.Single(before.GetProperty("hrmConflictOwners").EnumerateArray());
+        Assert.Equal(hrmOwner, owner.GetProperty("code").GetString());
+        Assert.Equal($"Chủ Hrm {tag}", owner.GetProperty("fullName").GetString());
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await employee.SendAsync(HttpMethod.Put, EmailUrl(mapped, shared, "/hrm-conflict/accept"))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await editor.SendAsync(HttpMethod.Put, EmailUrl(mapped, "nope@x.vn", "/hrm-conflict/accept"))).StatusCode);
+
+        var accepted = await editor.SendAsync(HttpMethod.Put, EmailUrl(mapped, shared, "/hrm-conflict/accept"));
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+        var body = await accepted.ReadAsync();
+        Assert.False(body.GetProperty("hasHrmConflict").GetBoolean());
+        Assert.False(body.GetProperty("emails")[0].GetProperty("hrmConflict").GetBoolean());
+        Assert.Equal(0, body.GetProperty("emails")[0].GetProperty("hrmConflictOwners").GetArrayLength());
+
+        var flagged = await (await editor.GetAsync($"/api/manage/employees?q={tag}&flagged=true")).ReadAsync();
+        Assert.Equal(0, flagged.GetProperty("total").GetInt32());
+        // Idempotent.
+        Assert.Equal(HttpStatusCode.OK, (await editor.SendAsync(HttpMethod.Put, EmailUrl(mapped, shared, "/hrm-conflict/accept"))).StatusCode);
+    }
+
     // ---- add ----
 
     [Fact]

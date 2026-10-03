@@ -15,4 +15,13 @@ public class EmployeeEmail
     public string? AddedBy { get; set; }
 
     public DateTimeOffset AddedAt { get; set; }
+
+    /// <summary>
+    /// Set when an editor confirmed that this address belongs to this employee although it equals another employee's HRM
+    /// personal email. An accepted mapping is no longer reported as an HRM conflict.
+    /// </summary>
+    public DateTimeOffset? HrmConflictAcceptedAt { get; set; }
+
+    /// <summary>Employee code of the editor who accepted the conflict.</summary>
+    public string? HrmConflictAcceptedBy { get; set; }
 }

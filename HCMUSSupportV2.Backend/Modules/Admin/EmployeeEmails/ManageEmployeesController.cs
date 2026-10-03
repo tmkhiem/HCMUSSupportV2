@@ -71,6 +71,17 @@ public class ManageEmployeesController(EmployeeEmailsService emails, EmployeeEma
         await emails.SetPrimaryAsync(code, email, ct);
 
     /// <summary>
+    /// Confirms that the email belongs to this MSCB although it is another employee's HRM personal email; it stops being
+    /// flagged. To resolve the other way, remove the email. Idempotent.
+    /// </summary>
+    [HttpPut("{code}/emails/{email}/hrm-conflict/accept")]
+    [Authorize(Policy = Policies.ManageEmployeeEmails)]
+    [ProducesResponseType<ManagedEmployeeDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ManagedEmployeeDto> AcceptHrmConflict(string code, string email, CancellationToken ct) =>
+        await emails.AcceptHrmConflictAsync(code, email, ct);
+
+    /// <summary>
     /// Bulk import from an <c>.xlsx</c> or <c>.csv</c> (multipart field <c>file</c>; header columns MSCB, Họ tên, Email 1..).
     /// <c>dryRun=true</c> (default) only reports; upload the same file with <c>dryRun=false</c> to apply. With
     /// <c>removeMissing=true</c> the listed MSCB keep exactly the emails in the file.

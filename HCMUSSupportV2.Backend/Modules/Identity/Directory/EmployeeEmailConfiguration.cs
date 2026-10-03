@@ -15,6 +15,7 @@ public class EmployeeEmailConfiguration : IEntityTypeConfiguration<EmployeeEmail
         b.Property(x => x.Note).HasMaxLength(500);
         b.Property(x => x.AddedBy).HasMaxLength(50);
         b.Property(x => x.AddedAt).HasDefaultValueSql("now()");
+        b.Property(x => x.HrmConflictAcceptedBy).HasMaxLength(50);
 
         b.HasIndex(x => new { x.EmployeeCode, x.AddedAt });
         // At most one primary email per employee (D14c).
