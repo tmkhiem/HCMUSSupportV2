@@ -53,7 +53,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
   if (status === 'unauthenticated') {
     const returnUrl = location.pathname + location.search + location.hash
     const search = returnUrl === '/' ? '' : `?returnUrl=${encodeURIComponent(returnUrl)}`
-    return <Navigate to={`/dang-nhap${search}`} replace />
+    return <Navigate to={`/login${search}`} replace />
   }
   return <>{children}</>
 }

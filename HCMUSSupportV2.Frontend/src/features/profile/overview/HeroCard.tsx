@@ -26,7 +26,7 @@ function ContactLine({ icon, children }: { icon: ReactNode; children: ReactNode 
   )
 }
 
-/** Hero of `/ho-so`: photo, name (the page's h1), MSCB pill, "position — unit", email and phone. */
+/** Hero of `/profile`: photo, name (the page's h1), MSCB pill, "position — unit", email and phone. */
 export default function HeroCard({ hero }: { hero: ProfileHero }) {
   const me = useCurrentUser()
   // While an admin views as someone else, `me.photoUrl` is the admin's: never show it for the viewed person.

@@ -204,7 +204,7 @@ describe('ManageRow', () => {
   it('shows the status, series, first tag plus count, and the recipient count', () => {
     renderRow(item())
     expect(screen.getByTestId('status-chip')).toHaveTextContent('Đã đăng')
-    expect(screen.getByRole('link', { name: 'Mở lớp bồi dưỡng' })).toHaveAttribute('href', '/quan-ly/thong-bao/abc')
+    expect(screen.getByRole('link', { name: 'Mở lớp bồi dưỡng' })).toHaveAttribute('href', '/manage/notifications/abc')
     expect(screen.getByText('Chuỗi A')).toBeInTheDocument()
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.getByText('200 người nhận')).toBeInTheDocument()

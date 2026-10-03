@@ -128,7 +128,7 @@ function Editor({ group }: { group: GroupDto }) {
     mutationFn: () => groupsClient.archive(group.id!),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['groups'] })
-      navigate('/quan-ly/nhom')
+      navigate('/manage/groups')
     },
   })
   const restore = useMutation({
@@ -160,7 +160,7 @@ function Editor({ group }: { group: GroupDto }) {
   return (
     <Stack spacing={3}>
       <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        <Button component={RouterLink} to="/quan-ly/nhom" startIcon={<ArrowBackOutlined />} sx={{ display: { md: 'none' } }}>
+        <Button component={RouterLink} to="/manage/groups" startIcon={<ArrowBackOutlined />} sx={{ display: { md: 'none' } }}>
           Danh sách
         </Button>
         <Typography variant="h6" component="h2" sx={{ overflowWrap: 'anywhere' }}>{group.name}</Typography>

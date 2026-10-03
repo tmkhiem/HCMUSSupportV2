@@ -41,7 +41,7 @@ for (const [label, viewport, suffix] of [
     test.use({ viewport })
 
     test('Quá trình lương: stats, step chart, timeline', async ({ page }) => {
-      await page.goto('/ho-so/luong')
+      await page.goto('/profile/salary')
       await expect(h1(page, 'Quá trình lương')).toBeVisible()
       const stats = page.getByTestId('salary-stats')
       await expect(stats).toContainText('Giảng viên chính (hạng II)')
@@ -55,13 +55,13 @@ for (const [label, viewport, suffix] of [
       await expect(items.first()).toContainText('14/02/2025')
       await expect(items.first()).toContainText('01/03/2025')
       await expect(items.first()).toContainText('Nâng bậc lương thường xuyên.')
-      await expect(page.getByRole('link', { name: 'Hồ sơ cá nhân' }).first()).toHaveAttribute('href', '/ho-so')
+      await expect(page.getByRole('link', { name: 'Hồ sơ cá nhân' }).first()).toHaveAttribute('href', '/profile')
       if (label === 'mobile') await expectNoHorizontalScroll(page)
       await shot(page, `salary-${suffix}`)
     })
 
     test('Chức vụ: timeline with the current position emphasised', async ({ page }) => {
-      await page.goto('/ho-so/chuc-vu')
+      await page.goto('/profile/positions')
       await expect(h1(page, 'Chức vụ')).toBeVisible()
       const timeline = page.getByTestId('position-timeline')
       await expect(timeline.getByRole('listitem')).toHaveCount(3)
@@ -77,7 +77,7 @@ for (const [label, viewport, suffix] of [
     })
 
     test('Khen thưởng: counts, tabs and năm học groups', async ({ page }) => {
-      await page.goto('/ho-so/khen-thuong')
+      await page.goto('/profile/commendations')
       await expect(h1(page, 'Khen thưởng')).toBeVisible()
       await expect(page.getByRole('tab', { name: /Khen thưởng \(5\)/ })).toHaveAttribute('aria-selected', 'true')
       await expect(page.getByRole('tab', { name: /Danh hiệu \(3\)/ })).toBeVisible()
@@ -104,9 +104,9 @@ test.describe('page states', () => {
   test.use({ viewport: DESKTOP })
 
   const pages = [
-    { path: '/ho-so/luong', title: 'Quá trình lương', empty: 'Chưa có thông tin lương.', error: 'Không tải được quá trình lương.' },
-    { path: '/ho-so/chuc-vu', title: 'Chức vụ', empty: 'Chưa có thông tin chức vụ.', error: 'Không tải được danh sách chức vụ.' },
-    { path: '/ho-so/khen-thuong', title: 'Khen thưởng', empty: 'Chưa có thông tin khen thưởng.', error: 'Không tải được danh sách khen thưởng.' },
+    { path: '/profile/salary', title: 'Quá trình lương', empty: 'Chưa có thông tin lương.', error: 'Không tải được quá trình lương.' },
+    { path: '/profile/positions', title: 'Chức vụ', empty: 'Chưa có thông tin chức vụ.', error: 'Không tải được danh sách chức vụ.' },
+    { path: '/profile/commendations', title: 'Khen thưởng', empty: 'Chưa có thông tin khen thưởng.', error: 'Không tải được danh sách khen thưởng.' },
   ]
 
   for (const p of pages) {

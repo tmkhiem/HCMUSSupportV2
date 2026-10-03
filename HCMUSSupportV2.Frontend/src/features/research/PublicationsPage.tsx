@@ -58,7 +58,7 @@ export function Component() {
 
   return (
     <>
-      <ResearchSwitcher active="bai-bao" />
+      <ResearchSwitcher active="publications" />
       <Box sx={{ mt: 3 }}>
         <PageHeader index={1} title="Bài báo khoa học" subtitle="Các bài báo, công bố khoa học của bạn." />
       </Box>

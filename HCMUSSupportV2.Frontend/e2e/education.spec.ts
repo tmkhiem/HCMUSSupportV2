@@ -40,7 +40,7 @@ for (const [label, viewport, suffix] of [
     test.use({ viewport })
 
     test('Quá trình đào tạo: diploma cards, newest first', async ({ page }) => {
-      await page.goto('/ho-so/dao-tao')
+      await page.goto('/profile/degrees')
       await expect(h1(page, 'Quá trình đào tạo')).toBeVisible()
       const cards = page.getByTestId('degree-cards')
       await expect(cards.getByRole('article')).toHaveCount(4)
@@ -53,13 +53,13 @@ for (const [label, viewport, suffix] of [
       await expect(first).toContainText('Chính quy')
       await expect(first).toContainText('Phương pháp học sâu')
       await expect(cards.getByRole('article').last()).toContainText('—')
-      await expect(page.getByRole('link', { name: 'Hồ sơ cá nhân' }).first()).toHaveAttribute('href', '/ho-so')
+      await expect(page.getByRole('link', { name: 'Hồ sơ cá nhân' }).first()).toHaveAttribute('href', '/profile')
       if (label === 'mobile') await expectNoHorizontalScroll(page)
       await shot(page, `degrees-${suffix}`)
     })
 
     test('Quá trình bồi dưỡng: table grouped by year', async ({ page }) => {
-      await page.goto('/ho-so/boi-duong')
+      await page.goto('/profile/training')
       await expect(h1(page, 'Quá trình bồi dưỡng')).toBeVisible()
       const groups = page.getByTestId('training-groups')
       await expect(groups.getByRole('heading', { level: 2 })).toHaveText(['Năm 2025', 'Năm 2023', 'Chưa rõ năm'])
@@ -76,7 +76,7 @@ for (const [label, viewport, suffix] of [
     })
 
     test('Đi công tác: stats follow the year filter', async ({ page }) => {
-      await page.goto('/ho-so/cong-tac')
+      await page.goto('/profile/business-trips')
       await expect(h1(page, 'Đi công tác')).toBeVisible()
       const stats = page.getByTestId('trip-stats')
       const rows = page.getByTestId('trip-table').getByRole('listitem')
@@ -110,9 +110,9 @@ test.describe('page states', () => {
   test.use({ viewport: DESKTOP })
 
   const pages = [
-    { path: '/ho-so/dao-tao', title: 'Quá trình đào tạo', empty: 'Chưa có thông tin đào tạo.', error: 'Không tải được quá trình đào tạo.' },
-    { path: '/ho-so/boi-duong', title: 'Quá trình bồi dưỡng', empty: 'Chưa có thông tin bồi dưỡng.', error: 'Không tải được quá trình bồi dưỡng.' },
-    { path: '/ho-so/cong-tac', title: 'Đi công tác', empty: 'Chưa có thông tin đi công tác.', error: 'Không tải được danh sách đi công tác.' },
+    { path: '/profile/degrees', title: 'Quá trình đào tạo', empty: 'Chưa có thông tin đào tạo.', error: 'Không tải được quá trình đào tạo.' },
+    { path: '/profile/training', title: 'Quá trình bồi dưỡng', empty: 'Chưa có thông tin bồi dưỡng.', error: 'Không tải được quá trình bồi dưỡng.' },
+    { path: '/profile/business-trips', title: 'Đi công tác', empty: 'Chưa có thông tin đi công tác.', error: 'Không tải được danh sách đi công tác.' },
   ]
 
   for (const p of pages) {

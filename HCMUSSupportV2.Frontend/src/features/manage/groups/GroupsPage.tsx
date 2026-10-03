@@ -97,7 +97,7 @@ function CreateDialog({ open, onClose, onCreated }: { open: boolean; onClose: ()
 export function Component() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const match = useMatch('/quan-ly/nhom/:id')
+  const match = useMatch('/manage/groups/:id')
   const selectedId = match?.params.id ? Number(match.params.id) : null
   const [q, setQ] = useState('')
   const [kind, setKind] = useState('')
@@ -144,7 +144,7 @@ export function Component() {
             <AcrylicCard sx={{ overflow: 'hidden' }}>
               <List disablePadding aria-label="Danh sách nhóm">
                 {groups.map((g) => (
-                  <ListItemButton key={g.id} selected={g.id === selectedId} onClick={() => navigate(`/quan-ly/nhom/${g.id}`)} divider>
+                  <ListItemButton key={g.id} selected={g.id === selectedId} onClick={() => navigate(`/manage/groups/${g.id}`)} divider>
                     <ListItemText
                       primary={g.name}
                       secondary={`${g.memberCount ?? 0} thành viên${g.archivedAt ? ' · đã lưu trữ' : ''}`}
@@ -180,7 +180,7 @@ export function Component() {
           onCreated={(id) => {
             setCreating(false)
             void qc.invalidateQueries({ queryKey: ['groups', 'list'] })
-            navigate(`/quan-ly/nhom/${id}`)
+            navigate(`/manage/groups/${id}`)
           }}
         />
       )}

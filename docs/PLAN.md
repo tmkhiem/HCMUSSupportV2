@@ -262,13 +262,13 @@ The sidebar is a flat list (as in the build) and every page has a real URL.
 
 | # | Nav item (icon from `@mui/icons-material`) | Route | Page (bespoke design, §7.3) |
 |---|---|---|---|
-| 1 | Tin tức (`NotificationsOutlined`, unread badge) | `/tin-tuc`, `/tin-tuc/:id` | Inbox and detail. **This is the landing page.** |
-| 2 | Hồ sơ cá nhân (`BadgeOutlined`) | `/ho-so` and `/ho-so/{thong-tin-chung,thong-tin-chi-tiet,luong,chuc-vu,khen-thuong,dao-tao,boi-duong,cong-tac}` | Overview plus 8 detail pages |
-| 3 | Sáng kiến (`LightbulbOutlined`) | `/sang-kien` | Innovations |
-| 4 | Giảng dạy (`SchoolOutlined`) | `/giang-day` | Teaching load |
-| 5 | Nghiên cứu khoa học (`ScienceOutlined`) | `/nckh/de-tai`, `/nckh/bai-bao` | Projects and publications |
-| 6 | Quản lý thông báo (`EditNotificationsOutlined`), editor | `/quan-ly/thong-bao[/:id]`, `/quan-ly/nhan-su`, `/quan-ly/nhom[/:id]` | Notifications, the employee email mapping, groups |
-| 7 | Quản trị (`AdminPanelSettingsOutlined`), admin | `/quan-tri`, `/quan-tri/{phan-quyen,xem-thu,nhat-ky,dong-bo,du-lieu}` | Dashboard, roles, view-as, audit, sync, datasets |
+| 1 | Tin tức (`NotificationsOutlined`, unread badge) | `/news`, `/news/:id` | Inbox and detail. **This is the landing page.** |
+| 2 | Hồ sơ cá nhân (`BadgeOutlined`) | `/profile` and `/profile/{general,detailed,salary,positions,commendations,degrees,training,business-trips}` | Overview plus 8 detail pages |
+| 3 | Sáng kiến (`LightbulbOutlined`) | `/innovations` | Innovations |
+| 4 | Giảng dạy (`SchoolOutlined`) | `/teaching` | Teaching load |
+| 5 | Nghiên cứu khoa học (`ScienceOutlined`) | `/research/projects`, `/research/publications` | Projects and publications |
+| 6 | Quản lý thông báo (`EditNotificationsOutlined`), editor | `/manage/notifications[/:id]`, `/manage/employees`, `/manage/groups[/:id]` | Notifications, the employee email mapping, groups |
+| 7 | Quản trị (`AdminPanelSettingsOutlined`), admin | `/admin`, `/admin/{roles,view-as,audit,sync,datasets}` | Dashboard, roles, view-as, audit, sync, datasets |
 
 ---
 
@@ -311,7 +311,7 @@ Implement these as theme `components` overrides and variants (`MuiPaper` variant
 
 | Page | Design |
 |---|---|
-| **Tin tức** | **Filter bar:** sticky acrylic bar with debounced search, tag chips (multi-select), "Từ ngày"/"Đến ngày" date pickers and an "Chưa đọc" toggle.<br>**Rows:** title, summary and the first tag plus `+N`. Unread rows are bold with a primary dot. Rows carry pin and "Cần xác nhận" chips. Infinite scroll.<br>**Detail:** the build's viewer modal at `/tin-tuc/:id`, deep-linkable. It shows the rendered doc, an attachments list, "Xác nhận đã đọc", and "Các kỳ trước" (same series). |
+| **Tin tức** | **Filter bar:** sticky acrylic bar with debounced search, tag chips (multi-select), "Từ ngày"/"Đến ngày" date pickers and an "Chưa đọc" toggle.<br>**Rows:** title, summary and the first tag plus `+N`. Unread rows are bold with a primary dot. Rows carry pin and "Cần xác nhận" chips. Infinite scroll.<br>**Detail:** the build's viewer modal at `/news/:id`, deep-linkable. It shows the rendered doc, an attachments list, "Xác nhận đã đọc", and "Các kỳ trước" (same series). |
 | **Hồ sơ cá nhân** | **Hero:** acrylic card with an 8 px primary left border, Google photo, name, MSCB pill, "position — unit", and email and phone lines.<br>**Cards:** 8 summary cards in a 3/2/1-column grid, each with **real** data: the build hard-coded the training card. Each card links to its page. |
 | Thông tin chung | Sectioned key-value cards: Cá nhân, Liên hệ (with copy buttons), Địa chỉ (thường trú / liên hệ). |
 | Thông tin chi tiết | Sections: Công tác (unit, position, ngạch/bậc/hệ số), Học hàm & học vị, Đoàn thể (Đảng/Đoàn/Công đoàn dates), Tài chính & bảo hiểm. In the last section, sensitive values are masked `•••• 1234` and revealed per field by click, which is audited. |
@@ -477,11 +477,11 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
 - [x] Role grant and revoke API with the last-admin guard. View-as start and stop (session claim, read-only enforcement middleware, audited page views). Audit query API. Dashboard aggregates. Employee status and manual-employee endpoints. (Sync runs and issues endpoints are owned by D04.)
 
 ### D14b · Admin & editor management pages
-- [x] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet. (Delivered as D14c: backend `api/manage/employees` and the page at `quan-ly/nhan-su`.)
+- [x] Nhân sự & email (editor): directory, email mapping, bulk import with dry run. This replaces the Google Sheet. (Delivered as D14c: backend `api/manage/employees` and the page at `manage/employees`.)
 - [x] Nhóm (editor): master-detail, rule builder with preview (`features/manage/groups`; static groups add members by MSCB list or csv/xlsx import with dry run, because editors have no employee-search endpoint).
 - [x] Quản trị: dashboard, Phân quyền, Xem thử, Nhật ký, Đồng bộ (runs and issue resolution), Dữ liệu (dataset imports) (`features/admin`).
-- [x] API clients admin UI (`api_clients`: list, create with server-generated token shown once, revoke; audited). Backend `api/admin/api-clients` (policy `ManageApiClients`), page `/quan-tri/api-clients`.
-- **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/quan-tri/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.
+- [x] API clients admin UI (`api_clients`: list, create with server-generated token shown once, revoke; audited). Backend `api/admin/api-clients` (policy `ManageApiClients`), page `/admin/api-clients`.
+- **Done when:** an editor can map a new email to an MSCB and that person can sign in; an editor gets 403 on `/admin/*`; and an admin can grant editor to anyone and use view-as, which appears in the audit log.
 
 ### D15 · Legacy migration (one-off, idempotent)
 - [x] Roster and emails: `config/users.json` → `employee_emails` (`sync legacy-migrate`, step `roster`; additive, dry run by default). Reports emails that conflict with HRM or point to an unknown MSCB. See [MIGRATION.md](MIGRATION.md).

@@ -104,9 +104,9 @@ precision?)` (`dd/MM/yyyy`, `MM/yyyy`, `yyyy`), `dayKey` (local `yyyy-MM-dd`).
    ```
 2. In `src/app/routes.tsx` replace that route's placeholder import (one line):
    ```ts
-   page('sang-kien', 'Sáng kiến', () => import('../features/innovation/InnovationPage')),
+   page('innovations', 'Sáng kiến', () => import('../features/innovation/InnovationPage')),
    ```
-   Role-gated routes sit under the `RequireRole` groups (`quan-ly` for editors, `quan-tri` for admins). Admins pass every
+   Role-gated routes sit under the `RequireRole` groups (`manage` for editors, `admin` for admins). Admins pass every
    role check.
 3. Only for a new sidebar item: add one line to `NAV` in `src/app/nav.ts` (`id`, `label`, MUI icon, `to`, optional
    `match` prefix, optional `role: 'editor' | 'admin'`). Sub-pages that live under an existing item need no entry.
@@ -129,7 +129,7 @@ after any sign-in or user switch (`me` also re-issues the `XSRF-TOKEN` cookie, w
 
 **Logout.** `logout()` = `POST /api/auth/logout` (with the XSRF header; failures are ignored because the cookie may
 already be gone), then it clears user data, sets `me` to `null` and refetches `me` (401) to confirm. `RequireAuth` then
-redirects to `/dang-nhap?returnUrl=<page we were on>`.
+redirects to `/login?returnUrl=<page we were on>`.
 
 **HTTP layer (`api/http.ts`).** One `send()` for everything: `credentials: 'include'`; on `POST/PUT/PATCH/DELETE` it copies
 the `XSRF-TOKEN` cookie into `X-XSRF-TOKEN` (the backend answers 400 without it); non-2xx throws `ApiError` (`status`,
@@ -143,12 +143,11 @@ as an answer (`skipUnauthorizedHandler` for hand-written calls). `http.get/post/
 add their client to `clients.ts` the same way (`export const xClient = new XClient(undefined, clientFetch)`) after
 regenerating with `generate-api.cmd`.
 
-**Login page.** The login page (`/dang-nhap`): two-column acrylic card, "Đăng nhập với Google" navigates to
+**Login page.** The login page (`/login`): two-column acrylic card, "Đăng nhập với Google" navigates to
 `/api/auth/login?returnUrl=…` (only same-origin paths are accepted), "Đăng nhập với VNeID" is disabled.
-The backend redirects refused sign-ins to **`/login?error=<code>`**; `/login` is a redirect route to
-`/dang-nhap` that keeps the query (D02 had only `/dang-nhap`; both work, the canonical SPA path stays `/dang-nhap`).
+The backend redirects refused sign-ins to **`/login?error=<code>`**, which is the login page itself (no alias route).
 Messages (Vietnamese, `LoginPage.tsx`): `not_registered` (alias `unknown_email`), `inactive`, `unverified_email`,
-`oauth_failed`, `access_denied`; any other code gets a generic message. `safeReturnUrl` refuses `/login` and `/dang-nhap`.
+`oauth_failed`, `access_denied`; any other code gets a generic message. `safeReturnUrl` refuses `/login`.
 
 **Dev login (`vite` dev only).** In `import.meta.env.DEV` the login page also shows "Đăng nhập thử (dev)": an MSCB field
 (default `T0001`) that `POST`s `/api/auth/dev-login`, runs `refreshSession`, and the page then goes to `returnUrl`. It
@@ -180,17 +179,17 @@ Code in `src/features/notifications/inbox/` (the shared `NotificationBody` from 
 
 | File | Role |
 |---|---|
-| `InboxPage.tsx` | `/tin-tuc` (route component, renders `<Outlet />` for the detail). Plain header; sticky filter bar; rows; skeleton / error / empty / "Xóa bộ lọc" states |
+| `InboxPage.tsx` | `/news` (route component, renders `<Outlet />` for the detail). Plain header; sticky filter bar; rows; skeleton / error / empty / "Xóa bộ lọc" states |
 | `InboxFilterBar.tsx`, `inboxFilters.ts` | Sticky acrylic bar: search (400 ms debounce), tag chips (multi-select, `GET /api/tags`), MUI X `DatePicker`s Từ ngày / Đến ngày. Below `md` tags and dates fold behind a "Bộ lọc" button. **Filters live in the URL**: `?q=&tags=1,3&from=2026-01-01&to=2026-06-30` (`parseFilters` / `serializeFilters`, malformed values are dropped; search edits use `replace`, the rest push history). `toInboxQuery` turns days into instants (`to` = 23:59:59.999 local, because the server's `to` is inclusive) |
-| `InboxRow.tsx`, `LoadMore.tsx` | Row = acrylic `<a>` to `/tin-tuc/:id` (title, summary, "Đã cập nhật" chip, attachment icon, first tag + `+N`, delivery date). Infinite scroll = `IntersectionObserver` on a sentinel inside `#main-content`, plus a "Tải thêm" button as the fallback |
-| `NotificationDialog.tsx`, `DetailSections.tsx` | `/tin-tuc/:id` is a **nested route**: the Dialog opens over the still-mounted list (full-screen below `md`), so a deep link works and the list keeps its scroll and pages. Title, meta (date, series, tags, chips), `NotificationBody` with `vars`, attachment download links (`/api/notifications/:id/attachments/:fileId`), "Các kỳ trước" links (same series; `replace` navigation) |
+| `InboxRow.tsx`, `LoadMore.tsx` | Row = acrylic `<a>` to `/news/:id` (title, summary, "Đã cập nhật" chip, attachment icon, first tag + `+N`, delivery date). Infinite scroll = `IntersectionObserver` on a sentinel inside `#main-content`, plus a "Tải thêm" button as the fallback |
+| `NotificationDialog.tsx`, `DetailSections.tsx` | `/news/:id` is a **nested route**: the Dialog opens over the still-mounted list (full-screen below `md`), so a deep link works and the list keeps its scroll and pages. Title, meta (date, series, tags, chips), `NotificationBody` with `vars`, attachment download links (`/api/notifications/:id/attachments/:fileId`), "Các kỳ trước" links (same series; `replace` navigation) |
 | `inboxApi.ts`, `inboxQueries.ts`, `inboxCache.ts` | Calls and TanStack hooks. The list and tags use the generated `notificationsClient` / `tagsClient` (`api/clients.ts`). The detail is hand-written over `http.get`: the generated `InboxDetailDto.vars` is the abstract `JsonNode` and its `fromJS` throws |
 | `inboxMock.ts` | Synthetic inbox for mock mode (26 posts, series + vars rows + attachments) |
 
 - **Query keys** (all start with `['inbox']`, so `clearUserData` drops them on logout / user switch): `['inbox','list',filters]` (infinite, keyset `nextCursor`, `staleTime: 0`, `keepPreviousData`), `['inbox','detail',id]`, `['inbox','tags']`.
 - **No read state, no acknowledgement.** Opening a post does not mark anything and there are no writes from the inbox. `InboxItem.isNew` (delivered after the previous sign-in) comes from the server and has no UI yet.
 - **No live stream.** There is **no SSE / EventSource**: employees reload (F5) to see new posts, and the app never opens `/api/notifications/stream` (the endpoint no longer exists).
-- **Shell change.** `AppLayout` scrolls `#main-content` to the top on navigation, except between routes that declare the same `handle.scrollGroup` (`tin-tuc` and `tin-tuc/:id`), so opening a detail keeps the list where it was.
+- **Shell change.** `AppLayout` scrolls `#main-content` to the top on navigation, except between routes that declare the same `handle.scrollGroup` (`news` and `news/:id`), so opening a detail keeps the list where it was.
 - **Mock mode** (`VITE_MOCK_AUTH=1`): `inboxApi.ts` serves `inboxMock.ts` behind `import.meta.env.DEV && MOCK_AUTH` (no mock chunk in a production build). `window.__inboxMock.publish(title)` delivers a new post (visible after the next route change / list fetch).
 - **Tests.** vitest: `inboxFilters.test.ts` (filters <-> URL), `inbox.test.tsx` (DTO mapping, row rendering), `lib/format.test.ts` (`formatDateTime`, `formatBytes`). Playwright project `inbox` (`e2e/inbox.spec.ts`, port 5483, mock auth) writes `docs/screenshots/d08/`. The real-backend e2e (`e2e/real.spec.ts`, last test) has T0001 create, target at T0003 and publish a post through `/api/manage/notifications`, then T0003 sees it in the inbox and opens it.
 
@@ -202,9 +201,9 @@ client has no Hrm endpoints), a `*Format.ts` (tested), a `*Mock.ts` and its page
 
 | Folder | Route | What it does |
 |---|---|---|
-| `innovation/` | `/sang-kien` | `InnovationStats` (total + one `StatCard` per type, 1/2/3 columns at xs/sm/md; always the employee's totals), a debounced search that uses the server's `q`, keyset "Tải thêm" (`useInfiniteQuery`, `keepPreviousData`), `InnovationDialog` (code, type, decision, ngày/năm công nhận, năm học; full screen below `sm`) |
-| `teaching/` | `/giang-day` | `YearSelect` = the §4.6 pill select fed by `teaching/years` (newest preselected). The page groups by program (`ProgramSection`: Đại học, Cao học, Tiến sĩ, those with rows), each with its own three stat cards (giờ quy đổi, lớp, môn). Đại học has one `TeachingGroup` per học kỳ; Cao học and Tiến sĩ have no học kỳ and group by học phần / chuyên đề (a missing module is "Chưa rõ học phần", listed last). Hệ and activity show as chips (columns from `md`, under the course name below). Caption "Nguồn: …, cập nhật …" (each half dropped when unknown). Below `sm` the Lớp column folds under the course name |
-| `research/` | `/nckh/de-tai`, `/nckh/bai-bao` | `ResearchSwitcher`: the skewed pill (`skewX(-15deg)` parallelogram under the active link; two route links, labels shorten below `sm`). `ProjectsPage` rows with a role chip (`chu_nhiem` -> Chủ nhiệm, else Thành viên), level and funding, `ProjectDialog` with the members (chủ nhiệm first; the signed-in employee is tagged "Bạn"). `PublicationsPage` rows with `venue · year`, the DOI as `https://doi.org/…` (external link; only http(s) URLs are ever linked) and the co-authors |
+| `innovation/` | `/innovations` | `InnovationStats` (total + one `StatCard` per type, 1/2/3 columns at xs/sm/md; always the employee's totals), a debounced search that uses the server's `q`, keyset "Tải thêm" (`useInfiniteQuery`, `keepPreviousData`), `InnovationDialog` (code, type, decision, ngày/năm công nhận, năm học; full screen below `sm`) |
+| `teaching/` | `/teaching` | `YearSelect` = the §4.6 pill select fed by `teaching/years` (newest preselected). The page groups by program (`ProgramSection`: Đại học, Cao học, Tiến sĩ, those with rows), each with its own three stat cards (giờ quy đổi, lớp, môn). Đại học has one `TeachingGroup` per học kỳ; Cao học and Tiến sĩ have no học kỳ and group by học phần / chuyên đề (a missing module is "Chưa rõ học phần", listed last). Hệ and activity show as chips (columns from `md`, under the course name below). Caption "Nguồn: …, cập nhật …" (each half dropped when unknown). Below `sm` the Lớp column folds under the course name |
+| `research/` | `/research/projects`, `/research/publications` | `ResearchSwitcher`: the skewed pill (`skewX(-15deg)` parallelogram under the active link; two route links, labels shorten below `sm`). `ProjectsPage` rows with a role chip (`chu_nhiem` -> Chủ nhiệm, else Thành viên), level and funding, `ProjectDialog` with the members (chủ nhiệm first; the signed-in employee is tagged "Bạn"). `PublicationsPage` rows with `venue · year`, the DOI as `https://doi.org/…` (external link; only http(s) URLs are ever linked) and the co-authors |
 
 - **Sticky group dividers (học kỳ, học phần).** `TeachingGroup` is a `<section>` whose divider is a block with `position: sticky; top: 0`, so the browser
   pushes it off when the next section arrives. This avoids `useStickyGroupPush` because sticky does not work on table cells
@@ -217,7 +216,7 @@ client has no Hrm endpoints), a `*Format.ts` (tested), a `*Mock.ts` and its page
 
 ## Quản lý thông báo: editor UI (D09)
 
-Code in `src/features/notifications/manage/`. Routes `/quan-ly/thong-bao` (list) and `/quan-ly/thong-bao/:id` (editor; `moi` = a notification that
+Code in `src/features/notifications/manage/`. Routes `/manage/notifications` (list) and `/manage/notifications/:id` (editor; `new` = a notification that
 does not exist yet), both under `RequireRole editor`. It uses the D07a `LazyNotificationMarkdownEditor` and `MarkdownPreviewPane` (so the MDXEditor chunk is
 only fetched when an editor opens a notification) and the D08 `LoadMore`. No SSE, EventSource or polling: lists refetch when opened and when the window
 regains focus.
@@ -235,7 +234,7 @@ regains focus.
 | `AttachmentsPanel.tsx` | Add / remove files (pdf, docx, xlsx, png, jpg, 20 MB, 20 files); a new draft is saved first. No download link: the only download endpoint is the recipient's |
 | `ScheduleDialog.tsx`, `ConfirmDialog.tsx`, `RevisionsDialog.tsx`, `StatsPanel.tsx`, `TagsSeriesDialog.tsx`, `StartFromPanel.tsx` | "Lên lịch", publish / archive / delete confirmations, revision history (expand a version, "Dùng lại nội dung này" loads it into the form, not saved), read and ack rates with a cumulative chart, tag and series CRUD, "Bắt đầu từ bài đã có" (clone for a new notification) |
 
-- **Saving.** The first "Lưu" of a new draft creates it and the URL becomes `/quan-ly/thong-bao/<id>` (`replace`) without remounting the workspace (the page keeps the same
+- **Saving.** The first "Lưu" of a new draft creates it and the URL becomes `/manage/notifications/<id>` (`replace`) without remounting the workspace (the page keeps the same
   `key`), so the form and the preview picker survive. Later saves send the `version`; a 409 shows "Lưu đè", which resends with the server's `currentVersion`. 400
   `errors` are shown on the field (`title`, `expiresAt`, `audience`, ...) and the `bodyMd` lines (`Dòng n, cột m: ...`) as a list under the editor.
   Publish, schedule, import and attachments save pending changes first. After publishing, saving content shows "Đã cập nhật" to recipients (the notice says so).
@@ -257,13 +256,13 @@ Code in `src/features/profile/`: `salary/` (`SalaryPage`, `SalaryChart`, `Salary
 TanStack Query hooks `useSalary`, `usePositions`, `useCommendations`; they call the generated `meClient` (`api/clients.ts`) and
 map the response with `meMappers.ts`), `careerFormat.ts` (`formatTenure` "3 năm 2 tháng", `formatMonthsToRaise` "còn N tháng",
 `coefficientPoints` for the chart, năm học labels; tested in `careerFormat.test.ts`; partial dates use `lib/partialDate.ts`), `careerMock.ts`
-(synthetic data) and `CareerBreadcrumb` ("Hồ sơ cá nhân / page", links to `/ho-so`).
+(synthetic data) and `CareerBreadcrumb` ("Hồ sơ cá nhân / page", links to `/profile`).
 
-- `/ho-so/luong`: five `StatCard`s (ngạch, bậc, hệ số, vượt khung %, next raise as a countdown; the card turns warm at 3 months
+- `/profile/salary`: five `StatCard`s (ngạch, bậc, hệ số, vượt khung %, next raise as a countdown; the card turns warm at 3 months
   or less), a MUI X `LineChart` with `curve: 'stepAfter'` of hệ số by effective date (a text summary doubles as its `aria-label`),
   and a vertical timeline of decisions (số QĐ, ngày ký, ngày hưởng, ghi chú; the newest one has the accent border).
-- `/ho-so/chuc-vu`: vertical timeline; the `isCurrent` entry has a filled larger node, tinted card, "Hiện tại" chip and "Đã đảm nhiệm".
-- `/ho-so/khen-thuong`: two count `StatCard`s, scrollable tabs "Khen thưởng" / "Danh hiệu", cards grouped by năm học (the null
+- `/profile/positions`: vertical timeline; the `isCurrent` entry has a filled larger node, tinted card, "Hiện tại" chip and "Đã đảm nhiệm".
+- `/profile/commendations`: two count `StatCard`s, scrollable tabs "Khen thưởng" / "Danh hiệu", cards grouped by năm học (the null
   group is "Chưa rõ năm học", last) with a trophy / medal icon, name, `QĐ <số> · <date>` (dates honour partial precision).
 - States follow UI-STYLE-GUIDE §7 through `PageState` with page-specific messages.
 - Mock mode (`VITE_MOCK_AUTH=1`): the hooks return `careerMock.ts` data without a network call; append `?career=empty` or
@@ -278,11 +277,11 @@ Code in `src/features/profile/`: `degrees/` (`DegreesPage`, `DegreeCards`), `tra
 like `careerApi.ts`), `educationFormat.ts` (partial dates, `degreeYears`, `sortDegrees`, `groupTrainingsByYear`, `tripStats`; tested in
 `educationFormat.test.ts`) and `educationMock.ts` (synthetic data). All three reuse `CareerBreadcrumb`.
 
-- `/ho-so/dao-tao`: diploma-style cards, newest first. Degree type is the headline, then major, "trường · quốc gia", years, a training-form chip and the thesis title when present.
-- `/ho-so/boi-duong`: trainings grouped by year, each group in the new `ui/StickyGroup` (a divider that docks at the top of the
+- `/profile/degrees`: diploma-style cards, newest first. Degree type is the headline, then major, "trường · quốc gia", years, a training-form chip and the thesis title when present.
+- `/profile/training`: trainings grouped by year, each group in the new `ui/StickyGroup` (a divider that docks at the top of the
   scroll container and is pushed off by the next one, plain `position: sticky`; category-agnostic, exported from `ui/index.ts`).
   Rows are aligned columns with a header row from `md` up and stacked on mobile.
-- `/ho-so/cong-tac`: two `StatCard`s (Số chuyến, Số ngày) that follow a pill year select (caption above, UI-STYLE-GUIDE §4.6) over a trips table (nơi đến, thời gian + số ngày, mục đích, quyết định, ghi chú).
+- `/profile/business-trips`: two `StatCard`s (Số chuyến, Số ngày) that follow a pill year select (caption above, UI-STYLE-GUIDE §4.6) over a trips table (nơi đến, thời gian + số ngày, mục đích, quyết định, ghi chú).
 - Mock mode: `?education=empty` or `?education=error` on a page URL shows the other states.
 - Playwright: `e2e/education.spec.ts` (project `education`, port 5583, mock auth) at 1440 and 375 px plus the empty / error states; screenshots go to `docs/screenshots/d12/`.
 
@@ -291,7 +290,7 @@ like `careerApi.ts`), `educationFormat.ts` (partial dates, `degreeYears`, `sortD
 Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `SummaryCards` = one component per card on a shared
 `SummaryCardFrame`), `general/` (`GeneralPage`, `CopyButton`), `detailed/` (`DetailedPage`, `useReveal`), plus
 `api.ts` (hooks + types), `mockData.ts` and `ProfileFields.tsx` (layout only: `SectionCard`, `FieldList`, `FieldRow`,
-`BackToProfile`). Routes: `/ho-so`, `/ho-so/thong-tin-chung`, `/ho-so/thong-tin-chi-tiet`.
+`BackToProfile`). Routes: `/profile`, `/profile/general`, `/profile/detailed`.
 
 - **API.** `api.ts` (and `careerApi.ts` for D11) call the generated `MeClient` (`meClient` in `api/clients.ts`): `overview()`,
   `general()`, `detailed()` and `reveal(new RevealRequest({ field }))`. The generated DTOs are all-optional classes with `Date`s
@@ -316,16 +315,16 @@ Code in `src/features/profile/`: `overview/` (`OverviewPage`, `HeroCard`, `Summa
 Code: `src/features/admin/` (Quản trị `AdminHomePage`, `RolesPage`, `ViewAsPage`, `AuditPage`, `SyncPage`, `DatasetsPage`, `ApiClientsPage`) and
 `src/features/manage/groups/` (`GroupsPage` master-detail, `GroupEditor`, `GroupMembers`, `RuleBuilder`, `ruleModel`).
 
-- **Routes.** `/quan-tri` (admin) with `phan-quyen`, `xem-thu`, `nhat-ky`, `dong-bo`, `du-lieu`, `api-clients`; `/quan-ly/nhom[/:id]` (editor and admin).
-  `nhom` is one lazy route with two empty child routes, so the same `GroupsPage` stays mounted while a group is picked (the list keeps its
+- **Routes.** `/admin` (admin) with `roles`, `view-as`, `audit`, `sync`, `datasets`, `api-clients`; `/manage/groups[/:id]` (editor and admin).
+  `groups` is one lazy route with two empty child routes, so the same `GroupsPage` stays mounted while a group is picked (the list keeps its
   search and filters; the page reads the id with `useMatch`). Below `md` it shows either the list or the detail.
 - **Clients.** `features/admin/clients.ts` instantiates the generated `RolesClient`, `ViewAsClient`, `AdminEmployeesClient`,
   `DashboardClient`, `AuditClient`, `GroupsClient`, `SyncAdminClient` (sync runs and issues), `DatasetsClient` and `ApiClientsClient`.
-- **API clients** (`ApiClientsPage`, `/quan-tri/api-clients`, reached from a tile on Quản trị; the sidebar has only the one Quản trị entry). A table of clients (name, scope chips, created, last used, status) with "Thu hồi" (confirm dialog) for active ones. "Tạo API client" opens a dialog (name and one checkbox per scope; the scope list and descriptions come from `GET api-clients/scopes`, so a new backend scope appears without a frontend change). On success the **show-token-once dialog** displays the token in a read-only field with a copy button (`CopyButton`) and a warning; it ignores Esc and backdrop clicks and only "Tôi đã lưu token" closes it, after which the token exists nowhere in the page state. Tests: vitest `ApiClientsPage.test.tsx`; Playwright `admin` project (`API clients: list, create shows the token once, revoke`, plus the 375 px no-horizontal-scroll check, screenshots in `docs/screenshots/d14b/`); real backend `e2e/real.spec.ts` (create, copy token, the integration API accepts it, revoke, rejected with 401, audit entry).
+- **API clients** (`ApiClientsPage`, `/admin/api-clients`, reached from a tile on Quản trị; the sidebar has only the one Quản trị entry). A table of clients (name, scope chips, created, last used, status) with "Thu hồi" (confirm dialog) for active ones. "Tạo API client" opens a dialog (name and one checkbox per scope; the scope list and descriptions come from `GET api-clients/scopes`, so a new backend scope appears without a frontend change). On success the **show-token-once dialog** displays the token in a read-only field with a copy button (`CopyButton`) and a warning; it ignores Esc and backdrop clicks and only "Tôi đã lưu token" closes it, after which the token exists nowhere in the page state. Tests: vitest `ApiClientsPage.test.tsx`; Playwright `admin` project (`API clients: list, create shows the token once, revoke`, plus the 375 px no-horizontal-scroll check, screenshots in `docs/screenshots/d14b/`); real backend `e2e/real.spec.ts` (create, copy token, the integration API accepts it, revoke, rejected with 401, audit entry).
 - **Lists** use keyset paging (`useInfiniteQuery`, `nextCursor`, "Tải thêm"). Search inputs are debounced 300 ms.
 - **Phân quyền.** Search (q, role filter), row opens a drawer with editor and admin switches; Lưu = `PUT admin/roles/{code}`; the server's 409
   (last admin) message is shown in the drawer. Role changes apply at once on the server.
-- **Xem thử.** Typeahead over `admin/roles?q=` -> `POST admin/view-as` -> `refreshSession()` -> `/tin-tuc`. The yellow `ViewAsBar` "Thoát"
+- **Xem thử.** Typeahead over `admin/roles?q=` -> `POST admin/view-as` -> `refreshSession()` -> `/news`. The yellow `ViewAsBar` "Thoát"
   already called `DELETE admin/view-as` through `exitViewAs` in `AuthProvider` (then `refreshSession`); no change was needed.
 - **Nhóm.** List with kind chips, search, "show archived"; "Tạo nhóm" dialog (static or rule). Detail: name, description, kind-specific part and
   an unsaved-changes bar (Hoàn tác / Lưu, `role="region"` "Thay đổi chưa lưu"). Rule groups use `RuleBuilder` over `ruleModel` (one flat level
@@ -343,7 +342,7 @@ stubbed by `e2e/adminFixtures.ts`) covers every page; screenshots in `docs/scree
 
 ## Nhân sự & email (D14c)
 
-Code in `src/features/employees/`, route `quan-ly/nhan-su` (editor; `RequireRole` is on the `quan-ly` group), nav entry "Nhân sự & email" (`id: 'staff'`, placed before `manage` so it wins the prefix match on its own route). Backend: see BACKEND.md "Nhân sự & email".
+Code in `src/features/employees/`, route `manage/employees` (editor; `RequireRole` is on the `manage` group), nav entry "Nhân sự & email" (`id: 'staff'`, placed before `manage` so it wins the prefix match on its own route). Backend: see BACKEND.md "Nhân sự & email".
 
 | File | Role |
 |---|---|
@@ -355,7 +354,7 @@ Code in `src/features/employees/`, route `quan-ly/nhan-su` (editor; `RequireRole
 | `employeesApi.ts`, `employeesQueries.ts`, `employeesTypes.ts`, `employeesFormat.ts` | Generated `manageEmployeesClient` calls mapped to view types; TanStack hooks (`['manage','employees',...]` keys; every write puts the answer in the detail cache and invalidates the lists); labels, email validation (same rule as the backend), URL <-> filters, the csv template |
 | `employeesMock.ts` | Synthetic directory for mock mode: `T0001`..`T0040` (5 without email, one inactive, one retired, one HRM conflict), `example.test` addresses, in-memory state, a csv-aware import. `?employees=empty` or `?employees=error` shows the other states. Only `employeesApi.ts` imports it, behind `import.meta.env.DEV && MOCK_AUTH` |
 
-- **Tests.** vitest `employees.test.tsx` (helpers, URL filters, list, states, drawer add/primary/remove, conflicts, import two-step flow and errors). Playwright project `employees` (`e2e/employees.spec.ts`, port 5693, mock auth, 1440 and 375) writes `docs/screenshots/d14c/`. Real backend: `e2e/real.employees.spec.ts` (picked up by `npm run test:e2e:real`, whose `testMatch` is now `real(.name)?.spec.ts`): an editor maps a new email to T0005 in the UI and `GET /api/auth/me` of T0005 shows it; the import dry run writes nothing and apply adds; an editor gets 403 on `/api/admin/*` and the forbidden card on `/quan-tri/*`, an employee gets 403 on the directory. Google sign-in cannot run in e2e; the backend suite covers it.
+- **Tests.** vitest `employees.test.tsx` (helpers, URL filters, list, states, drawer add/primary/remove, conflicts, import two-step flow and errors). Playwright project `employees` (`e2e/employees.spec.ts`, port 5693, mock auth, 1440 and 375) writes `docs/screenshots/d14c/`. Real backend: `e2e/real.employees.spec.ts` (picked up by `npm run test:e2e:real`, whose `testMatch` is now `real(.name)?.spec.ts`): an editor maps a new email to T0005 in the UI and `GET /api/auth/me` of T0005 shows it; the import dry run writes nothing and apply adds; an editor gets 403 on `/api/admin/*` and the forbidden card on `/admin/*`, an employee gets 403 on the directory. Google sign-in cannot run in e2e; the backend suite covers it.
 
 ## Tests
 
@@ -371,7 +370,7 @@ Code in `src/features/employees/`, route `quan-ly/nhan-su` (editor; `RequireRole
   vite on **5275** with `API_PROXY_TARGET=http://localhost:5261` (the default dev proxy stays 5161). It needs
   `appsettings.Development.local.json` (DB; created and migrated on first start; `Auth:DevLogin:Enabled=true`) and the
   dev roster. Covers: T0001 sees the shell, name and admin nav; T0003 has no editor/admin nav and gets the 403 card on
-  `/quan-tri`; unknown MSCB; unsafe call without `X-XSRF-TOKEN` -> 400 (with it -> 204); logout clears the cookie;
+  `/admin`; unknown MSCB; unsafe call without `X-XSRF-TOKEN` -> 400 (with it -> 204); logout clears the cookie;
   switching user; `/login?error=` redirect; and the D08 inbox flow (T0001 publishes to T0003, row, open; the post is archived afterwards). Existing servers on those ports are reused locally (not in CI). The config lifts the backend's `auth` rate limit (`RateLimiting__Auth__PermitLimit=1000`): the suite signs in more than the default 20 times a minute and would get 429.
 - The specs write screenshots to `docs/screenshots/d02/` (1440x900 and 375x812: shell, drawer, account menu, view-as bar,
   login). Commit them when the look changes. The login shots are taken in dev, where the "Đăng nhập thử (dev)" panel shows: `git checkout docs/screenshots` after a run unless the login page itself changed.

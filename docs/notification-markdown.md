@@ -212,7 +212,7 @@ nothing. `summary` (not listed) is the first paragraph's `text`, cut at 200 char
 | 30 | `<u>gạch chân</u>` | no | - | `RAW_HTML` |
 | 31 | `<https://example.test/x>` | yes | none | `https://example.test/x` |
 | 32 | `[Trang](https://example.test/x "t")` | yes | none | `Trang` |
-| 33 | `[a](mailto:a@b.vn) [b](tel:+84123) [c](/tin-tuc/1) [d](#top)` | yes | none | `a b c d` |
+| 33 | `[a](mailto:a@b.vn) [b](tel:+84123) [c](/news/1) [d](#top)` | yes | none | `a b c d` |
 | 34 | `[a](javascript:alert(1))` | no | - | `FORBIDDEN_URL` |
 | 35 | `[a](JaVaScRiPt:alert(1))` | no | - | `FORBIDDEN_URL` |
 | 36 | `[a](data:text/html;base64,AAAA)` | no | - | `FORBIDDEN_URL` |

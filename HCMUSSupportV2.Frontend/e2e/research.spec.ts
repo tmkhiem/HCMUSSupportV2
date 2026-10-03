@@ -40,7 +40,7 @@ for (const [label, viewport, suffix] of [
     test.use({ viewport })
 
     test('Sáng kiến: stats, search, load more, detail dialog', async ({ page }) => {
-      await page.goto('/sang-kien')
+      await page.goto('/innovations')
       await expect(h1(page, 'Sáng kiến')).toBeVisible()
       const stats = page.getByTestId('innovation-stats')
       await expect(stats).toContainText('Tổng số sáng kiến')
@@ -74,7 +74,7 @@ for (const [label, viewport, suffix] of [
     })
 
     test('Giảng dạy: year pill, program sections with stats, học kỳ and học phần groups, source caption', async ({ page }) => {
-      await page.goto('/giang-day')
+      await page.goto('/teaching')
       await expect(h1(page, 'Giảng dạy')).toBeVisible()
       const programs = page.getByTestId('teaching-programs').getByRole('heading', { level: 2 })
       await expect(programs).toHaveText(['Đại học', 'Cao học', 'Tiến sĩ'])
@@ -115,7 +115,7 @@ for (const [label, viewport, suffix] of [
     })
 
     test('Đề tài: switcher, role chips, detail with members', async ({ page }) => {
-      await page.goto('/nckh/de-tai')
+      await page.goto('/research/projects')
       const switcher = page.getByRole('navigation', { name: 'Nghiên cứu khoa học' })
       await expect(switcher.locator('a[aria-current="page"]')).toContainText(label === 'mobile' ? 'Đề tài' : 'Đề tài nghiên cứu')
       await expect(h1(page, 'Đề tài nghiên cứu')).toBeVisible()
@@ -145,9 +145,9 @@ for (const [label, viewport, suffix] of [
     })
 
     test('Bài báo: switcher link, venue, DOI link, co-authors', async ({ page }) => {
-      await page.goto('/nckh/de-tai')
+      await page.goto('/research/projects')
       await page.getByRole('navigation', { name: 'Nghiên cứu khoa học' }).locator('a').nth(1).click()
-      await expect(page).toHaveURL(/\/nckh\/bai-bao$/)
+      await expect(page).toHaveURL(/\/research\/publications$/)
       await expect(h1(page, 'Bài báo khoa học')).toBeVisible()
       const first = page.getByTestId('publication-list').getByRole('article').first()
       await expect(first).toContainText('Journal of Educational Computing')
@@ -169,10 +169,10 @@ test.describe('page states', () => {
   test.use({ viewport: DESKTOP })
 
   const pages = [
-    { path: '/sang-kien', title: 'Sáng kiến', empty: 'Chưa có sáng kiến nào được ghi nhận.', error: 'Không tải được danh sách sáng kiến.' },
-    { path: '/giang-day', title: 'Giảng dạy', empty: 'Chưa có dữ liệu giảng dạy.', error: 'Không tải được danh sách năm học giảng dạy.' },
-    { path: '/nckh/de-tai', title: 'Đề tài nghiên cứu', empty: 'Chưa có đề tài nghiên cứu nào được ghi nhận.', error: 'Không tải được danh sách đề tài nghiên cứu.' },
-    { path: '/nckh/bai-bao', title: 'Bài báo khoa học', empty: 'Chưa có bài báo khoa học nào được ghi nhận.', error: 'Không tải được danh sách bài báo khoa học.' },
+    { path: '/innovations', title: 'Sáng kiến', empty: 'Chưa có sáng kiến nào được ghi nhận.', error: 'Không tải được danh sách sáng kiến.' },
+    { path: '/teaching', title: 'Giảng dạy', empty: 'Chưa có dữ liệu giảng dạy.', error: 'Không tải được danh sách năm học giảng dạy.' },
+    { path: '/research/projects', title: 'Đề tài nghiên cứu', empty: 'Chưa có đề tài nghiên cứu nào được ghi nhận.', error: 'Không tải được danh sách đề tài nghiên cứu.' },
+    { path: '/research/publications', title: 'Bài báo khoa học', empty: 'Chưa có bài báo khoa học nào được ghi nhận.', error: 'Không tải được danh sách bài báo khoa học.' },
   ]
 
   for (const p of pages) {
@@ -191,7 +191,7 @@ test.describe('page states', () => {
 
 test('Giảng dạy: a học kỳ divider docks at the top while its table scrolls', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 420 })
-  await page.goto('/giang-day')
+  await page.goto('/teaching')
   const divider = page.getByTestId('term-1').locator('[data-sticky-divider]')
   await expect(divider).toBeVisible()
   const main = page.locator('#main-content')

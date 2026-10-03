@@ -13,14 +13,14 @@ import EditorWorkspace from './EditorWorkspace'
 import { useManageDetail } from './manageQueries'
 
 /**
- * `/quan-ly/thong-bao/:id`: the editor. `moi` is a notification that does not exist yet (the first "Lưu" creates the
+ * `/manage/notifications/:id`: the editor. `new` is a notification that does not exist yet (the first "Lưu" creates the
  * draft and the URL becomes its id). A saved one is loaded here and handed to `EditorWorkspace`, which owns the form.
  */
 export function Component() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const isNew = id === 'moi'
-  // The draft this page created: its URL changes from `moi` to the id, but the form (and the preview picker) must survive.
+  const isNew = id === 'new'
+  // The draft this page created: its URL changes from `new` to the id, but the form (and the preview picker) must survive.
   const [created, setCreated] = useState<string | null>(null)
   const sameSession = isNew || id === created
   const detail = useManageDetail(isNew ? undefined : id)
@@ -31,7 +31,7 @@ export function Component() {
     <>
       <FlyIn index={0} from="top" sx={{ mb: 1.5, pr: { lg: 8 } }}>
         <Breadcrumbs aria-label="Đường dẫn" sx={{ fontSize: '0.875rem' }}>
-          <Link component={RouterLink} to="/quan-ly/thong-bao" underline="hover" color="text.secondary">
+          <Link component={RouterLink} to="/manage/notifications" underline="hover" color="text.secondary">
             Quản lý thông báo
           </Link>
           <Typography color="text.primary" sx={{ fontSize: 'inherit', fontWeight: 600 }}>
@@ -45,7 +45,7 @@ export function Component() {
       ) : notFound ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography color="text.secondary">Không tìm thấy thông báo này. Có thể nó đã bị xóa.</Typography>
-          <Button sx={{ mt: 1.5 }} onClick={() => void navigate('/quan-ly/thong-bao')}>
+          <Button sx={{ mt: 1.5 }} onClick={() => void navigate('/manage/notifications')}>
             Về danh sách
           </Button>
         </Box>

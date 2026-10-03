@@ -3,7 +3,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { flyInSx } from '../../ui/flyInSx'
 import PngIcon from '../../ui/PngIcon'
 
-export type ResearchTab = 'de-tai' | 'bai-bao'
+export type ResearchTab = 'projects' | 'publications'
 
 const labelSx = {
   position: 'relative',
@@ -24,13 +24,13 @@ const labelSx = {
 } as const
 
 /**
- * The build's skewed pill switcher between Đề tài and Bài báo. Two route links (`/nckh/de-tai`, `/nckh/bai-bao`); the
+ * The build's skewed pill switcher between Đề tài and Bài báo. Two route links (`/research/projects`, `/research/publications`); the
  * primary parallelogram (`skewX(-15deg)`) sits under the active one. Labels shorten below `sm` ("Đề tài" / "Bài báo").
  */
 export default function ResearchSwitcher({ active }: { active: ResearchTab }) {
   const tabs = [
-    { key: 'de-tai', to: '/nckh/de-tai', short: 'Đề tài', long: 'Đề tài nghiên cứu', icon: <PngIcon name="biotech" size={24} /> },
-    { key: 'bai-bao', to: '/nckh/bai-bao', short: 'Bài báo', long: 'Bài báo khoa học', icon: <PngIcon name="article" size={24} /> },
+    { key: 'projects', to: '/research/projects', short: 'Đề tài', long: 'Đề tài nghiên cứu', icon: <PngIcon name="biotech" size={24} /> },
+    { key: 'publications', to: '/research/publications', short: 'Bài báo', long: 'Bài báo khoa học', icon: <PngIcon name="article" size={24} /> },
   ] as const
   return (
     <Box
@@ -59,7 +59,7 @@ export default function ResearchSwitcher({ active }: { active: ResearchTab }) {
           top: 0,
           bottom: 0,
           width: '60%',
-          left: active === 'de-tai' ? '-5%' : '45%',
+          left: active === 'projects' ? '-5%' : '45%',
           bgcolor: 'primary.main',
           transform: 'skewX(-15deg)',
           transition: 'left 500ms cubic-bezier(0.16, 1, 0.3, 1)',

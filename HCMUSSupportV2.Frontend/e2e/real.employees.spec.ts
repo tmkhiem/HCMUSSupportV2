@@ -10,8 +10,8 @@ import type { Page, PlaywrightWorkerArgs } from '@playwright/test'
  * accepts the freshly mapped address) in `EmployeeEmailsTests`.
  */
 
-async function devLogin(page: Page, code: string, returnUrl = '/tin-tuc') {
-  await page.goto(`/dang-nhap?returnUrl=${encodeURIComponent(returnUrl)}`)
+async function devLogin(page: Page, code: string, returnUrl = '/news') {
+  await page.goto(`/login?returnUrl=${encodeURIComponent(returnUrl)}`)
   await expect(page.getByTestId('dev-login')).toBeVisible()
   await page.getByLabel('MSCB đăng nhập thử').fill(code)
   await page.getByRole('button', { name: 'Đăng nhập thử' }).click()
@@ -44,7 +44,7 @@ test('an editor maps a new email to an MSCB in the UI and that person then has i
   const editor = await apiSession(playwright, baseURL!, 'T0002')
   const target = await apiSession(playwright, baseURL!, 'T0005')
   try {
-    await devLogin(page, 'T0002', '/quan-ly/nhan-su?q=T0005')
+    await devLogin(page, 'T0002', '/manage/employees?q=T0005')
     await expect(page.getByRole('heading', { level: 1, name: 'Nhân sự & email' })).toBeVisible()
     const row = page.getByTestId('employee-row').filter({ hasText: 'T0005' })
     await expect(row).toBeVisible()
@@ -108,7 +108,7 @@ test('the import flow: a dry run writes nothing, applying adds the emails', asyn
   const taken = 't0001@dev.hcmus.local' // seeded for T0001
   const editor = await apiSession(playwright, baseURL!, 'T0002')
   try {
-    await devLogin(page, 'T0002', '/quan-ly/nhan-su')
+    await devLogin(page, 'T0002', '/manage/employees')
     await page.getByRole('button', { name: 'Nhập từ tệp' }).click()
     const dialog = page.getByRole('dialog', { name: 'Nhập MSCB và email từ tệp' })
     const csv = ['MSCB,Họ tên,Email 1', `T0006,,${fresh}`, `T0007,,${taken}`, 'T9999,,nobody@example.test', 'T0008,,khong-hop-le'].join('\n')
@@ -137,7 +137,7 @@ test('the import flow: a dry run writes nothing, applying adds the emails', asyn
   }
 })
 
-test('an editor gets 403 on /quan-tri/* (UI and API); a plain employee gets 403 on the directory', async ({ page, playwright, baseURL }) => {
+test('an editor gets 403 on /admin/* (UI and API); a plain employee gets 403 on the directory', async ({ page, playwright, baseURL }) => {
   const editor = await apiSession(playwright, baseURL!, 'T0002')
   for (const url of ['/api/admin/audit', '/api/admin/dashboard']) {
     expect((await editor.get(url)).status(), url).toBe(403)
@@ -151,10 +151,10 @@ test('an editor gets 403 on /quan-tri/* (UI and API); a plain employee gets 403 
   expect((await employee.post('/api/manage/employees/T0003/emails', { email: 'x@example.test' })).status()).toBe(403)
   await employee.dispose()
 
-  await devLogin(page, 'T0002', '/quan-ly/nhan-su')
+  await devLogin(page, 'T0002', '/manage/employees')
   await expect(page.getByRole('heading', { level: 1, name: 'Nhân sự & email' })).toBeVisible()
-  await page.goto('/quan-tri/phan-quyen')
+  await page.goto('/admin/roles')
   await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
-  await page.goto('/quan-tri')
+  await page.goto('/admin')
   await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
 })

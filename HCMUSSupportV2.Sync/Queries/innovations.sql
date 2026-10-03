@@ -1,7 +1,7 @@
 -- innovations: NS_QuaTrinhSangKien -> InnovationRow. hrm_id = QuaTrinhSangKien.
 -- LyDo holds "<code>\n<title>" or "<code> - <title>"; it is split into code (ma_sk) and title (mo_ta) exactly as the v1 job did.
 -- Changes vs docs/jjobs/innovation.jjob: the date is returned as a real date (v1 converted to dd/MM/yyyy and then sorted that
--- text), and the loai-sang-kien join is LEFT so a record without a type is not dropped.
+-- text), and the innovation-type join (DM_LoaiSangKien) is LEFT so a record without a type is not dropped.
 WITH cte AS (
     SELECT sk.QuaTrinhSangKien,
            ns.MA,

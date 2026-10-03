@@ -136,7 +136,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
         // The URL becomes the saved draft's id; the page keeps this workspace (same key), so nothing is lost.
         dirtyRef.current = false
         onCreated?.(detail.id)
-        void navigate(`/quan-ly/thong-bao/${detail.id}`, { replace: true })
+        void navigate(`/manage/notifications/${detail.id}`, { replace: true })
       }
       setToast(created ? 'Đã tạo bản nháp.' : live ? 'Đã lưu. Người nhận thấy nhãn “Đã cập nhật”.' : 'Đã lưu.')
       return detail
@@ -183,7 +183,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
       const copy = await cloneNotification(saved.id)
       storeDetail(copy)
       dirtyRef.current = false
-      void navigate(`/quan-ly/thong-bao/${copy.id}`)
+      void navigate(`/manage/notifications/${copy.id}`)
     } catch (e) {
       setBanner(errorMessage(e, 'Không sao chép được thông báo.'))
     }
@@ -195,7 +195,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
     try {
       await removeDraft.mutateAsync(saved.id)
       dirtyRef.current = false
-      void navigate('/quan-ly/thong-bao', { replace: true })
+      void navigate('/manage/notifications', { replace: true })
     } catch (e) {
       setDialogError(errorMessage(e, 'Không xóa được bản nháp.'))
     }
@@ -334,7 +334,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
           </Alert>
         )}
 
-        {!saved && <StartFromPanel onCloned={(copy) => { dirtyRef.current = false; void navigate(`/quan-ly/thong-bao/${copy.id}`) }} />}
+        {!saved && <StartFromPanel onCloned={(copy) => { dirtyRef.current = false; void navigate(`/manage/notifications/${copy.id}`) }} />}
 
         <AcrylicCard sx={{ p: 2.5 }}>
           <SectionLabel>Tiêu đề và tóm tắt</SectionLabel>

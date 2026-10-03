@@ -33,7 +33,7 @@ const SEARCH_DEBOUNCE_MS = 400
 const FLY_IN_ROWS = 10
 
 /**
- * `/quan-ly/thong-bao`: every notification the editor can manage. Status chips, search, tag and series filters (all in
+ * `/manage/notifications`: every notification the editor can manage. Status chips, search, tag and series filters (all in
  * the URL), the read-rate bar per row, quick actions (copy, archive, delete) and the tag / series dialog.
  */
 export function Component() {
@@ -61,7 +61,7 @@ export function Component() {
       if (action === 'clone') {
         const copy = await cloneNotification(item.id)
         storeDetail(copy)
-        void navigate(`/quan-ly/thong-bao/${copy.id}`)
+        void navigate(`/manage/notifications/${copy.id}`)
       } else if (action === 'archive') {
         storeDetail(await archiveNotification(item.id))
       } else {
@@ -93,7 +93,7 @@ export function Component() {
             <Button variant="outlined" startIcon={<LabelOutlined />} onClick={() => setDialog('tags')}>
               Thẻ và chuỗi
             </Button>
-            <Button variant="contained" startIcon={<AddIcon />} component={RouterLink} to="/quan-ly/thong-bao/moi">
+            <Button variant="contained" startIcon={<AddIcon />} component={RouterLink} to="/manage/notifications/new">
               Soạn thông báo
             </Button>
           </Stack>

@@ -18,14 +18,14 @@ export interface InboxRowProps {
 }
 
 /**
- * One inbox row: a compact acrylic link to `/tin-tuc/:id`. Chip for edited-after-delivery; first tag plus `+N`; delivery date.
+ * One inbox row: a compact acrylic link to `/news/:id`. Chip for edited-after-delivery; first tag plus `+N`; delivery date.
  */
 export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
   const [firstTag, ...otherTags] = item.tags
   return (
     <Paper
       component={RouterLink}
-      to={{ pathname: `/tin-tuc/${item.id}`, search }}
+      to={{ pathname: `/news/${item.id}`, search }}
       state={{ fromList: true }}
       variant="acrylic"
       data-interactive="true"

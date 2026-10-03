@@ -2,7 +2,7 @@ import { dayKey, parseDate } from '../../../lib/format'
 
 /**
  * The inbox filters, kept in the URL query so they survive a reload and the back button
- * (`/tin-tuc?q=luong&tags=1,3&from=2026-01-01&to=2026-06-30`).
+ * (`/news?q=luong&tags=1,3&from=2026-01-01&to=2026-06-30`).
  */
 export interface InboxFilters {
   /** Free text (accent-insensitive full text on the server). Trimmed; empty = off. */

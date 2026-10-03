@@ -1,6 +1,5 @@
 import { Navigate } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
-import LoginAlias from '../auth/LoginAlias'
 import RequireAuth, { FullScreenLoading } from '../auth/RequireAuth'
 import RequireRole from '../auth/RequireRole'
 import AppLayout from './AppLayout'
@@ -33,10 +32,9 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
   : []
 
 export const routes: RouteObject[] = [
-  { path: '/login', element: <LoginAlias /> },
   ...devRoutes,
   {
-    path: '/dang-nhap',
+    path: '/login',
     lazy: () => import('../auth/LoginPage'),
     errorElement: <RouteErrorPage />,
     hydrateFallbackElement: <FullScreenLoading />,
@@ -52,53 +50,53 @@ export const routes: RouteObject[] = [
     errorElement: <RouteErrorPage />,
     hydrateFallbackElement: <FullScreenLoading />,
     children: [
-      { index: true, element: <Navigate to="/tin-tuc" replace /> },
+      { index: true, element: <Navigate to="/news" replace /> },
 
-      // Tin tức (landing). The detail is a nested route whose Dialog opens over the list (InboxPage renders the Outlet);
+      // News (landing). The detail is a nested route whose Dialog opens over the list (InboxPage renders the Outlet);
       // `scrollGroup` keeps the list's scroll position when it opens (AppLayout scrolls to the top on other navigations).
       {
-        path: 'tin-tuc',
+        path: 'news',
         lazy: () => import('../features/notifications/inbox/InboxPage'),
-        handle: { title: 'Tin tức', scrollGroup: 'tin-tuc' },
+        handle: { title: 'Tin tức', scrollGroup: 'news' },
         children: [
           {
             path: ':id',
             lazy: () => import('../features/notifications/inbox/NotificationDialog'),
-            handle: { title: 'Chi tiết thông báo', scrollGroup: 'tin-tuc' },
+            handle: { title: 'Chi tiết thông báo', scrollGroup: 'news' },
           },
         ],
       },
 
       // Hồ sơ cá nhân
-      page('ho-so', 'Hồ sơ cá nhân', () => import('../features/profile/overview/OverviewPage')),
-      page('ho-so/thong-tin-chung', 'Thông tin chung', () => import('../features/profile/general/GeneralPage')),
-      page('ho-so/thong-tin-chi-tiet', 'Thông tin chi tiết', () => import('../features/profile/detailed/DetailedPage')),
-      page('ho-so/luong', 'Quá trình lương', () => import('../features/profile/salary/SalaryPage')),
-      page('ho-so/chuc-vu', 'Chức vụ', () => import('../features/profile/positions/PositionsPage')),
-      page('ho-so/khen-thuong', 'Khen thưởng', () => import('../features/profile/commendations/CommendationsPage')),
-      page('ho-so/dao-tao', 'Quá trình đào tạo', () => import('../features/profile/degrees/DegreesPage')),
-      page('ho-so/boi-duong', 'Quá trình bồi dưỡng', () => import('../features/profile/training/TrainingPage')),
-      page('ho-so/cong-tac', 'Đi công tác', () => import('../features/profile/trips/TripsPage')),
+      page('profile', 'Hồ sơ cá nhân', () => import('../features/profile/overview/OverviewPage')),
+      page('profile/general', 'Thông tin chung', () => import('../features/profile/general/GeneralPage')),
+      page('profile/detailed', 'Thông tin chi tiết', () => import('../features/profile/detailed/DetailedPage')),
+      page('profile/salary', 'Quá trình lương', () => import('../features/profile/salary/SalaryPage')),
+      page('profile/positions', 'Chức vụ', () => import('../features/profile/positions/PositionsPage')),
+      page('profile/commendations', 'Khen thưởng', () => import('../features/profile/commendations/CommendationsPage')),
+      page('profile/degrees', 'Quá trình đào tạo', () => import('../features/profile/degrees/DegreesPage')),
+      page('profile/training', 'Quá trình bồi dưỡng', () => import('../features/profile/training/TrainingPage')),
+      page('profile/business-trips', 'Đi công tác', () => import('../features/profile/trips/TripsPage')),
 
-      page('sang-kien', 'Sáng kiến', () => import('../features/innovation/InnovationPage')),
-      page('giang-day', 'Giảng dạy', () => import('../features/teaching/TeachingPage')),
+      page('innovations', 'Sáng kiến', () => import('../features/innovation/InnovationPage')),
+      page('teaching', 'Giảng dạy', () => import('../features/teaching/TeachingPage')),
 
-      redirect('nckh', '/nckh/de-tai'),
-      page('nckh/de-tai', 'Đề tài nghiên cứu', () => import('../features/research/ProjectsPage')),
-      page('nckh/bai-bao', 'Bài báo khoa học', () => import('../features/research/PublicationsPage')),
+      redirect('research', '/research/projects'),
+      page('research/projects', 'Đề tài nghiên cứu', () => import('../features/research/ProjectsPage')),
+      page('research/publications', 'Bài báo khoa học', () => import('../features/research/PublicationsPage')),
 
       // Editor and above
       {
-        path: 'quan-ly',
+        path: 'manage',
         element: <RequireRole role="editor" />,
         children: [
-          { index: true, element: <Navigate to="/quan-ly/thong-bao" replace /> },
-          page('thong-bao', 'Quản lý thông báo', () => import('../features/notifications/manage/ManageListPage')),
-          page('thong-bao/:id', 'Soạn thông báo', () => import('../features/notifications/manage/NotificationEditorPage')),
-          page('nhan-su', 'Nhân sự & email', () => import('../features/employees/EmployeesPage')),
+          { index: true, element: <Navigate to="/manage/notifications" replace /> },
+          page('notifications', 'Quản lý thông báo', () => import('../features/notifications/manage/ManageListPage')),
+          page('notifications/:id', 'Soạn thông báo', () => import('../features/notifications/manage/NotificationEditorPage')),
+          page('employees', 'Nhân sự & email', () => import('../features/employees/EmployeesPage')),
           // One master-detail page for the list and the detail, so the list keeps its state while you pick a group.
           {
-            path: 'nhom',
+            path: 'groups',
             lazy: () => import('../features/manage/groups/GroupsPage'),
             handle: { title: 'Nhóm' },
             children: [
@@ -111,15 +109,15 @@ export const routes: RouteObject[] = [
 
       // Admin only
       {
-        path: 'quan-tri',
+        path: 'admin',
         element: <RequireRole role="admin" />,
         children: [
           { index: true, lazy: () => import('../features/admin/AdminHomePage'), handle: { title: 'Quản trị' } },
-          page('phan-quyen', 'Phân quyền', () => import('../features/admin/RolesPage')),
-          page('xem-thu', 'Xem thử', () => import('../features/admin/ViewAsPage')),
-          page('nhat-ky', 'Nhật ký', () => import('../features/admin/AuditPage')),
-          page('dong-bo', 'Đồng bộ', () => import('../features/admin/SyncPage')),
-          page('du-lieu', 'Dữ liệu', () => import('../features/admin/DatasetsPage')),
+          page('roles', 'Phân quyền', () => import('../features/admin/RolesPage')),
+          page('view-as', 'Xem thử', () => import('../features/admin/ViewAsPage')),
+          page('audit', 'Nhật ký', () => import('../features/admin/AuditPage')),
+          page('sync', 'Đồng bộ', () => import('../features/admin/SyncPage')),
+          page('datasets', 'Dữ liệu', () => import('../features/admin/DatasetsPage')),
           page('api-clients', 'API clients', () => import('../features/admin/ApiClientsPage')),
         ],
       },

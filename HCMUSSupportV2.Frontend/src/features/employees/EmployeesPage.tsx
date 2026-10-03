@@ -22,7 +22,7 @@ import ImportDialog from './ImportDialog'
 const numberFormat = new Intl.NumberFormat('vi-VN')
 
 /**
- * `/quan-ly/nhan-su`: "Nhân sự & email" (editor). The directory replaces the Google Sheet that mapped MSCB to emails:
+ * `/manage/employees`: "Nhân sự & email" (editor). The directory replaces the Google Sheet that mapped MSCB to emails:
  * search, filters, a drawer to add, remove and set the primary email of one person, and the bulk import with a dry run.
  * The filters and the open employee (`?ma=`) live in the URL, so a view can be shared and survives a reload.
  */

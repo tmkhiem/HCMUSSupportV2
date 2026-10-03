@@ -26,19 +26,19 @@ test.describe('admin pages (desktop)', () => {
 
   test('Quản trị: tiles, quick actions and recent activity', async ({ page }) => {
     await stubAdminApi(page)
-    await page.goto('/quan-tri')
+    await page.goto('/admin')
     await expect(h1(page, 'Quản trị')).toBeVisible()
     await expect(page.getByText('Cán bộ đang hoạt động')).toBeVisible()
     await expect(page.getByText('1.284')).toBeVisible()
     await expect(page.getByText('Hoạt động gần đây')).toBeVisible()
     await shoot(page, 'quan-tri-1440')
     await page.getByRole('link', { name: 'Phân quyền' }).first().click()
-    await expect(page).toHaveURL(/\/quan-tri\/phan-quyen$/)
+    await expect(page).toHaveURL(/\/admin\/roles$/)
   })
 
   test('Phân quyền: search, role filter, paging, open drawer, toggle editor, save', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-tri/phan-quyen')
+    await page.goto('/admin/roles')
     await expect(h1(page, 'Phân quyền')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Mở Lê Nhân Viên' })).toBeVisible()
     await page.getByRole('button', { name: 'Tải thêm' }).click()
@@ -70,7 +70,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Phân quyền: the 409 last-admin message is shown', async ({ page }) => {
     await stubAdminApi(page, { lastAdmin: true })
-    await page.goto('/quan-tri/phan-quyen')
+    await page.goto('/admin/roles')
     await page.getByRole('button', { name: 'Mở Nguyễn Thử Nghiệm' }).click()
     const drawer = page.getByRole('presentation').filter({ hasText: 'Chi tiết phân quyền' })
     await drawer.getByRole('switch', { name: /Quản trị viên/ }).uncheck()
@@ -80,19 +80,19 @@ test.describe('admin pages (desktop)', () => {
 
   test('Xem thử: typeahead then start goes to Tin tức', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-tri/xem-thu')
+    await page.goto('/admin/view-as')
     await expect(h1(page, 'Xem thử')).toBeVisible()
     await page.getByLabel('Cán bộ cần xem').fill('Trần')
     await page.getByRole('option', { name: /Trần Mẫu Thử/ }).click()
     await shoot(page, 'xem-thu-1440')
     await page.getByRole('button', { name: 'Bắt đầu xem thử' }).click()
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
     expect(calls.viewAs).toEqual([{ employeeCode: 'T0002' }])
   })
 
   test('view-as bar shows and exits (mock auth; the real DELETE is covered by e2e-real)', async ({ page }) => {
     await stubAdminApi(page)
-    await page.goto('/tin-tuc?mock-view-as=1')
+    await page.goto('/news?mock-view-as=1')
     await expect(page.getByText('Đang xem với tư cách Trần Mẫu Thử')).toBeVisible()
     await page.getByRole('button', { name: 'Thoát' }).click()
     await expect(page.getByText('Đang xem với tư cách')).toHaveCount(0)
@@ -100,7 +100,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhật ký: filter by action and date, page', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-tri/nhat-ky')
+    await page.goto('/admin/audit')
     await expect(h1(page, 'Nhật ký')).toBeVisible()
     await expect(page.getByRole('table', { name: 'Nhật ký thao tác' }).getByText('Cấp quyền').first()).toBeVisible()
     await page.getByRole('button', { name: 'Tải thêm' }).click()
@@ -115,7 +115,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Đồng bộ: runs, resolving an issue, showing resolved ones', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-tri/dong-bo')
+    await page.goto('/admin/sync')
     await expect(h1(page, 'Đồng bộ')).toBeVisible()
     await expect(page.getByText('Số dòng giảm quá ngưỡng cho phép.')).toBeVisible()
     await shoot(page, 'dong-bo-1440')
@@ -128,7 +128,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Dữ liệu: template link, upload, validation report, apply', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-tri/du-lieu')
+    await page.goto('/admin/datasets')
     await expect(h1(page, 'Dữ liệu')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Tải tệp mẫu' })).toHaveAttribute('href', '/api/admin/datasets/teaching/template')
     await page.getByRole('tab', { name: 'Bài báo khoa học' }).click()
@@ -146,7 +146,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('API clients: list, create shows the token once, revoke', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-tri/api-clients')
+    await page.goto('/admin/api-clients')
     await expect(h1(page, 'API clients')).toBeVisible()
     const table = page.getByRole('table', { name: 'API clients' })
     await expect(table.getByRole('row', { name: /sync-hrm/ })).toContainText('Đang hoạt động')
@@ -181,7 +181,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhóm: list filters (kind chips, search, archived) and restore', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom')
+    await page.goto('/manage/groups')
     await expect(h1(page, 'Nhóm')).toBeVisible()
     const list = groupList(page)
     await expect(list.getByText('Ban chủ nhiệm khoa')).toBeVisible()
@@ -198,7 +198,7 @@ test.describe('admin pages (desktop)', () => {
 
     await page.getByRole('switch', { name: 'Hiện nhóm đã lưu trữ' }).check()
     await list.getByText('Nhóm cũ 2024').click()
-    await expect(page).toHaveURL(/\/quan-ly\/nhom\/5$/)
+    await expect(page).toHaveURL(/\/manage\/groups\/5$/)
     await expect(page.getByText('Đã lưu trữ').first()).toBeVisible()
     await expect(page.getByLabel('Tên nhóm')).toBeDisabled()
     await page.getByRole('button', { name: 'Khôi phục' }).click()
@@ -208,7 +208,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhóm: rule group preview, org-unit condition, unsaved bar and save', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom/1')
+    await page.goto('/manage/groups/1')
     await expect(page.getByText('128 cán bộ khớp quy tắc')).toBeVisible()
     await expect(page.getByText('Trần Mẫu Thử · T0002')).toBeVisible()
     await expect(unsavedBar(page)).toHaveCount(0)
@@ -237,7 +237,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhóm: the rule builder offers an editor for every condition kind', async ({ page }) => {
     await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom')
+    await page.goto('/manage/groups')
     await page.getByRole('button', { name: 'Tạo nhóm' }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel('Tên nhóm').fill('Giáo sư đang làm việc')
@@ -260,7 +260,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhóm: create a rule group', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom')
+    await page.goto('/manage/groups')
     await page.getByRole('button', { name: 'Tạo nhóm' }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByRole('button', { name: 'Tạo nhóm' })).toBeDisabled()
@@ -269,7 +269,7 @@ test.describe('admin pages (desktop)', () => {
     await dialog.getByRole('combobox', { name: 'Đơn vị' }).fill('Toán')
     await page.getByRole('option', { name: 'Khoa Toán - Tin học' }).click()
     await dialog.getByRole('button', { name: 'Tạo nhóm' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/nhom\/\d+$/)
+    await expect(page).toHaveURL(/\/manage\/groups\/\d+$/)
     expect(calls.groupPosts).toEqual([
       { name: 'Giảng viên khoa Toán', kind: 'rule', rule: { all: [{ field: 'org_unit', id: 13, includeDescendants: false }] } },
     ])
@@ -277,7 +277,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhóm: static group, add through the typeahead, remove, import dry run then apply, archive', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom/2')
+    await page.goto('/manage/groups/2')
     const members = page.getByRole('table', { name: 'Thành viên' })
     await expect(members.getByText('T0002')).toBeVisible()
     await shoot(page, 'nhom-static-1440')
@@ -303,14 +303,14 @@ test.describe('admin pages (desktop)', () => {
     expect(calls.memberImports).toEqual([true, false])
 
     await page.getByRole('button', { name: 'Lưu trữ' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/nhom$/)
+    await expect(page).toHaveURL(/\/manage\/groups$/)
     expect(calls.archived).toEqual(['2'])
     await expect(groupList(page).getByText('Ban chủ nhiệm khoa')).toHaveCount(0)
   })
 
   test('Nhóm: a rule with nested conditions is shown read-only, never flattened', async ({ page }) => {
     await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom/6')
+    await page.goto('/manage/groups/6')
     await expect(page.getByText('dùng điều kiện lồng nhau')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Thêm điều kiện' })).toHaveCount(0)
     await expect(page.getByText('Xem trước')).toHaveCount(0)
@@ -318,7 +318,7 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhóm: org-unit group has only the descendants switch; members are read-only', async ({ page }) => {
     const calls = await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom/3')
+    await page.goto('/manage/groups/3')
     const sw = page.getByRole('switch', { name: /đơn vị trực thuộc/ })
     await expect(sw).toBeChecked()
     await expect(page.getByLabel('Tên nhóm')).toBeDisabled()
@@ -332,17 +332,17 @@ test.describe('admin pages (desktop)', () => {
 
   test('Nhóm: leaving with an unsaved draft asks first', async ({ page }) => {
     await stubAdminApi(page)
-    await page.goto('/quan-ly/nhom/2')
+    await page.goto('/manage/groups/2')
     await page.getByLabel('Mô tả').fill('Đã sửa')
     await expect(unsavedBar(page)).toBeVisible()
     await groupList(page).getByText('Giảng viên có email').click()
     const ask = page.getByRole('dialog', { name: 'Bỏ các thay đổi chưa lưu?' })
     await expect(ask).toBeVisible()
     await ask.getByRole('button', { name: 'Ở lại' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/nhom\/2$/)
+    await expect(page).toHaveURL(/\/manage\/groups\/2$/)
     await groupList(page).getByText('Giảng viên có email').click()
     await page.getByRole('button', { name: 'Bỏ thay đổi' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/nhom\/1$/)
+    await expect(page).toHaveURL(/\/manage\/groups\/1$/)
   })
 })
 
@@ -350,16 +350,16 @@ test.describe('admin pages (mobile 375)', () => {
   test.use({ viewport: MOBILE })
 
   const pages: [string, string][] = [
-    ['/quan-tri', 'quan-tri-375'],
-    ['/quan-tri/phan-quyen', 'phan-quyen-375'],
-    ['/quan-tri/xem-thu', 'xem-thu-375'],
-    ['/quan-tri/nhat-ky', 'nhat-ky-375'],
-    ['/quan-tri/dong-bo', 'dong-bo-375'],
-    ['/quan-tri/du-lieu', 'du-lieu-375'],
-    ['/quan-tri/api-clients', 'api-clients-375'],
-    ['/quan-ly/nhom', 'nhom-list-375'],
-    ['/quan-ly/nhom/1', 'nhom-rule-375'],
-    ['/quan-ly/nhom/2', 'nhom-static-375'],
+    ['/admin', 'quan-tri-375'],
+    ['/admin/roles', 'phan-quyen-375'],
+    ['/admin/view-as', 'xem-thu-375'],
+    ['/admin/audit', 'nhat-ky-375'],
+    ['/admin/sync', 'dong-bo-375'],
+    ['/admin/datasets', 'du-lieu-375'],
+    ['/admin/api-clients', 'api-clients-375'],
+    ['/manage/groups', 'nhom-list-375'],
+    ['/manage/groups/1', 'nhom-rule-375'],
+    ['/manage/groups/2', 'nhom-static-375'],
   ]
   for (const [path, shot] of pages) {
     test(`${path} has no horizontal scroll`, async ({ page }) => {

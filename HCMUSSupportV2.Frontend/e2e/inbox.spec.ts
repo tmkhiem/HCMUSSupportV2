@@ -36,8 +36,8 @@ const row = (page: Page, title: string) => rows(page).filter({ hasText: title })
 const dialog = (page: Page) => page.getByRole('dialog')
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Điều hướng chính' })
 
-/** Open `/tin-tuc` and wait for the first page of rows. */
-async function openInbox(page: Page, path = '/tin-tuc', waitForRows = true) {
+/** Open `/news` and wait for the first page of rows. */
+async function openInbox(page: Page, path = '/news', waitForRows = true) {
   await page.goto(path)
   await expect(page.getByRole('heading', { level: 1, name: 'Tin tức', includeHidden: true })).toBeAttached()
   if (waitForRows) await expect(rows(page).first()).toBeAttached()
@@ -109,7 +109,7 @@ test.describe('desktop 1440', () => {
     await expect(rows(page)).toHaveCount(5)
 
     await page.getByRole('button', { name: 'Xóa nội dung tìm kiếm' }).click()
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
     await expect(rows(page)).toHaveCount(20)
   })
 
@@ -133,7 +133,7 @@ test.describe('desktop 1440', () => {
 
     await chip('Khảo sát').click()
     await chip('Khen thưởng').click()
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
   })
 
   test('Từ ngày / Đến ngày narrow the list; typed dates reach the URL', async ({ page }) => {
@@ -158,10 +158,10 @@ test.describe('desktop 1440', () => {
   })
 
   test('an empty result explains itself and "Xóa bộ lọc" resets', async ({ page }) => {
-    await openInbox(page, '/tin-tuc?q=zzzz', false)
+    await openInbox(page, '/news?q=zzzz', false)
     await expect(page.getByText('Không tìm thấy thông báo nào phù hợp.')).toBeVisible()
     await page.getByRole('button', { name: 'Xóa bộ lọc' }).click()
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
     await expect(rows(page)).toHaveCount(20)
     await expect(page.getByRole('searchbox', { name: 'Tìm kiếm thông báo' })).toHaveValue('')
   })
@@ -169,7 +169,7 @@ test.describe('desktop 1440', () => {
   test('opening a row shows the detail over the list: body with values, attachments, earlier posts', async ({ page }) => {
     await openInbox(page)
     await row(page, SALARY_2026).click()
-    await expect(page).toHaveURL(`/tin-tuc/${SALARY_ID}`)
+    await expect(page).toHaveURL(`/news/${SALARY_ID}`)
 
     const dlg = dialog(page)
     await expect(dlg.getByRole('heading', { level: 2, name: SALARY_2026 })).toBeVisible()
@@ -209,29 +209,29 @@ test.describe('desktop 1440', () => {
   })
 
   test('"Các kỳ trước" links to the earlier post; Escape closes and keeps the list filters', async ({ page }) => {
-    await openInbox(page, '/tin-tuc?tags=1')
+    await openInbox(page, '/news?tags=1')
     await row(page, SALARY_2026).click()
-    await expect(page).toHaveURL(new RegExp(`/tin-tuc/${SALARY_ID}\\?tags=1$`))
+    await expect(page).toHaveURL(new RegExp(`/news/${SALARY_ID}\\?tags=1$`))
 
     await dialog(page).getByTestId('series-previous').getByRole('link', { name: new RegExp(SALARY_2025) }).click()
-    await expect(page).toHaveURL(/\/tin-tuc\/0198a000-0000-7000-8000-000000000002\?tags=1$/)
+    await expect(page).toHaveURL(/\/news\/0198a000-0000-7000-8000-000000000002\?tags=1$/)
     await expect(dialog(page).getByRole('heading', { level: 2, name: SALARY_2025 })).toBeVisible()
     await expect(dialog(page).getByTestId('series-previous').getByRole('link')).toHaveCount(1)
 
     await page.keyboard.press('Escape')
     await expect(dialog(page)).toHaveCount(0)
-    await expect(page).toHaveURL(/\/tin-tuc\?tags=1$/)
+    await expect(page).toHaveURL(/\/news\?tags=1$/)
     await expect(rows(page).first()).toBeVisible()
   })
 
   test('a detail deep link opens the dialog over the list; closing goes to the list', async ({ page }) => {
-    await openInbox(page, `/tin-tuc/${SALARY_ID}`)
+    await openInbox(page, `/news/${SALARY_ID}`)
     await expect(dialog(page).getByRole('heading', { level: 2, name: SALARY_2026 })).toBeVisible()
     await expect(rows(page).first()).toBeVisible()
 
     await dialog(page).getByRole('button', { name: 'Đóng' }).click()
     await expect(dialog(page)).toHaveCount(0)
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
   })
 
   test('browser Back from an opened detail returns to the list', async ({ page }) => {
@@ -240,11 +240,11 @@ test.describe('desktop 1440', () => {
     await expect(dialog(page)).toBeVisible()
     await page.goBack()
     await expect(dialog(page)).toHaveCount(0)
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
   })
 
   test('an unknown post id says so instead of a blank dialog', async ({ page }) => {
-    await openInbox(page, '/tin-tuc/0198a000-0000-7000-8000-00000000ffff')
+    await openInbox(page, '/news/0198a000-0000-7000-8000-00000000ffff')
     await expect(dialog(page)).toContainText('Thông báo này không tồn tại hoặc bạn không có quyền xem.')
     await expect(dialog(page).getByRole('heading', { level: 2, name: 'Không tìm thấy thông báo' })).toBeVisible()
   })
@@ -257,7 +257,7 @@ test.describe('desktop 1440', () => {
 
     await page.evaluate(() => window.__inboxMock!.publish('Họp khẩn đột xuất'))
     await nav(page).getByRole('link', { name: 'Hồ sơ cá nhân' }).click()
-    await expect(page).toHaveURL(/\/ho-so$/)
+    await expect(page).toHaveURL(/\/profile$/)
 
     await nav(page).getByRole('link', { name: /Tin tức/ }).click()
     await expect(rows(page).first()).toContainText('Họp khẩn đột xuất')
@@ -269,7 +269,7 @@ test.describe('desktop 1440', () => {
 
   test('the nav entry and the landing redirect point at the inbox', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
     await expect(nav(page).getByRole('link', { name: /Tin tức/ })).toHaveAttribute('aria-current', 'page')
     await row(page, TRAINING).first().click()
     await expect(nav(page).getByRole('link', { name: /Tin tức/ })).toHaveAttribute('aria-current', 'page')
@@ -322,7 +322,7 @@ test.describe('mobile 375', () => {
 
     await dlg.getByRole('button', { name: 'Đóng' }).click()
     await expect(dialog(page)).toHaveCount(0)
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
     await expectNoHorizontalScroll(page)
   })
 })

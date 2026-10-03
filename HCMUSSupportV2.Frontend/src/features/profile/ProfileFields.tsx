@@ -66,7 +66,7 @@ export function FieldList({ children }: { children: ReactNode }) {
 /** "← Hồ sơ cá nhân" back link used as the page header action. */
 export function BackToProfile() {
   return (
-    <Button component={RouterLink} to="/ho-so" startIcon={<ArrowBackOutlined />} size="small">
+    <Button component={RouterLink} to="/profile" startIcon={<ArrowBackOutlined />} size="small">
       Hồ sơ cá nhân
     </Button>
   )

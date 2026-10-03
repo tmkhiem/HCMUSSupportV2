@@ -16,7 +16,7 @@ import {
   TrainingCard,
 } from './SummaryCards'
 
-/** `/ho-so`: hero plus 8 summary cards in a 3 / 2 / 1 column grid. */
+/** `/profile`: hero plus 8 summary cards in a 3 / 2 / 1 column grid. */
 export function Component() {
   const q = useProfileOverview()
   const o = q.data

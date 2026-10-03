@@ -20,14 +20,14 @@ export interface NavEntry {
  * Labels render in the section-label style (normal case, bold).
  */
 export const NAV: readonly NavEntry[] = [
-  { id: 'news', label: 'Tin tức', icon: 'bell', to: '/tin-tuc' },
-  { id: 'profile', label: 'Hồ sơ cá nhân', icon: 'profile-card', to: '/ho-so' },
-  { id: 'innovation', label: 'Sáng kiến', icon: 'light-bulb', to: '/sang-kien' },
-  { id: 'teaching', label: 'Giảng dạy', icon: 'graduation-hat', to: '/giang-day' },
-  { id: 'research', label: 'Nghiên cứu khoa học', icon: 'test-tube', to: '/nckh/de-tai', match: '/nckh' },
-  { id: 'staff', label: 'Nhân sự & email', icon: 'person-alt', to: '/quan-ly/nhan-su', role: 'editor' },
-  { id: 'manage', label: 'Quản lý thông báo', icon: 'document', to: '/quan-ly/thong-bao', match: '/quan-ly', role: 'editor' },
-  { id: 'admin', label: 'Quản trị', icon: 'briefcase', to: '/quan-tri', role: 'admin' },
+  { id: 'news', label: 'Tin tức', icon: 'bell', to: '/news' },
+  { id: 'profile', label: 'Hồ sơ cá nhân', icon: 'profile-card', to: '/profile' },
+  { id: 'innovation', label: 'Sáng kiến', icon: 'light-bulb', to: '/innovations' },
+  { id: 'teaching', label: 'Giảng dạy', icon: 'graduation-hat', to: '/teaching' },
+  { id: 'research', label: 'Nghiên cứu khoa học', icon: 'test-tube', to: '/research/projects', match: '/research' },
+  { id: 'staff', label: 'Nhân sự & email', icon: 'person-alt', to: '/manage/employees', role: 'editor' },
+  { id: 'manage', label: 'Quản lý thông báo', icon: 'document', to: '/manage/notifications', match: '/manage', role: 'editor' },
+  { id: 'admin', label: 'Quản trị', icon: 'briefcase', to: '/admin', role: 'admin' },
 ]
 
 export function visibleNav(me: Pick<Me, 'roles'> | null | undefined, entries: readonly NavEntry[] = NAV): NavEntry[] {

@@ -32,7 +32,7 @@ const toast = (page: Page, text: string) => expect(page.getByRole('status').filt
 
 async function openList(page: Page, query = ''): Promise<FakeApi> {
   const fake = await installFake(page)
-  await page.goto(`/quan-ly/thong-bao${query}`)
+  await page.goto(`/manage/notifications${query}`)
   await expect(page.getByRole('heading', { level: 1, name: 'Quản lý thông báo', includeHidden: true })).toBeAttached()
   await expect(rows(page).first()).toBeAttached()
   return fake
@@ -40,7 +40,7 @@ async function openList(page: Page, query = ''): Promise<FakeApi> {
 
 async function openEditor(page: Page, id: string): Promise<FakeApi> {
   const fake = await installFake(page)
-  await page.goto(`/quan-ly/thong-bao/${id}`)
+  await page.goto(`/manage/notifications/${id}`)
   await expect(page.getByTestId('title-input')).toBeVisible()
   await expect(page.getByTestId('notification-editor')).toBeVisible()
   return fake
@@ -103,12 +103,12 @@ test.describe('desktop 1440', () => {
     await row(page, SALARY_2025).getByRole('button', { name: /^Thao tác với/ }).click()
     await expect(page.getByRole('menuitem', { name: 'Xóa bản nháp' })).toHaveCount(0) // only drafts can be deleted
     await page.getByRole('menuitem', { name: 'Sao chép thành bản nháp' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/thong-bao\/0198b000-/)
+    await expect(page).toHaveURL(/\/manage\/notifications\/0198b000-/)
     await expect(page.getByTestId('title-input')).toHaveValue(SALARY_2025)
     await expect(page.getByTestId('status-chip')).toHaveText('Bản nháp')
     expect(fake.calls).toContain(`POST notifications/${SEED_ID(1)}/clone`)
 
-    await page.goto('/quan-ly/thong-bao')
+    await page.goto('/manage/notifications')
     await expect(rows(page)).toHaveCount(7)
     await row(page, 'Mở lớp bồi dưỡng').getByRole('button', { name: /^Thao tác với/ }).click()
     await page.getByRole('menuitem', { name: 'Lưu trữ' }).click()
@@ -164,7 +164,7 @@ test.describe('desktop 1440', () => {
 
   test('a new notification: server validation shows line and column, the first save creates the draft', async ({ page }) => {
     await installFake(page)
-    await page.goto('/quan-ly/thong-bao/moi')
+    await page.goto('/manage/notifications/new')
     await expect(page.getByTestId('start-from')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: 'Soạn thông báo mới' })).toBeVisible()
     await expect(page.getByTestId('status-chip')).toHaveText('Bản nháp')
@@ -193,7 +193,7 @@ test.describe('desktop 1440', () => {
     await page.getByLabel('Khóa biến 1').fill('Ten_Day_Du')
 
     await page.getByRole('button', { name: 'Lưu' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/thong-bao\/0198b000-/)
+    await expect(page).toHaveURL(/\/manage\/notifications\/0198b000-/)
     await toast(page, 'Đã tạo bản nháp.')
     await expect(page.getByTestId('body-errors')).toHaveCount(0)
     await expect(page.getByTestId('dirty-flag')).toHaveCount(0)
@@ -339,29 +339,29 @@ test.describe('desktop 1440', () => {
     const leave = page.getByRole('dialog', { name: 'Rời khỏi trang?' })
     await expect(leave).toBeVisible()
     await leave.getByRole('button', { name: 'Hủy' }).click()
-    await expect(page).toHaveURL(/thong-bao\/0198b000/)
+    await expect(page).toHaveURL(/notifications\/0198b000/)
     await page.getByRole('link', { name: 'Quản lý thông báo', exact: true }).first().click()
     await page.getByRole('dialog', { name: 'Rời khỏi trang?' }).getByRole('button', { name: 'Rời đi, bỏ thay đổi' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/thong-bao$/)
+    await expect(page).toHaveURL(/\/manage\/notifications$/)
   })
 
   test('attachments: add and remove (a draft is saved first)', async ({ page }) => {
     await installFake(page)
-    await page.goto('/quan-ly/thong-bao/moi')
+    await page.goto('/manage/notifications/new')
     await page.getByTestId('title-input').fill('Thông báo có tệp')
     await page.getByTestId('attachment-file').setInputFiles({ name: 'quyet-dinh.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic') })
     await expect(page.getByTestId('attachments-panel')).toContainText('quyet-dinh-nang-luong.pdf')
-    await expect(page).toHaveURL(/\/quan-ly\/thong-bao\/0198b000-/)
+    await expect(page).toHaveURL(/\/manage\/notifications\/0198b000-/)
     await page.getByRole('button', { name: 'Xóa tệp quyet-dinh-nang-luong.pdf' }).click()
     await expect(page.getByTestId('attachments-panel')).toContainText('Chưa có tệp đính kèm')
   })
 
   test('an unknown notification shows a message and a way back', async ({ page }) => {
     await installFake(page)
-    await page.goto('/quan-ly/thong-bao/0198b000-0000-7000-8000-00000000ffff')
+    await page.goto('/manage/notifications/0198b000-0000-7000-8000-00000000ffff')
     await expect(page.getByText('Không tìm thấy thông báo này.')).toBeVisible()
     await page.getByRole('button', { name: 'Về danh sách' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/thong-bao$/)
+    await expect(page).toHaveURL(/\/manage\/notifications$/)
   })
 })
 

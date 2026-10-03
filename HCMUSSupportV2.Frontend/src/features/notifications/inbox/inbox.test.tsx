@@ -60,7 +60,7 @@ describe('InboxRow', () => {
   it('links to the detail keeping the list query and has no read state', () => {
     renderRow({})
     const row = screen.getByTestId('inbox-row')
-    expect(row).toHaveAttribute('href', '/tin-tuc/n1?q=a')
+    expect(row).toHaveAttribute('href', '/news/n1?q=a')
     expect(row).not.toHaveAttribute('data-unread')
     expect(screen.queryByTestId('unread-dot')).not.toBeInTheDocument()
     expect(screen.getByText('Nâng lương 2026')).toHaveStyle({ fontWeight: '600' })

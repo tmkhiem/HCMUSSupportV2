@@ -14,7 +14,7 @@ export function Component() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Đường dẫn không tồn tại hoặc đã được di chuyển.
       </Typography>
-      <Button component={Link} to="/tin-tuc" variant="contained">
+      <Button component={Link} to="/news" variant="contained">
         Về trang Tin tức
       </Button>
     </AcrylicCard>

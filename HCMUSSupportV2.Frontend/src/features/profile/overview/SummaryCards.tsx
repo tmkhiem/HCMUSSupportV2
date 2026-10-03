@@ -7,7 +7,7 @@ import { isNotFound } from '../profileStates'
 import SummaryCardFrame, { CardEmpty, CardFact, CardFigure } from './SummaryCardFrame'
 import PngIcon from '../../../ui/PngIcon'
 
-/** The eight cards of `/ho-so`, one component each. Indices continue after the hero (0). */
+/** The eight cards of `/profile`, one component each. Indices continue after the hero (0). */
 
 type Props = { index: number }
 
@@ -15,7 +15,7 @@ export function GeneralCard({ index }: Props) {
   const q = useGeneralProfile()
   const g = q.data
   return (
-    <SummaryCardFrame title="Thông tin chung" icon={<PngIcon name="person" size={28} />} to="/ho-so/thong-tin-chung" index={index}>
+    <SummaryCardFrame title="Thông tin chung" icon={<PngIcon name="person" size={28} />} to="/profile/general" index={index}>
       {g ? (
         <>
           <CardFact label="Ngày sinh" value={formatPartialDate(g.dateOfBirth)} />
@@ -38,7 +38,7 @@ export function DetailedCard({ index }: Props) {
   const q = useDetailedProfile()
   const d = q.data
   return (
-    <SummaryCardFrame title="Thông tin chi tiết" icon={<PngIcon name="document-alt" size={28} />} to="/ho-so/thong-tin-chi-tiet" index={index}>
+    <SummaryCardFrame title="Thông tin chi tiết" icon={<PngIcon name="document-alt" size={28} />} to="/profile/detailed" index={index}>
       {d ? (
         <>
           <CardFact label="Đơn vị" value={d.unit ?? '—'} />
@@ -60,7 +60,7 @@ export function DetailedCard({ index }: Props) {
 export function SalaryCard({ index, salary }: Props & { salary: ProfileOverview['salary'] }) {
   const has = salary.step != null || salary.coefficient != null || salary.gradeName
   return (
-    <SummaryCardFrame title="Quá trình lương" icon={<PngIcon name="money-salary" size={28} />} to="/ho-so/luong" index={index}>
+    <SummaryCardFrame title="Quá trình lương" icon={<PngIcon name="money-salary" size={28} />} to="/profile/salary" index={index}>
       {has ? (
         <>
           <CardFigure
@@ -81,7 +81,7 @@ export function SalaryCard({ index, salary }: Props & { salary: ProfileOverview[
 export function CommendationsCard({ index, commendations }: Props & { commendations: ProfileOverview['commendations'] }) {
   const none = commendations.awards === 0 && commendations.titles === 0
   return (
-    <SummaryCardFrame title="Khen thưởng" icon={<PngIcon name="cup" size={28} />} to="/ho-so/khen-thuong" index={index}>
+    <SummaryCardFrame title="Khen thưởng" icon={<PngIcon name="cup" size={28} />} to="/profile/commendations" index={index}>
       {none ? (
         <CardEmpty />
       ) : (
@@ -96,7 +96,7 @@ export function CommendationsCard({ index, commendations }: Props & { commendati
 
 export function PositionsCard({ index, positions }: Props & { positions: ProfileOverview['positions'] }) {
   return (
-    <SummaryCardFrame title="Chức vụ" icon={<PngIcon name="briefcase" size={28} />} to="/ho-so/chuc-vu" index={index}>
+    <SummaryCardFrame title="Chức vụ" icon={<PngIcon name="briefcase" size={28} />} to="/profile/positions" index={index}>
       {positions.currentTitle || positions.count > 0 ? (
         <CardFigure
           value={<Typography variant="h6" component="span">{positions.currentTitle ?? '—'}</Typography>}
@@ -111,7 +111,7 @@ export function PositionsCard({ index, positions }: Props & { positions: Profile
 
 export function DegreesCard({ index, degrees }: Props & { degrees: ProfileOverview['degrees'] }) {
   return (
-    <SummaryCardFrame title="Quá trình đào tạo" icon={<PngIcon name="graduation-hat" size={28} />} to="/ho-so/dao-tao" index={index}>
+    <SummaryCardFrame title="Quá trình đào tạo" icon={<PngIcon name="graduation-hat" size={28} />} to="/profile/degrees" index={index}>
       {degrees.count > 0 ? (
         <CardFigure
           value={<Typography variant="h6" component="span">{joinParts([degrees.latestDegreeType, degrees.latestMajor])}</Typography>}
@@ -126,7 +126,7 @@ export function DegreesCard({ index, degrees }: Props & { degrees: ProfileOvervi
 
 export function TrainingCard({ index, count }: Props & { count: number }) {
   return (
-    <SummaryCardFrame title="Quá trình bồi dưỡng" icon={<PngIcon name="book-open" size={28} />} to="/ho-so/boi-duong" index={index}>
+    <SummaryCardFrame title="Quá trình bồi dưỡng" icon={<PngIcon name="book-open" size={28} />} to="/profile/training" index={index}>
       {count > 0 ? <CardFigure value={count} caption="khóa bồi dưỡng" /> : <CardEmpty />}
     </SummaryCardFrame>
   )
@@ -134,7 +134,7 @@ export function TrainingCard({ index, count }: Props & { count: number }) {
 
 export function BusinessTripsCard({ index, count }: Props & { count: number }) {
   return (
-    <SummaryCardFrame title="Đi công tác" icon={<PngIcon name="airplane-departure" size={28} />} to="/ho-so/cong-tac" index={index}>
+    <SummaryCardFrame title="Đi công tác" icon={<PngIcon name="airplane-departure" size={28} />} to="/profile/business-trips" index={index}>
       {count > 0 ? <CardFigure value={count} caption="chuyến công tác" /> : <CardEmpty />}
     </SummaryCardFrame>
   )

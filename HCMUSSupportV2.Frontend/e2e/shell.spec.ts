@@ -18,7 +18,7 @@ test.describe('desktop shell', () => {
 
   test('lands on Tin tức with the full sidebar and a sliding indicator', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
     await expect(page).toHaveTitle(/Tin tức · Support HCMUS/)
     await expect(page.getByRole('heading', { level: 1, name: 'Tin tức' })).toBeVisible()
 
@@ -30,25 +30,25 @@ test.describe('desktop shell', () => {
   })
 
   test('nav moves the indicator and changes the page', async ({ page }) => {
-    await page.goto('/tin-tuc')
+    await page.goto('/news')
     const indicator = page.getByTestId('nav-indicator')
     await expect(indicator).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)')
 
     await page.getByRole('link', { name: 'Nghiên cứu khoa học' }).click()
-    await expect(page).toHaveURL(/\/nckh\/de-tai$/)
+    await expect(page).toHaveURL(/\/research\/projects$/)
     await expect(page.getByRole('heading', { level: 1, name: 'Đề tài nghiên cứu' })).toBeVisible()
     // Row 5 (index 4) x 64 px.
     await expect(indicator).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 256)')
 
     await page.getByRole('link', { name: 'Quản lý thông báo' }).click()
-    await expect(page).toHaveURL(/\/quan-ly\/thong-bao$/)
-    await page.goto('/quan-ly/nhom')
+    await expect(page).toHaveURL(/\/manage\/notifications$/)
+    await page.goto('/manage/groups')
     await expect(page.getByRole('heading', { level: 1, name: 'Nhóm' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Quản lý thông báo' })).toHaveAttribute('aria-current', 'page')
   })
 
   test('account menu shows name, MSCB, roles and logout', async ({ page }) => {
-    await page.goto('/tin-tuc')
+    await page.goto('/news')
     await page.getByRole('button', { name: 'Tài khoản' }).click()
     const menu = page.getByRole('presentation').filter({ hasText: 'Nguyễn Thử Nghiệm' })
     await expect(menu).toContainText('T0001')
@@ -57,39 +57,39 @@ test.describe('desktop shell', () => {
     await shoot(page, 'account-menu-1440')
 
     await menu.getByRole('menuitem', { name: 'Đăng xuất' }).click()
-    await expect(page).toHaveURL(/\/dang-nhap\?returnUrl=%2Ftin-tuc$/)
+    await expect(page).toHaveURL(/\/login\?returnUrl=%2Fnews$/)
   })
 
   test('every planned route renders its Vietnamese title', async ({ page }) => {
     const routes: Record<string, string> = {
-      '/tin-tuc': 'Tin tức', // the detail (/tin-tuc/:id) is a dialog over the list, covered by inbox.spec.ts
-      '/ho-so': 'Hồ sơ cá nhân',
-      '/ho-so/thong-tin-chung': 'Thông tin chung',
-      '/ho-so/thong-tin-chi-tiet': 'Thông tin chi tiết',
-      '/ho-so/luong': 'Quá trình lương',
-      '/ho-so/chuc-vu': 'Chức vụ',
-      '/ho-so/khen-thuong': 'Khen thưởng',
-      '/ho-so/dao-tao': 'Quá trình đào tạo',
-      '/ho-so/boi-duong': 'Quá trình bồi dưỡng',
-      '/ho-so/cong-tac': 'Đi công tác',
-      '/sang-kien': 'Sáng kiến',
-      '/giang-day': 'Giảng dạy',
-      '/nckh/bai-bao': 'Bài báo khoa học',
-      '/quan-ly/thong-bao/moi': 'Soạn thông báo mới', // a saved id would need the API; `moi` renders the empty editor
-      '/quan-ly/nhan-su': 'Nhân sự & email',
-      '/quan-ly/nhom/1': 'Nhóm', // master-detail: the detail pane sits beside the list under the same heading
-      '/quan-tri': 'Quản trị',
-      '/quan-tri/phan-quyen': 'Phân quyền',
-      '/quan-tri/xem-thu': 'Xem thử',
-      '/quan-tri/nhat-ky': 'Nhật ký',
-      '/quan-tri/dong-bo': 'Đồng bộ',
-      '/quan-tri/du-lieu': 'Dữ liệu',
-      '/quan-tri/api-clients': 'API clients',
+      '/news': 'Tin tức', // the detail (/news/:id) is a dialog over the list, covered by inbox.spec.ts
+      '/profile': 'Hồ sơ cá nhân',
+      '/profile/general': 'Thông tin chung',
+      '/profile/detailed': 'Thông tin chi tiết',
+      '/profile/salary': 'Quá trình lương',
+      '/profile/positions': 'Chức vụ',
+      '/profile/commendations': 'Khen thưởng',
+      '/profile/degrees': 'Quá trình đào tạo',
+      '/profile/training': 'Quá trình bồi dưỡng',
+      '/profile/business-trips': 'Đi công tác',
+      '/innovations': 'Sáng kiến',
+      '/teaching': 'Giảng dạy',
+      '/research/publications': 'Bài báo khoa học',
+      '/manage/notifications/new': 'Soạn thông báo mới', // a saved id would need the API; `new` renders the empty editor
+      '/manage/employees': 'Nhân sự & email',
+      '/manage/groups/1': 'Nhóm', // master-detail: the detail pane sits beside the list under the same heading
+      '/admin': 'Quản trị',
+      '/admin/roles': 'Phân quyền',
+      '/admin/view-as': 'Xem thử',
+      '/admin/audit': 'Nhật ký',
+      '/admin/sync': 'Đồng bộ',
+      '/admin/datasets': 'Dữ liệu',
+      '/admin/api-clients': 'API clients',
     }
     for (const [path, title] of Object.entries(routes)) {
       await page.goto(path)
       // The overview's h1 is the employee's name once loaded (its "Hồ sơ cá nhân" heading only shows while loading): use the tab title.
-      if (path === '/ho-so') await expect(page, path).toHaveTitle(new RegExp(`^${title} · Support HCMUS`))
+      if (path === '/profile') await expect(page, path).toHaveTitle(new RegExp(`^${title} · Support HCMUS`))
       else await expect(page.getByRole('heading', { level: 1, name: title, exact: true }), path).toBeVisible()
     }
     await page.goto('/khong-ton-tai')
@@ -97,7 +97,7 @@ test.describe('desktop shell', () => {
   })
 
   test('view-as bar appears when acting as another employee', async ({ page }) => {
-    await page.goto('/tin-tuc?mock-view-as=1')
+    await page.goto('/news?mock-view-as=1')
     const bar = page.getByRole('status').filter({ hasText: 'Đang xem với tư cách' })
     await expect(bar).toContainText('Trần Mẫu Thử · T0002')
     await shoot(page, 'view-as-1440')
@@ -110,7 +110,7 @@ test.describe('mobile shell', () => {
   test.use({ viewport: MOBILE })
 
   test('top bar, drawer and navigation at 375 px', async ({ page }) => {
-    await page.goto('/tin-tuc')
+    await page.goto('/news')
     await expect(page.getByRole('navigation', { name: 'Điều hướng chính' })).toBeHidden()
     await expect(page.getByRole('button', { name: 'Mở menu' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: 'Tin tức' })).toBeVisible()
@@ -126,7 +126,7 @@ test.describe('mobile shell', () => {
     await shoot(page, 'drawer-375')
 
     await nav.getByRole('link', { name: 'Giảng dạy' }).click()
-    await expect(page).toHaveURL(/\/giang-day$/)
+    await expect(page).toHaveURL(/\/teaching$/)
     await expect(nav).toBeHidden()
     await expect(page.getByRole('heading', { level: 1, name: 'Giảng dạy' })).toBeVisible()
   })

@@ -6,8 +6,8 @@ import type { Page, PlaywrightWorkerArgs } from '@playwright/test'
  * T0003.. plain employees.
  */
 
-async function devLogin(page: Page, code: string, returnUrl = '/tin-tuc') {
-  await page.goto(`/dang-nhap?returnUrl=${encodeURIComponent(returnUrl)}`)
+async function devLogin(page: Page, code: string, returnUrl = '/news') {
+  await page.goto(`/login?returnUrl=${encodeURIComponent(returnUrl)}`)
   await expect(page.getByTestId('dev-login')).toBeVisible()
   await page.getByLabel('MSCB đăng nhập thử').fill(code)
   await page.getByRole('button', { name: 'Đăng nhập thử' }).click()
@@ -23,14 +23,14 @@ async function xsrfHeader(page: Page): Promise<Record<string, string>> {
 }
 
 test('anonymous visitors are sent to the login page', async ({ page }) => {
-  await page.goto('/ho-so')
-  await expect(page).toHaveURL(/\/dang-nhap\?returnUrl=%2Fho-so$/)
+  await page.goto('/profile')
+  await expect(page).toHaveURL(/\/login\?returnUrl=%2Fprofile$/)
   await expect(page.getByRole('button', { name: 'Đăng nhập với Google' })).toBeEnabled()
 })
 
 test('the backend error redirect /login?error= shows the Vietnamese message', async ({ page }) => {
   await page.goto('/login?error=inactive')
-  await expect(page).toHaveURL('/dang-nhap?error=inactive')
+  await expect(page).toHaveURL('/login?error=inactive')
   await expect(page.getByRole('alert')).toContainText('không còn hoạt động')
 })
 
@@ -47,7 +47,7 @@ test('T0001 (admin) dev-logs in and sees the shell with the admin nav', async ({
   await expect(menu).not.toContainText('Phiên bản —')
 
   await page.keyboard.press('Escape')
-  await page.goto('/quan-tri')
+  await page.goto('/admin')
   await expect(page.getByText('Bạn không có quyền truy cập trang này')).toHaveCount(0)
 })
 
@@ -57,18 +57,18 @@ test('T0003 (plain employee) has no editor/admin nav and gets the forbidden card
   await expect(nav(page).getByRole('link', { name: 'Quản lý thông báo' })).toHaveCount(0)
   await expect(nav(page).getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
 
-  await page.goto('/quan-tri')
+  await page.goto('/admin')
   await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
-  await page.goto('/quan-ly/thong-bao')
+  await page.goto('/manage/notifications')
   await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
 })
 
 test('an unknown MSCB is rejected with a message', async ({ page }) => {
-  await page.goto('/dang-nhap')
+  await page.goto('/login')
   await page.getByLabel('MSCB đăng nhập thử').fill('X9999')
   await page.getByRole('button', { name: 'Đăng nhập thử' }).click()
   await expect(page.getByTestId('dev-login').getByRole('alert')).toBeVisible()
-  await expect(page).toHaveURL(/\/dang-nhap$/)
+  await expect(page).toHaveURL(/\/login$/)
 })
 
 test('an unsafe call without X-XSRF-TOKEN gets 400; with the token it is accepted', async ({ page }) => {
@@ -90,20 +90,20 @@ test('logout clears the session cookie and returns to the login page', async ({ 
   await page.getByRole('button', { name: 'Tài khoản' }).click()
   await page.getByRole('menuitem', { name: 'Đăng xuất' }).click()
 
-  await expect(page).toHaveURL(/\/dang-nhap/)
+  await expect(page).toHaveURL(/\/login/)
   await expect(page.getByRole('button', { name: 'Đăng nhập với Google' })).toBeVisible()
   await expect.poll(async () => (await context.cookies()).some((c) => c.name === 'hcmus')).toBe(false)
   expect((await page.request.get('/api/auth/me')).status()).toBe(401)
 
-  await page.goto('/tin-tuc')
-  await expect(page).toHaveURL(/\/dang-nhap\?returnUrl=%2Ftin-tuc$/)
+  await page.goto('/news')
+  await expect(page).toHaveURL(/\/login\?returnUrl=%2Fnews$/)
 })
 
 test('switching user: a second dev-login refreshes me and the XSRF token', async ({ page }) => {
   await devLogin(page, 'T0001')
   await expect(nav(page).getByRole('link', { name: 'Quản trị' })).toBeVisible()
   expect((await page.request.post('/api/auth/logout', { headers: await xsrfHeader(page) })).status()).toBe(204)
-  await devLogin(page, 'T0003', '/ho-so')
+  await devLogin(page, 'T0003', '/profile')
   await expect(nav(page).getByRole('link', { name: 'Tin tức' })).toBeVisible()
   await expect(nav(page).getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
 })
@@ -170,14 +170,14 @@ test('inbox: a post published by T0001 reaches T0003 and opens', async ({
     await expect.poll(delivered, { timeout: 60_000, intervals: [500, 1000, 2000] }).toBe(true)
 
     // T0003 signs in and reloads: the post is there.
-    await devLogin(page, 'T0003', '/tin-tuc')
+    await devLogin(page, 'T0003', '/news')
     await page.reload()
     const row = page.getByTestId('inbox-row').filter({ hasText: title })
     await expect(row).toBeVisible()
 
     // Open it: the body renders.
     await row.click()
-    await expect(page).toHaveURL(new RegExp(`/tin-tuc/${draft.id}$`))
+    await expect(page).toHaveURL(new RegExp(`/news/${draft.id}$`))
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByRole('heading', { level: 2, name: title })).toBeVisible()
     await expect(dialog.getByTestId('notification-body')).toContainText('Thông báo thử nghiệm cho hộp thư.')
@@ -203,7 +203,7 @@ test('admin pages: T0001 grants editor to T0004 on Phân quyền, T0004 then see
     expect((await page.request.post('/api/auth/logout', { headers: await xsrfHeader(page) })).status()).toBe(204)
 
     // T0001 grants the editor role through the page.
-    await devLogin(page, 'T0001', '/quan-tri/phan-quyen')
+    await devLogin(page, 'T0001', '/admin/roles')
     await expect(page.getByRole('heading', { level: 1, name: 'Phân quyền' })).toBeVisible()
     await page.getByLabel('Tìm cán bộ').fill('T0004')
     await page.getByRole('button', { name: /^Mở / }).filter({ hasText: 'T0004' }).click()
@@ -223,9 +223,9 @@ test('admin pages: T0001 grants editor to T0004 on Phân quyền, T0004 then see
     await devLogin(page, 'T0004')
     await expect(nav(page).getByRole('link', { name: 'Quản lý thông báo' })).toBeVisible()
     await expect(nav(page).getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
-    await page.goto('/quan-ly/nhom')
+    await page.goto('/manage/groups')
     await expect(page.getByRole('heading', { level: 1, name: 'Nhóm' })).toBeVisible()
-    await page.goto('/quan-tri')
+    await page.goto('/admin')
     await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
   } finally {
     await revoke()
@@ -237,7 +237,7 @@ test('admin pages: T0001 starts and stops view-as as T0003; both are audited', a
   test.setTimeout(120_000)
   const admin = await apiSession(playwright, baseURL!, 'T0001')
   try {
-    await devLogin(page, 'T0001', '/quan-tri/xem-thu')
+    await devLogin(page, 'T0001', '/admin/view-as')
     await expect(page.getByRole('heading', { level: 1, name: 'Xem thử' })).toBeVisible()
     await page.getByLabel('Cán bộ cần xem').fill('T0003')
     await page.getByRole('option', { name: /T0003/ }).click()
@@ -245,7 +245,7 @@ test('admin pages: T0001 starts and stops view-as as T0003; both are audited', a
 
     // The session was refreshed: we land on Tin tức with the warning bar. `me` still describes T0001 (the nav keeps its
     // admin items); `actingAs` names the viewed employee.
-    await expect(page).toHaveURL(/\/tin-tuc$/)
+    await expect(page).toHaveURL(/\/news$/)
     const bar = page.getByRole('status').filter({ hasText: 'Đang xem với tư cách' })
     await expect(bar).toContainText('T0003')
     const acting = (await (await page.request.get('/api/auth/me')).json()) as { code: string; actingAs: { code: string } | null }
@@ -267,7 +267,7 @@ test('admin pages: T0001 starts and stops view-as as T0003; both are audited', a
       const body = (await res.json()) as { items: { actorCode?: string }[] }
       expect(body.items.some((i) => i.actorCode === 'T0001'), action).toBe(true)
     }
-    await page.goto('/quan-tri/nhat-ky')
+    await page.goto('/admin/audit')
     const table = page.getByRole('table', { name: 'Nhật ký thao tác' })
     await expect(table.getByText('Bắt đầu xem thử').first()).toBeVisible()
     await expect(table.getByText('Kết thúc xem thử').first()).toBeVisible()
@@ -279,7 +279,7 @@ test('admin pages: T0001 starts and stops view-as as T0003; both are audited', a
 test('groups: T0001 creates a rule group (live preview, computed members) and a static group (typeahead add), then archives both', async ({ page }) => {
   test.setTimeout(120_000)
   const stamp = Date.now()
-  await devLogin(page, 'T0001', '/quan-ly/nhom')
+  await devLogin(page, 'T0001', '/manage/groups')
   await expect(page.getByRole('heading', { level: 1, name: 'Nhóm' })).toBeVisible()
   const list = page.getByRole('list', { name: 'Danh sách nhóm' })
 
@@ -291,11 +291,11 @@ test('groups: T0001 creates a rule group (live preview, computed members) and a 
   await dialog.getByRole('group', { name: 'Điều kiện 1' }).getByLabel('Trường').click()
   await page.getByRole('option', { name: 'Có email', exact: true }).click()
   await dialog.getByRole('button', { name: 'Tạo nhóm' }).click()
-  await expect(page).toHaveURL(/\/quan-ly\/nhom\/\d+$/)
+  await expect(page).toHaveURL(/\/manage\/groups\/\d+$/)
   await expect(page.getByText(/\d+ cán bộ khớp quy tắc/)).toBeVisible()
   await expect(page.getByRole('table', { name: 'Thành viên' }).getByRole('row').nth(1)).toBeVisible()
   await page.getByRole('button', { name: 'Lưu trữ' }).click()
-  await expect(page).toHaveURL(/\/quan-ly\/nhom$/)
+  await expect(page).toHaveURL(/\/manage\/groups$/)
   await expect(list.getByText(`E2E quy tắc ${stamp}`)).toHaveCount(0)
 
   // Static group: add T0003 through the employee typeahead.
@@ -303,18 +303,18 @@ test('groups: T0001 creates a rule group (live preview, computed members) and a 
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Tên nhóm').fill(`E2E tĩnh ${stamp}`)
   await dialog.getByRole('button', { name: 'Tạo nhóm' }).click()
-  await expect(page).toHaveURL(/\/quan-ly\/nhom\/\d+$/)
+  await expect(page).toHaveURL(/\/manage\/groups\/\d+$/)
   await page.getByRole('combobox', { name: 'Thêm thành viên' }).fill('T0003')
   await page.getByRole('option', { name: /T0003/ }).click()
   await page.getByRole('button', { name: 'Thêm 1 người' }).click()
   await expect(page.getByRole('table', { name: 'Thành viên' }).getByText('T0003')).toBeVisible()
   await page.getByRole('button', { name: 'Lưu trữ' }).click()
-  await expect(page).toHaveURL(/\/quan-ly\/nhom$/)
+  await expect(page).toHaveURL(/\/manage\/groups$/)
 })
 
 test('admin pages: every Quản trị page loads real data without an error', async ({ page }) => {
   test.setTimeout(120_000)
-  await devLogin(page, 'T0001', '/quan-tri')
+  await devLogin(page, 'T0001', '/admin')
   const h1 = (name: string) => page.getByRole('heading', { level: 1, name })
   await expect(h1('Quản trị')).toBeVisible()
   await expect(page.getByText('Hoạt động gần đây')).toBeVisible()
@@ -322,12 +322,12 @@ test('admin pages: every Quản trị page loads real data without an error', as
   await expect(page.getByRole('alert')).toHaveCount(0)
 
   for (const [path, title] of [
-    ['/quan-tri/phan-quyen', 'Phân quyền'],
-    ['/quan-tri/nhat-ky', 'Nhật ký'],
-    ['/quan-tri/dong-bo', 'Đồng bộ'],
-    ['/quan-tri/du-lieu', 'Dữ liệu'],
-    ['/quan-tri/api-clients', 'API clients'],
-    ['/quan-ly/nhom', 'Nhóm'],
+    ['/admin/roles', 'Phân quyền'],
+    ['/admin/audit', 'Nhật ký'],
+    ['/admin/sync', 'Đồng bộ'],
+    ['/admin/datasets', 'Dữ liệu'],
+    ['/admin/api-clients', 'API clients'],
+    ['/manage/groups', 'Nhóm'],
   ]) {
     await page.goto(path)
     await expect(h1(title)).toBeVisible()
@@ -335,15 +335,15 @@ test('admin pages: every Quản trị page loads real data without an error', as
     await expect(page.getByRole('alert'), `${path} shows no error`).toHaveCount(0)
   }
   // Audit rows exist (the dev-logins above are audited) and the role list has the dev roster.
-  await page.goto('/quan-tri/nhat-ky')
+  await page.goto('/admin/audit')
   await expect(page.getByRole('table', { name: 'Nhật ký thao tác' }).getByRole('row').nth(1)).toBeVisible()
-  await page.goto('/quan-tri/phan-quyen')
+  await page.goto('/admin/roles')
   await expect(page.getByRole('button', { name: /^Mở / }).filter({ hasText: 'T0002' })).toBeVisible()
 })
 
 test('API clients: an admin creates a key, it is shown once and the integration API accepts it until it is revoked', async ({ page, request }) => {
   test.setTimeout(90_000)
-  await devLogin(page, 'T0001', '/quan-tri/api-clients')
+  await devLogin(page, 'T0001', '/admin/api-clients')
   await expect(page.getByRole('heading', { level: 1, name: 'API clients' })).toBeVisible()
 
   const name = `e2e-${Date.now()}`
@@ -376,6 +376,6 @@ test('API clients: an admin creates a key, it is shown once and the integration 
   expect((await ingest()).status()).toBe(401)
 
   // Both actions are in the audit log.
-  await page.goto('/quan-tri/nhat-ky')
+  await page.goto('/admin/audit')
   await expect(page.getByRole('table', { name: 'Nhật ký thao tác' })).toContainText('Thu hồi API client')
 })

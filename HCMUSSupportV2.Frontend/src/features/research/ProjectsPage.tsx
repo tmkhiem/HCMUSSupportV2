@@ -41,7 +41,7 @@ export function Component() {
 
   return (
     <>
-      <ResearchSwitcher active="de-tai" />
+      <ResearchSwitcher active="projects" />
       <Box sx={{ mt: 3 }}>
         <PageHeader
           index={1}

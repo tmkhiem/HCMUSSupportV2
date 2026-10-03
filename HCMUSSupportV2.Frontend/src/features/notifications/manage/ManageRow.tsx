@@ -62,7 +62,7 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
           >
             <Box
               component={RouterLink}
-              to={`/quan-ly/thong-bao/${item.id}`}
+              to={`/manage/notifications/${item.id}`}
               sx={{ color: 'text.primary', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, '&:focus-visible': { outline: 2, outlineColor: 'primary.main', outlineOffset: 2 } }}
             >
               {item.title || 'Chưa có tiêu đề'}
@@ -104,7 +104,7 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
         <MoreVertIcon />
       </IconButton>
       <Menu id={menuId} anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
-        <MenuItem component={RouterLink} to={`/quan-ly/thong-bao/${item.id}`}>
+        <MenuItem component={RouterLink} to={`/manage/notifications/${item.id}`}>
           <ListItemIcon>
             <EditOutlined fontSize="small" />
           </ListItemIcon>

@@ -35,7 +35,7 @@ export function Component() {
     mutationFn: (code: string) => viewAsClient.start(new StartViewAsRequest({ employeeCode: code })),
     onSuccess: async () => {
       await refreshSession(qc)
-      navigate('/tin-tuc')
+      navigate('/news')
     },
   })
 

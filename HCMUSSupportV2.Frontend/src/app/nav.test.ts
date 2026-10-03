@@ -26,20 +26,20 @@ describe('activeNavIndex', () => {
   const idOf = (path: string) => entries[activeNavIndex(entries, path)]?.id
 
   it('matches exact routes and nested ones', () => {
-    expect(idOf('/tin-tuc')).toBe('news')
-    expect(idOf('/tin-tuc/0190f3a2')).toBe('news')
-    expect(idOf('/ho-so/luong')).toBe('profile')
+    expect(idOf('/news')).toBe('news')
+    expect(idOf('/news/0190f3a2')).toBe('news')
+    expect(idOf('/profile/salary')).toBe('profile')
   })
 
   it('uses the match prefix for multi-route entries', () => {
-    expect(idOf('/nckh/bai-bao')).toBe('research')
-    expect(idOf('/quan-ly/nhom/3')).toBe('manage')
-    expect(idOf('/quan-ly/nhan-su')).toBe('staff')
-    expect(idOf('/quan-tri/nhat-ky')).toBe('admin')
+    expect(idOf('/research/publications')).toBe('research')
+    expect(idOf('/manage/groups/3')).toBe('manage')
+    expect(idOf('/manage/employees')).toBe('staff')
+    expect(idOf('/admin/audit')).toBe('admin')
   })
 
   it('does not match on a shared string prefix', () => {
-    expect(idOf('/tin-tuc-khac')).toBeUndefined()
+    expect(idOf('/news-other')).toBeUndefined()
   })
 
   it('is -1 for unknown paths', () => {

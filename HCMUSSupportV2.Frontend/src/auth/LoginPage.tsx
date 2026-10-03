@@ -18,8 +18,7 @@ import { safeReturnUrl } from './returnUrl'
 const UNIVERSITY = 'Ho Chi Minh City University of Science'
 
 /**
- * Messages for `/login?error=<code>` (the backend redirects here when the Google sign-in is refused; `/login` is
- * redirected to `/dang-nhap` with the query kept). `unknown_email` is the D02 name for `not_registered`.
+ * Messages for `/login?error=<code>` (the backend redirects here when the Google sign-in is refused). `unknown_email` is the D02 name for `not_registered`.
  */
 const NOT_REGISTERED =
   'Email này chưa được liên kết với mã số cán bộ. Vui lòng liên hệ đơn vị quản lý để được cấp quyền.'

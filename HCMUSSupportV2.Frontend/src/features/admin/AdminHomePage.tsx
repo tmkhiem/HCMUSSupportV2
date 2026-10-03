@@ -27,13 +27,13 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { to: '/quan-tri/phan-quyen', title: 'Phân quyền', text: 'Gán quyền biên tập viên và quản trị viên', icon: <PngIcon name="admin-panel-settings" size={24} /> },
-  { to: '/quan-tri/xem-thu', title: 'Xem thử', text: 'Xem hệ thống với tư cách một cán bộ (chỉ đọc)', icon: <PngIcon name="visibility" size={24} /> },
-  { to: '/quan-ly/nhom', title: 'Nhóm', text: 'Nhóm người nhận thông báo và quy tắc nhóm', icon: <PngIcon name="groups" size={24} /> },
-  { to: '/quan-tri/nhat-ky', title: 'Nhật ký', text: 'Tra cứu nhật ký thao tác của quản trị', icon: <PngIcon name="fact-check" size={24} /> },
-  { to: '/quan-tri/dong-bo', title: 'Đồng bộ', text: 'Lịch sử đồng bộ HRM và các vấn đề cần xử lý', icon: <PngIcon name="sync" size={24} /> },
-  { to: '/quan-tri/du-lieu', title: 'Dữ liệu', text: 'Nhập dữ liệu giảng dạy, đề tài và bài báo từ Excel', icon: <PngIcon name="table-chart" size={24} /> },
-  { to: '/quan-tri/api-clients', title: 'API clients', text: 'Tạo và thu hồi khóa truy cập cho công cụ Sync', icon: <PngIcon name="key" size={24} /> },
+  { to: '/admin/roles', title: 'Phân quyền', text: 'Gán quyền biên tập viên và quản trị viên', icon: <PngIcon name="admin-panel-settings" size={24} /> },
+  { to: '/admin/view-as', title: 'Xem thử', text: 'Xem hệ thống với tư cách một cán bộ (chỉ đọc)', icon: <PngIcon name="visibility" size={24} /> },
+  { to: '/manage/groups', title: 'Nhóm', text: 'Nhóm người nhận thông báo và quy tắc nhóm', icon: <PngIcon name="groups" size={24} /> },
+  { to: '/admin/audit', title: 'Nhật ký', text: 'Tra cứu nhật ký thao tác của quản trị', icon: <PngIcon name="fact-check" size={24} /> },
+  { to: '/admin/sync', title: 'Đồng bộ', text: 'Lịch sử đồng bộ HRM và các vấn đề cần xử lý', icon: <PngIcon name="sync" size={24} /> },
+  { to: '/admin/datasets', title: 'Dữ liệu', text: 'Nhập dữ liệu giảng dạy, đề tài và bài báo từ Excel', icon: <PngIcon name="table-chart" size={24} /> },
+  { to: '/admin/api-clients', title: 'API clients', text: 'Tạo và thu hồi khóa truy cập cho công cụ Sync', icon: <PngIcon name="key" size={24} /> },
 ]
 
 function tileValue(t: DashboardTile): string {

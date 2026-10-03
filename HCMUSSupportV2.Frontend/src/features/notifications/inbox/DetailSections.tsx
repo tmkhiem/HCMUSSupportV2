@@ -62,7 +62,7 @@ export function SeriesPrevious({ series }: { series: InboxSeries | null }) {
           <ListItemButton
             key={p.id}
             component={RouterLink}
-            to={{ pathname: `/tin-tuc/${p.id}`, search: location.search }}
+            to={{ pathname: `/news/${p.id}`, search: location.search }}
             state={location.state}
             replace
             divider

@@ -189,7 +189,7 @@ Run these once, in order (PLAN D05 and D15 define the actual commands; check eac
 4. **Datasets** (teaching, research, publications): D15's dataset importers, or the admin Excel imports.
 5. **News**: `tools/legacy-news` posts the 56 converted notifications through the admin import endpoint; review the listed
    series/tags and the posts it flagged.
-6. **Smoke test**: sign in as the owner, open Tin tức, open a Hồ sơ page, and look at `/quan-tri` -> Đồng bộ for the sync run history.
+6. **Smoke test**: sign in as the owner, open Tin tức, open a Hồ sơ page, and look at `/admin` -> Đồng bộ for the sync run history.
 
 Take a manual backup right after the load: `sudo systemctl start hcmus-support-backup.service`.
 

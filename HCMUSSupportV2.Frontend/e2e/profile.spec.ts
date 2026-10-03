@@ -13,20 +13,20 @@ async function shoot(page: Page, name: string) {
 }
 
 const CARD_LINKS: Array<[string, string]> = [
-  ['Thông tin chung', '/ho-so/thong-tin-chung'],
-  ['Thông tin chi tiết', '/ho-so/thong-tin-chi-tiet'],
-  ['Quá trình lương', '/ho-so/luong'],
-  ['Khen thưởng', '/ho-so/khen-thuong'],
-  ['Chức vụ', '/ho-so/chuc-vu'],
-  ['Quá trình đào tạo', '/ho-so/dao-tao'],
-  ['Quá trình bồi dưỡng', '/ho-so/boi-duong'],
-  ['Đi công tác', '/ho-so/cong-tac'],
+  ['Thông tin chung', '/profile/general'],
+  ['Thông tin chi tiết', '/profile/detailed'],
+  ['Quá trình lương', '/profile/salary'],
+  ['Khen thưởng', '/profile/commendations'],
+  ['Chức vụ', '/profile/positions'],
+  ['Quá trình đào tạo', '/profile/degrees'],
+  ['Quá trình bồi dưỡng', '/profile/training'],
+  ['Đi công tác', '/profile/business-trips'],
 ]
 
-test.describe('overview /ho-so', () => {
+test.describe('overview /profile', () => {
   test('desktop: hero and 8 linked summary cards with real data', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/ho-so')
+    await page.goto('/profile')
     await expect(page.getByRole('heading', { level: 1, name: 'Nguyễn Thử Nghiệm' })).toBeVisible()
     await expect(page.getByText('T0001').first()).toBeVisible()
     await expect(page.getByText('Giảng viên chính — Khoa Công nghệ thông tin')).toBeVisible()
@@ -53,7 +53,7 @@ test.describe('overview /ho-so', () => {
 
   test('mobile 375: single column, no horizontal scroll', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/ho-so')
+    await page.goto('/profile')
     await expect(page.getByRole('heading', { level: 1, name: 'Nguyễn Thử Nghiệm' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Đi công tác' })).toBeAttached()
     await expectNoHorizontalScroll(page)
@@ -66,9 +66,9 @@ test.describe('overview /ho-so', () => {
 
   test('a card link navigates', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/ho-so')
+    await page.goto('/profile')
     await page.getByRole('link', { name: 'Chi tiết Thông tin chung' }).click()
-    await expect(page).toHaveURL(/\/ho-so\/thong-tin-chung$/)
+    await expect(page).toHaveURL(/\/profile\/general$/)
     await expect(page.getByRole('heading', { level: 1, name: 'Thông tin chung' })).toBeVisible()
   })
 })
@@ -78,7 +78,7 @@ test.describe('Thông tin chung', () => {
 
   test('desktop: sections, partial date, dashes, copy', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/ho-so/thong-tin-chung')
+    await page.goto('/profile/general')
     await expect(page).toHaveTitle(/Thông tin chung/)
     await expect(page.getByRole('heading', { level: 1, name: 'Thông tin chung' })).toBeVisible()
     for (const s of ['Cá nhân', 'Liên hệ', 'Địa chỉ']) await expect(page.getByRole('region', { name: s })).toBeVisible()
@@ -99,7 +99,7 @@ test.describe('Thông tin chung', () => {
 
   test('mobile 375: no horizontal scroll', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/ho-so/thong-tin-chung')
+    await page.goto('/profile/general')
     await expect(page.getByRole('region', { name: 'Địa chỉ' })).toBeVisible()
     await expectNoHorizontalScroll(page)
     await shoot(page, 'general-375')
@@ -109,7 +109,7 @@ test.describe('Thông tin chung', () => {
 test.describe('Thông tin chi tiết', () => {
   test('desktop: sections and one-at-a-time reveal', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/ho-so/thong-tin-chi-tiet')
+    await page.goto('/profile/detailed')
     await expect(page.getByRole('heading', { level: 1, name: 'Thông tin chi tiết' })).toBeVisible()
     for (const s of ['Công tác', 'Học hàm và học vị', 'Đoàn thể', 'Tài chính và bảo hiểm'])
       await expect(page.getByRole('region', { name: s })).toBeVisible()
@@ -136,7 +136,7 @@ test.describe('Thông tin chi tiết', () => {
 
   test('mobile 375: no horizontal scroll', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/ho-so/thong-tin-chi-tiet')
+    await page.goto('/profile/detailed')
     await expect(page.getByRole('region', { name: 'Tài chính và bảo hiểm' })).toBeVisible()
     await expectNoHorizontalScroll(page)
     await shoot(page, 'detailed-375')

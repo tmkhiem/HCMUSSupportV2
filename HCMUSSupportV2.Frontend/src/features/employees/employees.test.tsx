@@ -132,7 +132,7 @@ describe('email helpers', () => {
 
 function renderPage(search = '') {
   return renderWithTheme(
-    <MemoryRouter initialEntries={[`/quan-ly/nhan-su${search}`]}>
+    <MemoryRouter initialEntries={[`/manage/employees${search}`]}>
       <EmployeesPage />
     </MemoryRouter>,
   )

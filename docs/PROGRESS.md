@@ -41,7 +41,7 @@ Verified against the real data repo on a temporary database (since dropped): a f
 
 Otherwise nothing. The branches `feat/d09-notification-editor`, `feat/d14b-admin-pages`, `feat/d14c-employee-emails`, `feat/d12-education-pages`, `feat/d13-research-teaching-pages`, `integration/d12-d13-followups` and the three follow-up branches are merged and can be deleted from `origin`.
 
-**API clients admin UI** (the last D14b leftover): done on the branch `feat/api-clients-admin` (not merged, not pushed). Backend `api/admin/api-clients` (list, scopes, create, revoke; policy `ManageApiClients`; audited as `apiclient.created` / `apiclient.revoked`; the token is returned once and stored as the same SHA-256 hash the ApiKey scheme checks), frontend page `/quan-tri/api-clients` with a show-token-once dialog. No migration (the table already existed; `has-pending-model-changes` is clean). Tests: 4 backend (`Admin/ApiClientsAdminTests`), 3 vitest, 2 Playwright mock (admin project), 1 real-backend e2e plus the "every Quản trị page" loop. Real e2e ran on a temporary database `hcmus_support_dev_m2_apiclients`, now dropped. Docs: BACKEND, FRONTEND, PLAN, INGEST, SYNC, MIGRATION, CUTOVER. Known and unrelated: `NotificationEngineTests.Editing_after_publish_bumps_the_version_and_writes_revisions` fails on `main` too.
+**API clients admin UI** (the last D14b leftover): done on the branch `feat/api-clients-admin` (not merged, not pushed). Backend `api/admin/api-clients` (list, scopes, create, revoke; policy `ManageApiClients`; audited as `apiclient.created` / `apiclient.revoked`; the token is returned once and stored as the same SHA-256 hash the ApiKey scheme checks), frontend page `/admin/api-clients` with a show-token-once dialog. No migration (the table already existed; `has-pending-model-changes` is clean). Tests: 4 backend (`Admin/ApiClientsAdminTests`), 3 vitest, 2 Playwright mock (admin project), 1 real-backend e2e plus the "every Quản trị page" loop. Real e2e ran on a temporary database `hcmus_support_dev_m2_apiclients`, now dropped. Docs: BACKEND, FRONTEND, PLAN, INGEST, SYNC, MIGRATION, CUTOVER. Known and unrelated: `NotificationEngineTests.Editing_after_publish_bumps_the_version_and_writes_revisions` fails on `main` too.
 
 ## Not started
 
@@ -71,7 +71,7 @@ Nothing. (The API clients admin UI, the last D14b leftover, is done, see below.)
 10. **Roster sync overwrites manual changes:** sync can overwrite an admin's manual status change on HRM-sourced employees.
 
 11. **Mock data in the production bundle:** fixed in D14b (all mock imports are guarded by `import.meta.env.DEV && MOCK_AUTH`; a production build has no mock chunks). D12 and D13 follow the same rule, but their mock chunks still appear in `wwwroot` as never-loaded files.
-12. **Stale e2e specs:** fixed (`shell.spec.ts` checks the tab title for `/ho-so`, `markdown.spec.ts` waits for the selection, and the inbox specs wait for focus to return to the dialog before pressing Escape).
+12. **Stale e2e specs:** fixed (`shell.spec.ts` checks the tab title for `/profile`, `markdown.spec.ts` waits for the selection, and the inbox specs wait for focus to return to the dialog before pressing Escape).
 13. **Untyped `vars` in the generated client:** still open. `InboxDetailDto.vars` and `PreviewVarsDto.rows` come out as the abstract `JsonNode`, so the inbox detail and the editor's `preview-vars` use hand-written `http` calls until those DTOs get a concrete type.
 14. **Live push is off** (`Notifications:Realtime:Enabled=false`). The frontend has no stream code.
 

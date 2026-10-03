@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { DESKTOP, MOBILE, expectNoHorizontalScroll } from './helpers.ts'
 
 /**
- * D14c smoke tests: "Nhân sự & email" (`/quan-ly/nhan-su`) against the synthetic mock directory (`employeesMock.ts`,
+ * D14c smoke tests: "Nhân sự & email" (`/manage/employees`) against the synthetic mock directory (`employeesMock.ts`,
  * VITE_MOCK_AUTH=1 on port 5693). `?employees=empty|error` switches the mock to the other page states.
  * Screenshots go to docs/screenshots/d14c/.
  */
@@ -31,7 +31,7 @@ for (const [label, viewport, suffix] of [
     test.use({ viewport })
 
     test('directory: list, search, filters and load more', async ({ page }) => {
-      await page.goto('/quan-ly/nhan-su')
+      await page.goto('/manage/employees')
       await expect(h1(page)).toBeVisible()
       await expect(rows(page).first()).toBeVisible()
       await expect(page.getByText(/40 cán bộ/)).toBeVisible()
@@ -63,7 +63,7 @@ for (const [label, viewport, suffix] of [
     })
 
     test('drawer: add (validated), set primary, remove with confirmation', async ({ page }) => {
-      await page.goto('/quan-ly/nhan-su?q=T0007')
+      await page.goto('/manage/employees?q=T0007')
       await rows(page).first().click()
       await expect(page).toHaveURL(/ma=T0007/)
       const d = drawer(page)
@@ -112,7 +112,7 @@ for (const [label, viewport, suffix] of [
     })
 
     test('import: dry run report, then apply', async ({ page }) => {
-      await page.goto('/quan-ly/nhan-su')
+      await page.goto('/manage/employees')
       await expect(rows(page).first()).toBeVisible()
       await page.getByRole('button', { name: 'Nhập từ tệp' }).click()
       const dialog = page.getByRole('dialog', { name: 'Nhập MSCB và email từ tệp' })
@@ -153,11 +153,11 @@ for (const [label, viewport, suffix] of [
     })
 
     test('states: empty and error', async ({ page }) => {
-      await page.goto('/quan-ly/nhan-su?employees=empty')
+      await page.goto('/manage/employees?employees=empty')
       await expect(page.getByText('Danh bạ nhân sự đang trống.')).toBeVisible()
       await shot(page, `empty-${suffix}`)
 
-      await page.goto('/quan-ly/nhan-su?employees=error')
+      await page.goto('/manage/employees?employees=error')
       await expect(page.getByRole('alert')).toContainText('Không tải được danh sách cán bộ.')
       await expect(page.getByRole('button', { name: 'Thử lại' })).toBeVisible()
       await shot(page, `error-${suffix}`)
@@ -167,7 +167,7 @@ for (const [label, viewport, suffix] of [
 
 test('the nav has a "Nhân sự & email" entry for editors', async ({ page }) => {
   await page.setViewportSize(DESKTOP)
-  await page.goto('/quan-ly/nhan-su')
+  await page.goto('/manage/employees')
   const nav = page.getByRole('navigation', { name: 'Điều hướng chính' })
   await expect(nav.getByRole('link', { name: 'Nhân sự & email' })).toHaveAttribute('aria-current', 'page')
 })

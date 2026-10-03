@@ -14,8 +14,8 @@ test.describe('login', () => {
 
   test('redirects to the login page with a returnUrl and shows the two tiles', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/ho-so')
-    await expect(page).toHaveURL(/\/dang-nhap\?returnUrl=%2Fho-so$/)
+    await page.goto('/profile')
+    await expect(page).toHaveURL(/\/login\?returnUrl=%2Fprofile$/)
     await expect(page.getByRole('heading', { level: 1, name: 'Support HCMUS' })).toBeVisible()
     await expect(page.getByText('Chào mừng quý Thầy Cô')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Đăng nhập với Google' })).toBeEnabled()
@@ -27,14 +27,14 @@ test.describe('login', () => {
     await page.route('**/api/auth/login**', (route) =>
       route.fulfill({ status: 200, contentType: 'text/html', body: 'google' }),
     )
-    await page.goto('/ho-so/luong')
+    await page.goto('/profile/salary')
     const request = page.waitForRequest('**/api/auth/login**')
     await page.getByRole('button', { name: 'Đăng nhập với Google' }).click()
-    expect(new URL((await request).url()).searchParams.get('returnUrl')).toBe('/ho-so/luong')
+    expect(new URL((await request).url()).searchParams.get('returnUrl')).toBe('/profile/salary')
   })
 
   test('shows a message for a rejected sign-in', async ({ page }) => {
-    await page.goto('/dang-nhap?error=unknown_email')
+    await page.goto('/login?error=unknown_email')
     await expect(page.getByRole('alert')).toContainText('chưa được liên kết')
   })
 
@@ -48,14 +48,14 @@ test.describe('login', () => {
     }
     for (const [code, text] of Object.entries(expected)) {
       await page.goto(`/login?error=${code}`)
-      await expect(page).toHaveURL(`/dang-nhap?error=${code}`)
+      await expect(page).toHaveURL(`/login?error=${code}`)
       await expect(page.getByRole('alert')).toContainText(text)
     }
   })
 
   test('mobile layout has no horizontal scroll', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/dang-nhap')
+    await page.goto('/login')
     await expect(page.getByRole('button', { name: 'Đăng nhập với Google' })).toBeVisible()
     await expectNoHorizontalScroll(page)
     await shoot(page, 'login-375')
@@ -70,28 +70,28 @@ test.describe('roles', () => {
 
   test('a plain employee has no editor/admin nav and gets the forbidden page', async ({ page }) => {
     await page.route('**/api/auth/me', (route) => route.fulfill({ json: ME.employee }))
-    await page.goto('/tin-tuc')
+    await page.goto('/news')
     const nav = page.getByRole('navigation', { name: 'Điều hướng chính' })
     await expect(nav.getByRole('link', { name: 'Tin tức' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'Quản lý thông báo' })).toHaveCount(0)
     await expect(nav.getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
 
-    await page.goto('/quan-tri')
+    await page.goto('/admin')
     await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
   })
 
   test('an editor sees the manage entry but not the admin one', async ({ page }) => {
     await page.route('**/api/auth/me', (route) => route.fulfill({ json: { ...ME.employee, roles: ['employee', 'editor'] } }))
-    await page.goto('/quan-ly/thong-bao')
+    await page.goto('/manage/notifications')
     await expect(page.getByRole('heading', { level: 1, name: 'Quản lý thông báo' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
-    await page.goto('/quan-tri/nhat-ky')
+    await page.goto('/admin/audit')
     await expect(page.getByText('Bạn không có quyền truy cập trang này')).toBeVisible()
   })
 
   test('a failing auth check shows the error screen with a retry', async ({ page }) => {
     await page.route('**/api/auth/me', (route) => route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"detail":"Máy chủ đang bận."}' }))
-    await page.goto('/tin-tuc')
+    await page.goto('/news')
     await expect(page.getByText('Lỗi xác thực')).toBeVisible()
     await expect(page.getByText('Máy chủ đang bận.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Tải lại' })).toBeVisible()

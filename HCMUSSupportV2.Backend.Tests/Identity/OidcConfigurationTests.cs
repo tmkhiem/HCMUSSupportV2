@@ -131,7 +131,7 @@ public class OidcConfigurationTests(PostgresFixture database) : IAsyncLifetime
     [InlineData(null, "/")]
     [InlineData("", "/")]
     [InlineData("/", "/")]
-    [InlineData("/tin-tuc?x=1", "/tin-tuc?x=1")]
+    [InlineData("/news?x=1", "/news?x=1")]
     [InlineData("//evil.example.test", "/")]
     [InlineData("/\\evil.example.test", "/")]
     [InlineData("https://evil.example.test/", "/")]

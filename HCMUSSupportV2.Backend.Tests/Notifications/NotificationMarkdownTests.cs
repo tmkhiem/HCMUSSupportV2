@@ -52,7 +52,7 @@ public class NotificationMarkdownTests
         yield return Bad(30, "<u>gạch chân</u>", IssueCodes.RawHtml);
         yield return Ok(31, "<https://example.test/x>", None, "https://example.test/x");
         yield return Ok(32, "[Trang](https://example.test/x \"t\")", None, "Trang");
-        yield return Ok(33, "[a](mailto:a@b.vn) [b](tel:+84123) [c](/tin-tuc/1) [d](#top)", None, "a b c d");
+        yield return Ok(33, "[a](mailto:a@b.vn) [b](tel:+84123) [c](/news/1) [d](#top)", None, "a b c d");
         yield return Bad(34, "[a](javascript:alert(1))", IssueCodes.ForbiddenUrl);
         yield return Bad(35, "[a](JaVaScRiPt:alert(1))", IssueCodes.ForbiddenUrl);
         yield return Bad(36, "[a](data:text/html;base64,AAAA)", IssueCodes.ForbiddenUrl);

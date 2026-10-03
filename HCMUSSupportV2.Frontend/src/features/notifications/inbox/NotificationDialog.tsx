@@ -23,8 +23,8 @@ import { useInboxDetail } from './inboxQueries'
 import PngIcon from '../../../ui/PngIcon'
 
 /**
- * `/tin-tuc/:id`: the detail as a Dialog over the list (the parent route keeps the list mounted). Deep-linkable.
- * Closing returns to `/tin-tuc` with the list's filters (`history -1` when we came from the list, otherwise a replace).
+ * `/news/:id`: the detail as a Dialog over the list (the parent route keeps the list mounted). Deep-linkable.
+ * Closing returns to `/news` with the list's filters (`history -1` when we came from the list, otherwise a replace).
  */
 export function Component() {
   const { id } = useParams()
@@ -41,7 +41,7 @@ export function Component() {
   const leave = () => {
     const fromList = (location.state as { fromList?: boolean } | null)?.fromList
     if (fromList) void navigate(-1)
-    else void navigate({ pathname: '/tin-tuc', search: location.search }, { replace: true })
+    else void navigate({ pathname: '/news', search: location.search }, { replace: true })
   }
 
   const data = detail.data

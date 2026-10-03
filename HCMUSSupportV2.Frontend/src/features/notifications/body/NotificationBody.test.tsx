@@ -98,7 +98,7 @@ describe('NotificationBody unknown directives and look-alikes stay literal', () 
 
 describe('NotificationBody links, images and HTML', () => {
   it('opens safe links in a new tab with rel noopener noreferrer', () => {
-    const el = body('[Trang](https://example.test/x) và [mail](mailto:a@b.vn) và [nội bộ](/tin-tuc/1)')
+    const el = body('[Trang](https://example.test/x) và [mail](mailto:a@b.vn) và [nội bộ](/news/1)')
     const links = within(el).getAllByRole('link')
     expect(links).toHaveLength(3)
     for (const a of links) {
@@ -202,7 +202,7 @@ describe('NotificationBody tables and typography', () => {
 
 describe('url allow-lists', () => {
   it('isSafeLinkUrl', () => {
-    for (const ok of ['https://a.test', 'http://a.test/x?y=1#z', 'mailto:a@b.vn', 'tel:+84123', '/tin-tuc/1', '#top', 'HTTPS://A.TEST'])
+    for (const ok of ['https://a.test', 'http://a.test/x?y=1#z', 'mailto:a@b.vn', 'tel:+84123', '/news/1', '#top', 'HTTPS://A.TEST'])
       expect(isSafeLinkUrl(ok), ok).toBe(true)
     for (const bad of ['javascript:alert(1)', ' javascript:alert(1)', 'java\tscript:alert(1)', 'data:text/html,x', 'file:///c:/x', '//evil.test', 'relative/path', '', undefined])
       expect(isSafeLinkUrl(bad), String(bad)).toBe(false)

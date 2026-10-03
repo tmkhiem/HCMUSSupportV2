@@ -10,7 +10,7 @@ import { makeXlsx } from './xlsx.ts'
  */
 
 async function devLogin(page: Page, code: string, returnUrl: string) {
-  await page.goto(`/dang-nhap?returnUrl=${encodeURIComponent(returnUrl)}`)
+  await page.goto(`/login?returnUrl=${encodeURIComponent(returnUrl)}`)
   await expect(page.getByTestId('dev-login')).toBeVisible()
   await page.getByLabel('MSCB đăng nhập thử').fill(code)
   await page.getByRole('button', { name: 'Đăng nhập thử' }).click()
@@ -76,7 +76,7 @@ test('D09: clone last year, upload a sheet, preview as a recipient, publish; the
     expect(publish2025.ok(), await publish2025.text()).toBe(true)
 
     // --- the editor (T0001): find last year's post in the list and copy it
-    await devLogin(page, 'T0001', '/quan-ly/thong-bao')
+    await devLogin(page, 'T0001', '/manage/notifications')
     await expect(page.getByRole('heading', { level: 1, name: 'Quản lý thông báo' })).toBeVisible()
     await page.getByLabel('Tìm thông báo').fill(token)
     const row = page.getByTestId('manage-row').filter({ hasText: title2025 })
@@ -85,7 +85,7 @@ test('D09: clone last year, upload a sheet, preview as a recipient, publish; the
     await row.getByRole('button', { name: /^Thao tác với/ }).click()
     await page.getByRole('menuitem', { name: 'Sao chép thành bản nháp' }).click()
 
-    await expect(page).toHaveURL(/\/quan-ly\/thong-bao\/[0-9a-f-]{36}$/)
+    await expect(page).toHaveURL(/\/manage\/notifications\/[0-9a-f-]{36}$/)
     const id2026 = page.url().split('/').pop()!
     created.push(id2026)
     const titleInput = page.getByTestId('title-input')
@@ -160,7 +160,7 @@ test('D09: clone last year, upload a sheet, preview as a recipient, publish; the
     await page.request.post('/api/auth/logout', {
       headers: { 'X-XSRF-TOKEN': decodeURIComponent((await page.context().cookies()).find((c) => c.name === 'XSRF-TOKEN')!.value) },
     })
-    await devLogin(page, 'T0003', '/tin-tuc')
+    await devLogin(page, 'T0003', '/news')
     await page.reload()
     const inboxRow = page.getByTestId('inbox-row').filter({ hasText: title2026 })
     await expect(inboxRow).toBeVisible()

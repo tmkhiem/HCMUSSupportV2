@@ -18,7 +18,7 @@ import { useInboxList, useInboxTags } from './inboxQueries'
 const FLY_IN_ROWS = 10
 
 /**
- * `/tin-tuc`: the inbox. The filters live in the URL; the detail (`/tin-tuc/:id`) is a nested route that renders its
+ * `/news`: the inbox. The filters live in the URL; the detail (`/news/:id`) is a nested route that renders its
  * Dialog through `<Outlet />` over this list, so the list (scroll position, loaded pages) stays mounted underneath.
  */
 export function Component() {
