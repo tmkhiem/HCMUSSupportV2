@@ -55,7 +55,7 @@ async function pickEmployee(page: Page, code: string) {
 test.describe('desktop 1440', () => {
   test.use({ viewport: DESKTOP })
 
-  test('the list shows status chips, series, tags, read-rate bars and fits the page', async ({ page }) => {
+  test('the list shows status chips, series, tags, recipient counts and fits the page', async ({ page }) => {
     await openList(page)
     await expect(page).toHaveTitle(/Quản lý thông báo/)
     await expect(rows(page)).toHaveCount(6)
@@ -64,8 +64,7 @@ test.describe('desktop 1440', () => {
     await expect(salary).toContainText('Nâng lương thường xuyên')
     await expect(salary).toContainText('Lương')
     await expect(salary).toContainText('Cần xác nhận')
-    await expect(salary).toContainText('241/284 đã đọc')
-    await expect(salary.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '84.9')
+    await expect(salary).toContainText('284 người nhận')
     await expect(row(page, 'Khảo sát mức độ hài lòng quý II')).toContainText('Đăng lúc')
     await expect(row(page, DRAFT_2026).getByTestId('status-chip')).toHaveText('Bản nháp')
     await expect(row(page, DRAFT_2026)).toContainText('Chưa gửi cho ai')
@@ -264,7 +263,7 @@ test.describe('desktop 1440', () => {
     await shot(page, 'editor-lower-1440')
   })
 
-  test('schedule, publish, then archive; a published notification shows reading stats', async ({ page }) => {
+  test('schedule, publish, then archive; a published notification shows recipient stats', async ({ page }) => {
     await openEditor(page, SEED_ID(4))
     // No audience: the server refuses and the dialog shows why.
     await page.getByRole('button', { name: 'Đăng ngay' }).click()
@@ -288,7 +287,7 @@ test.describe('desktop 1440', () => {
     await page.getByRole('dialog', { name: 'Đăng thông báo ngay?' }).getByRole('button', { name: 'Đăng ngay' }).click()
     await expect(page.getByTestId('status-chip')).toHaveText('Đã đăng')
     await toast(page, 'Đã đăng thông báo.')
-    await expect(page.getByTestId('stats-panel')).toContainText('Đã đọc')
+    await expect(page.getByTestId('stats-panel')).toContainText('người nhận')
     await expect(page.getByRole('button', { name: 'Đăng ngay' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Thêm thao tác' }).click()
@@ -300,7 +299,7 @@ test.describe('desktop 1440', () => {
 
   test('a published notification: revisions can be reloaded into the form, saving shows the update notice', async ({ page }) => {
     await openEditor(page, SEED_ID(1))
-    await expect(page.getByTestId('stats-panel')).toContainText('84,9%')
+    await expect(page.getByTestId('stats-panel')).toContainText('284 người nhận')
     await expect(page.getByTestId('status-chip')).toHaveText('Đã đăng')
     await expect(page.getByTestId('import-summary')).toContainText('Đang dùng danh sách')
 

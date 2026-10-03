@@ -22,6 +22,8 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         b.Property(x => x.Status).IsRequired().HasMaxLength(20).HasDefaultValue(EmployeeStatuses.Active);
         b.Property(x => x.PhotoUrl).HasMaxLength(2000);
         b.Property(x => x.Source).IsRequired().HasMaxLength(20).HasDefaultValue(EmployeeSources.Manual);
+        b.Property(x => x.LastLoginAt);
+        b.Property(x => x.PreviousLoginAt);
         b.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
         b.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
         b.Ignore(x => x.IsActive);

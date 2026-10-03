@@ -1,5 +1,4 @@
 import AttachFileOutlined from '@mui/icons-material/AttachFileOutlined'
-import PushPinOutlined from '@mui/icons-material/PushPinOutlined'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Paper from '@mui/material/Paper'
@@ -20,11 +19,9 @@ export interface InboxRowProps {
 }
 
 /**
- * One inbox row: a compact acrylic link to `/tin-tuc/:id`. Unread = bold title and a primary dot; chips for pinned,
- * acknowledgement pending and edited-after-delivery; first tag plus `+N`; delivery date.
+ * One inbox row: a compact acrylic link to `/tin-tuc/:id`. Chips for acknowledgement pending and edited-after-delivery; first tag plus `+N`; delivery date.
  */
 export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
-  const unread = !item.readAt
   const [firstTag, ...otherTags] = item.tags
   return (
     <Paper
@@ -34,7 +31,6 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
       variant="acrylic"
       data-interactive="true"
       data-testid="inbox-row"
-      data-unread={unread ? 'true' : 'false'}
       sx={[
         index !== undefined && flyInSx(index),
         {
@@ -51,14 +47,7 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
       ]}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: { md: '0 1 auto' }, maxWidth: { md: '58%' } }}>
-        <Box
-          aria-hidden
-          data-testid={unread ? 'unread-dot' : undefined}
-          title={unread ? 'Chưa đọc' : undefined}
-          sx={{ width: 8, height: 8, flexShrink: 0, borderRadius: '50%', bgcolor: unread ? 'primary.main' : 'transparent' }}
-        />
-        {unread && <Box component="span" sx={visuallyHidden}>Chưa đọc: </Box>}
-        <Typography component="h3" noWrap title={item.title} sx={{ fontSize: '1rem', fontWeight: unread ? 800 : 500, lineHeight: 1.35 }}>
+        <Typography component="h3" noWrap title={item.title} sx={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.35 }}>
           {item.title}
         </Typography>
       </Box>
@@ -79,7 +68,6 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
         direction="row"
         sx={{ flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', gap: 0.75, ml: { md: 'auto' }, pl: { xs: 2.5, md: 0 }, pt: { xs: 0.5, md: 0 } }}
       >
-        {item.pinned && <Chip size="small" color="primary" variant="outlined" icon={<PushPinOutlined />} label="Ghim" />}
         {needsAck(item) && <Chip size="small" color="warning" variant="outlined" label="Cần xác nhận" />}
         {item.updatedAfterDelivery && <Chip size="small" color="info" variant="outlined" label="Đã cập nhật" />}
         {item.hasAttachments && <AttachFileOutlined fontSize="small" titleAccess="Có tệp đính kèm" sx={{ color: 'text.secondary', opacity: 0.7 }} />}
@@ -103,12 +91,3 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
     </Paper>
   )
 }
-
-const visuallyHidden = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-} as const

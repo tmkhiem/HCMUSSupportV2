@@ -519,7 +519,7 @@ The core of the product; the full description (tables, lifecycle, fan-out, endpo
 
 - Editors write Markdown with `:var[Key]` placeholders (`NotificationMarkdown`, Markdig). `body_md` is validated on every save; `content_text` and `summary` are derived.
 - Publishing writes one `notification_deliveries` row per recipient with `INSERT ... SELECT ... ON CONFLICT DO NOTHING` in the job `notifications.publish`; scheduled posts are published by a `run_at` job (plus a sweeper). Late joiners come through `IGroupMembershipObserver` and `IEmployeeActivationObserver` (job `notifications.backfill`).
-- The inbox is one keyset query on the deliveries; read, ack and read-all are rejected while an admin views as someone else.
+- The inbox is one keyset query on the deliveries; ack is rejected while an admin views as someone else.
 - `GET /api/notifications/stream` is server-sent events fed by PostgreSQL `LISTEN/NOTIFY`; the SSE endpoint is excluded from the generated TypeScript client.
 - Gotchas: `ProducesResponseType` cannot take a wildcard content type (`image/*`) because it throws when the controller model is built, which breaks every endpoint; `dotnet ef migrations add/remove` read the compiled snapshot, so build before running them (a stale build makes `remove` delete the wrong migration).
 

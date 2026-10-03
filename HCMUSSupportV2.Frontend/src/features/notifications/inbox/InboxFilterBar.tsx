@@ -1,6 +1,5 @@
 import ClearIcon from '@mui/icons-material/Clear'
 import FilterListOutlined from '@mui/icons-material/FilterListOutlined'
-import MarkEmailUnreadOutlined from '@mui/icons-material/MarkEmailUnreadOutlined'
 import Badge from '@mui/material/Badge'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -11,7 +10,6 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import { useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
-import ToggleButton from '@mui/material/ToggleButton'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
@@ -44,7 +42,7 @@ export interface InboxFilterBarProps {
 }
 
 /**
- * Sticky acrylic filter bar: debounced search, tag chips (multi-select), Từ ngày / Đến ngày and "Chưa đọc".
+ * Sticky acrylic filter bar: debounced search, tag chips (multi-select), Từ ngày / Đến ngày.
  * The state of record is the URL (`inboxFilters.ts`); this component only edits it. Below `md` the tags and dates
  * fold behind a "Bộ lọc" button.
  */
@@ -130,17 +128,6 @@ export default function InboxFilterBar({ filters, tags, activeCount, onChange }:
             },
           }}
         />
-        <ToggleButton
-          value="unread"
-          size="small"
-          selected={filters.unread}
-          onChange={() => onChange({ ...filters, unread: !filters.unread })}
-          aria-label="Chỉ hiện thông báo chưa đọc"
-          sx={{ flexShrink: 0, height: 40, px: 1.5, gap: 0.75, whiteSpace: 'nowrap' }}
-        >
-          <MarkEmailUnreadOutlined fontSize="small" />
-          Chưa đọc
-        </ToggleButton>
         {!isDesktop && (
           <IconButton
             aria-label="Bộ lọc"

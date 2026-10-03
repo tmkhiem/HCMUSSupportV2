@@ -37,6 +37,7 @@ public static class GoogleOidcEvents
         {
             context.Principal = result.Principal;
             http.User = result.Principal!; // so the audit record carries the actor
+            await http.RequestServices.GetRequiredService<LoginRecorder>().RecordAsync(result.EmployeeCode!, ct);
             await audit.LogAsync(AuthAuditActions.Login, "employee", result.EmployeeCode,
                 new { method = "google", email = result.Email }, ct);
             return;

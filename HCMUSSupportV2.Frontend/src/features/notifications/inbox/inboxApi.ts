@@ -6,7 +6,7 @@ import type { InboxQuery } from './inboxFilters'
 import type { InboxDetail, InboxItem, InboxPage, InboxTag } from './inboxTypes'
 
 /*
- * Inbox calls (`/api/notifications`, `/api/tags`). Lists, counts, read, ack and read-all go through the generated
+ * Inbox calls (`/api/notifications`, `/api/tags`). Lists and ack go through the generated
  * `NotificationsClient`; the detail is hand-written because the generated `InboxDetailDto.vars` is the abstract
  * `JsonNode` (its `fromJS` throws). Under `VITE_MOCK_AUTH` everything is served by `inboxMock.ts`, no network.
  */
@@ -32,10 +32,9 @@ interface ItemSource {
   tags?: Array<{ id?: number; name?: string; color?: string | undefined }>
   publishedAt?: Date | string | undefined
   deliveredAt?: Date | string
-  readAt?: Date | string | undefined
   ackAt?: Date | string | undefined
   requiresAck?: boolean
-  pinned?: boolean
+  isNew?: boolean
   updatedAfterDelivery?: boolean
   seriesId?: number | undefined
   hasAttachments?: boolean
@@ -50,10 +49,9 @@ export function toInboxItem(d: ItemSource): InboxItem {
     tags: (d.tags ?? []).map(toTag),
     publishedAt: toDate(d.publishedAt),
     deliveredAt: toDate(d.deliveredAt) ?? new Date(0),
-    readAt: toDate(d.readAt),
     ackAt: toDate(d.ackAt),
     requiresAck: d.requiresAck ?? false,
-    pinned: d.pinned ?? false,
+    isNew: d.isNew ?? false,
     updatedAfterDelivery: d.updatedAfterDelivery ?? false,
     seriesId: d.seriesId ?? null,
     hasAttachments: d.hasAttachments ?? false,
@@ -100,7 +98,7 @@ export function toInboxDetail(d: DetailJson): InboxDetail {
 
 export async function fetchInboxPage(query: InboxQuery, cursor: string | undefined, limit = PAGE_SIZE): Promise<InboxPage> {
   if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).listMock(query, cursor, limit)
-  const page = await notificationsClient.list(query.q, query.tags, query.from, query.to, query.unread, cursor, limit)
+  const page = await notificationsClient.list(query.q, query.tags, query.from, query.to, cursor, limit)
   return { items: (page.items ?? []).map(toInboxItem), nextCursor: page.nextCursor ?? null }
 }
 
@@ -114,25 +112,10 @@ export async function fetchTags(): Promise<InboxTag[]> {
   return (await tagsClient.list()).map(toTag)
 }
 
-export async function fetchUnreadCount(): Promise<number> {
-  if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).unreadCountMock()
-  return (await notificationsClient.unreadCount()).count ?? 0
-}
-
-/** The three writes answer `{ count }`, the new unread count. They are refused with 403 while viewing as someone else. */
-export async function postRead(id: string): Promise<number> {
-  if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).readMock(id)
-  return (await notificationsClient.read(id)).count ?? 0
-}
-
-export async function postAck(id: string): Promise<number> {
+/** Refused with 403 while viewing as someone else. */
+export async function postAck(id: string): Promise<void> {
   if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).ackMock(id)
-  return (await notificationsClient.acknowledge(id)).count ?? 0
-}
-
-export async function postReadAll(): Promise<number> {
-  if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).readAllMock()
-  return (await notificationsClient.readAll()).count ?? 0
+  await notificationsClient.acknowledge(id)
 }
 
 export const attachmentUrl = (notificationId: string, fileId: string) =>

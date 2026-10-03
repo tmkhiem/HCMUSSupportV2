@@ -26,6 +26,12 @@ public class Employee
     /// <summary><see cref="EmployeeSources"/>.</summary>
     public string Source { get; set; } = EmployeeSources.Manual;
 
+    /// <summary>When the employee last signed in (set at each sign-in).</summary>
+    public DateTimeOffset? LastLoginAt { get; set; }
+
+    /// <summary>The sign-in before <see cref="LastLoginAt"/>. Notifications delivered after it count as new ("chưa đọc").</summary>
+    public DateTimeOffset? PreviousLoginAt { get; set; }
+
     public DateTimeOffset? SyncedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

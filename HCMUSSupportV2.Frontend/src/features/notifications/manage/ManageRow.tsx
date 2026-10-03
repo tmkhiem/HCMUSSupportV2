@@ -5,7 +5,6 @@ import MoreVertIcon from '@mui/icons-material/MoreVert'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
-import LinearProgress from '@mui/material/LinearProgress'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import Menu from '@mui/material/Menu'
@@ -31,7 +30,7 @@ export interface ManageRowProps {
 }
 
 /**
- * One notification in the editor's list: title, status, series and tags, the read-rate bar (for notifications that
+ * One notification in the editor's list: title, status, series and tags, the recipient count (for notifications that
  * reached people) and a "⋮" menu with the quick actions. The title is the link to the editor.
  */
 export default function ManageRow({ item, index, onAction }: ManageRowProps) {
@@ -85,17 +84,9 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
 
       <Box sx={{ width: { xs: '100%', md: 220 }, flexShrink: 0 }}>
         {sent ? (
-          <>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
-                {formatNumber(item.readCount)}/{formatNumber(item.recipientCount)} đã đọc
-              </Typography>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                {item.readPercent.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%
-              </Typography>
-            </Box>
-            <LinearProgress variant="determinate" value={Math.min(100, item.readPercent)} aria-label={`Tỷ lệ đã đọc ${item.readPercent}%`} sx={{ height: 6, borderRadius: 999 }} />
-          </>
+          <Typography variant="caption" color="text.secondary">
+            {formatNumber(item.recipientCount)} người nhận
+          </Typography>
         ) : (
           <Typography variant="caption" color="text.secondary">
             {item.status === 'draft' ? 'Chưa gửi cho ai' : item.audienceAll ? 'Gửi cho tất cả nhân sự' : 'Chưa có người nhận'}

@@ -303,13 +303,11 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var editor = await _host.EditorApiAsync();
         var id = await _host.PublishAsync(editor, Draft(employees: [reader]));
         var inbox = await _host.SignInAsync(reader);
-        Assert.Equal(1, (int)(await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications/unread-count"))["count"]!);
 
         await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{id}/archive");
 
         Assert.Empty((await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray());
         Assert.Equal(HttpStatusCode.NotFound, (await inbox.GetAsync($"/api/notifications/{id}")).StatusCode);
-        Assert.Equal(0, (int)(await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications/unread-count"))["count"]!);
         Assert.Single(await _host.RecipientsAsync(id));
         await editor.ExpectAsync(HttpStatusCode.Conflict, HttpMethod.Post, $"{Manage}/{id}/archive");
     }
@@ -415,7 +413,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Inbox_is_paged_by_keyset_with_pinned_first_and_filters()
+    public async Task Inbox_is_paged_by_keyset_newest_first_and_filters()
     {
         var reader = await _host.EmployeeAsync();
         var editor = await _host.EditorApiAsync();
@@ -433,8 +431,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
 
         var page1 = await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications?limit=2");
         var seen = page1["items"]!.AsArray().Select(i => (string)i!["id"]!).ToList();
-        Assert.True((bool?)page1["items"]![0]!["pinned"]);
-        Assert.Equal(ids[0], seen[0]); // pinned first even though it is the oldest
+        Assert.Equal(ids[4], seen[0]); // newest delivery first, pinning has no effect
         var cursor = (string?)page1["nextCursor"];
         Assert.NotNull(cursor);
         while (cursor is not null)
@@ -443,7 +440,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
             seen.AddRange(page["items"]!.AsArray().Select(i => (string)i!["id"]!));
             cursor = (string?)page["nextCursor"];
         }
-        Assert.Equal(new[] { ids[0], ids[4], ids[3], ids[2], ids[1] }, seen); // pinned, then newest delivery first
+        Assert.Equal(new[] { ids[4], ids[3], ids[2], ids[1], ids[0] }, seen);
         Assert.Equal(5, seen.Distinct().Count());
 
         var byTag = (await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications?tags={tagId}"))["items"]!.AsArray();
@@ -451,9 +448,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(tagId, (long?)byTag[0]!["tags"]![0]!["id"]);
         Assert.Empty((await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications?from={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddHours(1).ToString("O"))}"))["items"]!.AsArray());
         Assert.Equal(5, (await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications?to={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddHours(1).ToString("O"))}"))["items"]!.AsArray().Count);
-
-        await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{ids[4]}/read");
-        Assert.Equal(4, (await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications?unread=true"))["items"]!.AsArray().Count);
         await inbox.ExpectAsync(HttpStatusCode.BadRequest, HttpMethod.Get, "/api/notifications?cursor=garbage");
     }
 
@@ -473,7 +467,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var other = await _host.SignInAsync(outsider);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/notifications/{id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/notifications/{id}/attachments/{fileId}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsync($"/api/notifications/{id}/read")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsync($"/api/notifications/{id}/ack")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/files/{fileId}")).StatusCode); // attachments are not served as body images
 
@@ -488,45 +481,27 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Read_ack_read_all_and_unread_count_keep_counters_in_step()
+    public async Task Ack_keeps_counters_in_step()
     {
         var reader = await _host.EmployeeAsync();
         var other = await _host.EmployeeAsync();
         var editor = await _host.EditorApiAsync();
         var plain = await _host.PublishAsync(editor, Draft("Thường", employees: [reader, other]));
         var needsAck = await _host.PublishAsync(editor, Draft("Cần xác nhận", employees: [reader, other], requiresAck: true));
-        var third = await _host.PublishAsync(editor, Draft("Thứ ba", employees: [reader]));
         var inbox = await _host.SignInAsync(reader);
 
-        Assert.Equal(3, (int)(await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications/unread-count"))["count"]!);
-
-        Assert.Equal(2, (int)(await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{plain}/read"))["count"]!);
-        Assert.Equal(2, (int)(await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{plain}/read"))["count"]!); // idempotent
-
-        // Acknowledging needs requires_ack, and also reads.
+        // Acknowledging needs requires_ack (it also counts as a read for the author's stats).
         await inbox.ExpectAsync(HttpStatusCode.BadRequest, HttpMethod.Post, $"/api/notifications/{plain}/ack");
-        Assert.Equal(1, (int)(await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{needsAck}/ack"))["count"]!);
         await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{needsAck}/ack");
+        await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{needsAck}/ack"); // idempotent
         var detail = await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications/{needsAck}");
-        Assert.NotNull(detail["readAt"]);
         Assert.NotNull(detail["ackAt"]);
 
         var stats = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{needsAck}/stats");
         Assert.Equal((2, 1, 1), ((int)stats["recipientCount"]!, (int)stats["readCount"]!, (int)stats["ackCount"]!));
-        Assert.Equal(50.0, (double)stats["readPercent"]!);
-        Assert.Equal(1, stats["readsByDay"]!.AsArray().Count);
-        Assert.Equal(1, (int)stats["readsByDay"]![0]!["cumulativeReads"]!);
 
-        await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, "/api/notifications/read-all");
-        Assert.Equal(0, (int)(await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications/unread-count"))["count"]!);
-        // read-all only touched this employee.
-        var otherInbox = await _host.SignInAsync(other);
-        Assert.Equal(2, (int)(await otherInbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications/unread-count"))["count"]!);
-
-        // Counters on the notification row match the deliveries.
-        Assert.Equal((2, 1, 0), await Counters(plain));
+        Assert.Equal((2, 0, 0), await Counters(plain));
         Assert.Equal((2, 1, 1), await Counters(needsAck));
-        Assert.Equal((1, 1, 0), await Counters(third));
     }
 
     private async Task<(int Recipients, int Reads, int Acks)> Counters(string id)
@@ -536,7 +511,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task While_acting_as_someone_reads_follow_the_viewed_employee_but_read_and_ack_are_rejected()
+    public async Task While_acting_as_someone_reads_follow_the_viewed_employee_but_ack_is_rejected()
     {
         var viewed = await _host.EmployeeAsync();
         var editor = await _host.EditorApiAsync();
@@ -548,16 +523,37 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
 
         var list = await acting.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications");
         Assert.Equal(id, (string?)list["items"]!.AsArray().Single()!["id"]);
-        Assert.Equal(1, (int)(await acting.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications/unread-count"))["count"]!);
         await acting.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications/{id}");
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await acting.PostAsync($"/api/notifications/{id}/read")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await acting.PostAsync($"/api/notifications/{id}/ack")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await acting.PostAsync("/api/notifications/read-all")).StatusCode);
 
         var self = await _host.SignInAsync(viewed);
         var detail = await self.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications/{id}");
-        Assert.Null(detail["readAt"]); // nothing changed for the viewed employee
+        Assert.Null(detail["ackAt"]); // nothing changed for the viewed employee
+    }
+
+    [Fact]
+    public async Task Items_are_new_only_when_delivered_after_the_previous_sign_in()
+    {
+        var reader = await _host.EmployeeAsync();
+        var editor = await _host.EditorApiAsync();
+        var old = await _host.PublishAsync(editor, Draft("Cũ", employees: [reader]));
+        await Task.Delay(50);
+        await _host.Factory.WithDbAsync(async db =>
+        {
+            await db.Set<HCMUSSupportV2.Backend.Modules.Identity.Directory.Employee>().Where(e => e.Code == reader)
+                .ExecuteUpdateAsync(s => s.SetProperty(e => e.PreviousLoginAt, DateTimeOffset.UtcNow));
+            return 0;
+        });
+        await Task.Delay(50);
+        var recent = await _host.PublishAsync(editor, Draft("Mới", employees: [reader]));
+
+        var inbox = await _host.SignInAsync(reader);
+        var items = (await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray();
+        Assert.Equal(recent, (string?)items[0]!["id"]);
+        Assert.True((bool?)items[0]!["isNew"]);
+        Assert.Equal(old, (string?)items[1]!["id"]);
+        Assert.False((bool?)items[1]!["isNew"]);
     }
 
     [Fact]

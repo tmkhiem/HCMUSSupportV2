@@ -23,7 +23,7 @@ export interface SettingsPanelProps {
   onManageTags: () => void
 }
 
-/** Series, tags, expiry, pin and "Cần xác nhận". */
+/** Series, tags, expiry and "Cần xác nhận". */
 export default function SettingsPanel({ form, onChange, publishAt, errors, disabled, onManageTags }: SettingsPanelProps) {
   const [opened] = useState(() => new Date())
   const tags = useManageTags()
@@ -85,14 +85,6 @@ export default function SettingsPanel({ form, onChange, publishAt, errors, disab
           error={Boolean(errors.expiresAt)}
           helperText={errors.expiresAt ?? 'Sau thời điểm này thông báo biến khỏi hộp thư.'}
           testId="expires-at"
-        />
-        <DateTimeField
-          label="Ghim đến (không bắt buộc)"
-          value={form.pinnedUntil}
-          onChange={(pinnedUntil) => onChange({ pinnedUntil })}
-          disabled={disabled}
-          helperText="Thông báo được ghim lên đầu hộp thư đến thời điểm này."
-          testId="pinned-until"
         />
         <FormControlLabel
           control={<Switch checked={form.requiresAck} disabled={disabled} onChange={(e) => onChange({ requiresAck: e.target.checked })} />}

@@ -1,22 +1,18 @@
-import DoneAllIcon from '@mui/icons-material/DoneAll'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Skeleton from '@mui/material/Skeleton'
 import Stack from '@mui/material/Stack'
-import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 import { Outlet, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../../../auth/authContext'
 import { PageHeader, PageState, errorMessage } from '../../../ui'
 import InboxFilterBar from './InboxFilterBar'
 import InboxRow from './InboxRow'
 import LoadMore from './LoadMore'
 import { countActiveFilters, EMPTY_FILTERS, hasActiveFilters, parseFilters, serializeFilters } from './inboxFilters'
 import type { InboxFilters } from './inboxFilters'
-import { VIEW_AS_HINT } from './inboxTypes'
-import { useInboxList, useInboxTags, useReadAll, useUnreadCount } from './inboxQueries'
+import { useInboxList, useInboxTags } from './inboxQueries'
 
 /** Rows that fly in on first paint; later pages appear without the entrance. */
 const FLY_IN_ROWS = 10
@@ -27,8 +23,6 @@ const FLY_IN_ROWS = 10
  */
 export function Component() {
   const theme = useTheme()
-  const { me } = useAuth()
-  const viewingAs = Boolean(me?.actingAs)
   const [params, setParams] = useSearchParams()
   const filters = parseFilters(params)
   const search = params.toString() ? `?${params.toString()}` : ''
@@ -38,41 +32,13 @@ export function Component() {
 
   const list = useInboxList(filters)
   const tags = useInboxTags()
-  const unread = useUnreadCount()
-  const readAll = useReadAll()
 
   const items = list.data?.pages.flatMap((p) => p.items) ?? []
   const filtered = hasActiveFilters(filters)
-  const unreadCount = unread.data ?? 0
-  const canReadAll = !viewingAs && unreadCount > 0
 
   return (
     <>
-      <PageHeader
-        title="Tin tức"
-        eyebrow="Thông báo"
-        subtitle={unread.data === undefined ? 'Thông báo dành cho bạn' : unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Bạn đã đọc hết thông báo'}
-        actions={
-          <Tooltip title={viewingAs ? VIEW_AS_HINT : ''} disableHoverListener={!viewingAs}>
-            <span>
-              <Button
-                variant="outlined"
-                startIcon={<DoneAllIcon />}
-                disabled={!canReadAll || readAll.isPending}
-                onClick={() => readAll.mutate()}
-              >
-                Đánh dấu tất cả đã đọc
-              </Button>
-            </span>
-          </Tooltip>
-        }
-      />
-
-      {readAll.isError && (
-        <Alert severity="error" sx={{ mt: 2 }} onClose={() => readAll.reset()}>
-          {errorMessage(readAll.error, 'Không đánh dấu được tất cả là đã đọc. Vui lòng thử lại.')}
-        </Alert>
-      )}
+      <PageHeader title="Tin tức" eyebrow="Thông báo" subtitle="Thông báo dành cho bạn" />
 
       <Box
         sx={{

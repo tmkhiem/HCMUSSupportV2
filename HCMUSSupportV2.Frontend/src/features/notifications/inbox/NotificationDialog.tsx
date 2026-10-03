@@ -1,7 +1,6 @@
 import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined'
 import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined'
 import CloseIcon from '@mui/icons-material/Close'
-import PushPinOutlined from '@mui/icons-material/PushPinOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -24,13 +23,13 @@ import { formatDate, formatDateTime } from '../../../lib/format'
 import { errorMessage } from '../../../ui'
 import NotificationBody from '../body/NotificationBody'
 import { AttachmentList, SeriesPrevious } from './DetailSections'
-import { useAcknowledge, useInboxDetail, useMarkRead } from './inboxQueries'
+import { useAcknowledge, useInboxDetail } from './inboxQueries'
 import { VIEW_AS_HINT, needsAck } from './inboxTypes'
 import PngIcon from '../../../ui/PngIcon'
 
 /**
  * `/tin-tuc/:id`: the detail as a Dialog over the list (the parent route keeps the list mounted). Deep-linkable.
- * Opening it marks the post read (skipped while viewing as someone else: the server answers 403). Closing returns to
+ * Closing returns to
  * `/tin-tuc` with the list's filters (`history -1` when we came from the list, otherwise a replace).
  */
 export function Component() {
@@ -45,7 +44,6 @@ export function Component() {
 
   const [open, setOpen] = useState(true)
   const detail = useInboxDetail(id)
-  const { mutate: markRead } = useMarkRead()
   const ack = useAcknowledge()
   // The ack button disappears once acknowledged; move focus to the status chip so it is not lost to the page behind.
   const ackedRef = useRef<HTMLDivElement>(null)
@@ -53,15 +51,6 @@ export function Component() {
   useEffect(() => {
     if (acked) ackedRef.current?.focus()
   }, [acked])
-
-  // Mark read once per opened post, after we know it is unread. A failure does not retry in a loop.
-  const attempted = useRef<string | null>(null)
-  const unreadId = detail.data && !detail.data.readAt ? detail.data.id : null
-  useEffect(() => {
-    if (!unreadId || viewingAs || attempted.current === unreadId) return
-    attempted.current = unreadId
-    markRead(unreadId)
-  }, [unreadId, viewingAs, markRead])
 
   const close = () => setOpen(false)
   const leave = () => {
@@ -110,7 +99,6 @@ export function Component() {
               {data.tags.map((t) => (
                 <Chip key={t.id} size="small" variant="tag" label={t.name} />
               ))}
-              {data.pinned && <Chip size="small" color="primary" variant="outlined" icon={<PushPinOutlined />} label="Ghim" />}
               {data.updatedAfterDelivery && <Chip size="small" color="info" variant="outlined" label="Đã cập nhật" />}
             </Stack>
           </>

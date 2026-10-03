@@ -9,7 +9,6 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useMatches } from 'react-router-dom'
 import { useAuth } from '../auth/authContext'
-import { useRefreshUnreadOnNavigation } from '../features/notifications/inbox/inboxQueries'
 import AccountMenu from './AccountMenu'
 import SidebarNav from './SidebarNav'
 import ViewAsBar from './ViewAsBar'
@@ -51,7 +50,6 @@ export default function AppLayout() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const title = useRouteTitle()
   const scrollKey = useScrollKey(pathname)
-  useRefreshUnreadOnNavigation(pathname)
 
   useEffect(() => {
     document.title = title ? `${title} · ${APP_NAME}` : APP_NAME

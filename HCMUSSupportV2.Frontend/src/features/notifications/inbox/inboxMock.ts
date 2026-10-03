@@ -5,7 +5,7 @@ import type { InboxAttachment, InboxDetail, InboxItem, InboxPage, InboxTag, Inbo
 
 /**
  * Synthetic inbox for `VITE_MOCK_AUTH=1` (dev only: only `inboxApi.ts` imports this, behind the build-time `MOCK_AUTH`
- * constant). Fixed dates and ids so Playwright can assert on them. State lives in this module: read and ack stick until
+ * constant). Fixed dates and ids so Playwright can assert on them. State lives in this module: ack sticks until
  * the page is reloaded. `window.__inboxMock.publish(title)` simulates a new delivery (there is no live stream: it appears on the next fetch).
  * MSCB and names are synthetic.
  */
@@ -91,10 +91,8 @@ interface Spec {
   summary: string
   tags: number[]
   delivered: string
-  read?: boolean
   requiresAck?: boolean
   ack?: boolean
-  pinned?: boolean
   updated?: boolean
   series?: number
   files?: InboxAttachment[]
@@ -110,7 +108,6 @@ const SPECS: Spec[] = [
     tags: [1, 6],
     delivered: '2026-09-28',
     series: 1,
-    pinned: true,
     requiresAck: true,
     summary: 'Kết quả xét nâng bậc lương thường xuyên đợt 2026 của cán bộ, viên chức.',
     files: [FILE_PDF, FILE_XLSX],
@@ -124,7 +121,6 @@ const SPECS: Spec[] = [
     tags: [1],
     delivered: '2025-09-30',
     series: 1,
-    read: true,
     requiresAck: true,
     ack: true,
     summary: 'Kết quả xét nâng bậc lương thường xuyên đợt 2025.',
@@ -138,7 +134,6 @@ const SPECS: Spec[] = [
     tags: [1],
     delivered: '2024-09-27',
     series: 1,
-    read: true,
     summary: 'Kết quả xét nâng bậc lương thường xuyên đợt 2024.',
     variables: SALARY_VARS,
     body: SALARY_BODY,
@@ -167,12 +162,12 @@ const SPECS: Spec[] = [
     files: [FILE_DOCX],
     summary: 'Đề nghị cán bộ, viên chức hoàn thành phiếu khảo sát trước ngày 15/10/2026.',
   },
-  { n: 6, title: 'Danh sách khen thưởng năm học 2025-2026', tags: [3], delivered: '2026-09-15', read: true, summary: 'Công bố danh sách tập thể và cá nhân được khen thưởng năm học 2025-2026.' },
+  { n: 6, title: 'Danh sách khen thưởng năm học 2025-2026', tags: [3], delivered: '2026-09-15', summary: 'Công bố danh sách tập thể và cá nhân được khen thưởng năm học 2025-2026.' },
   { n: 7, title: 'Mở lớp bồi dưỡng nghiệp vụ sư phạm đợt 3', tags: [5], delivered: '2026-09-12', summary: 'Lớp bồi dưỡng khai giảng ngày 20/10/2026, đăng ký đến hết ngày 10/10.' },
-  { n: 8, title: 'Lịch nghỉ lễ Quốc khánh 2/9 năm 2026', tags: [6], delivered: '2026-08-28', read: true, summary: 'Cán bộ, viên chức nghỉ lễ từ ngày 01/09 đến hết ngày 03/09/2026.' },
-  { n: 9, title: 'Thông báo họp giao ban tháng 9', tags: [6], delivered: '2026-08-25', read: true, summary: 'Họp giao ban toàn trường lúc 14 giờ ngày 30/09/2026 tại hội trường A.' },
+  { n: 8, title: 'Lịch nghỉ lễ Quốc khánh 2/9 năm 2026', tags: [6], delivered: '2026-08-28', summary: 'Cán bộ, viên chức nghỉ lễ từ ngày 01/09 đến hết ngày 03/09/2026.' },
+  { n: 9, title: 'Thông báo họp giao ban tháng 9', tags: [6], delivered: '2026-08-25', summary: 'Họp giao ban toàn trường lúc 14 giờ ngày 30/09/2026 tại hội trường A.' },
   { n: 10, title: 'Triển khai đánh giá viên chức năm 2026', tags: [6, 4], delivered: '2026-08-18', summary: 'Hướng dẫn tự đánh giá và nộp phiếu đánh giá viên chức.' },
-  { n: 11, title: 'Đăng ký hội thảo khoa học cấp trường', tags: [5], delivered: '2026-08-10', read: true, summary: 'Mở đăng ký báo cáo tại hội thảo khoa học cấp trường lần thứ 12.' },
+  { n: 11, title: 'Đăng ký hội thảo khoa học cấp trường', tags: [5], delivered: '2026-08-10', summary: 'Mở đăng ký báo cáo tại hội thảo khoa học cấp trường lần thứ 12.' },
   {
     n: 12,
     title: 'Cập nhật thông tin hồ sơ cán bộ',
@@ -180,23 +175,22 @@ const SPECS: Spec[] = [
     delivered: '2026-08-02',
     requiresAck: true,
     ack: true,
-    read: true,
     summary: 'Đề nghị rà soát và cập nhật thông tin hồ sơ cá nhân trên hệ thống.',
   },
-  { n: 13, title: 'Kết quả bình xét thi đua học kỳ II', tags: [3], delivered: '2026-07-22', read: true, summary: 'Công bố kết quả bình xét thi đua học kỳ II năm học 2025-2026.' },
-  { n: 14, title: 'Tập huấn an toàn phòng cháy chữa cháy', tags: [5, 6], delivered: '2026-07-14', read: true, summary: 'Tập huấn bắt buộc cho toàn thể cán bộ, viên chức ngày 25/07.' },
-  { n: 15, title: 'Chế độ bảo hiểm y tế năm 2027', tags: [6], delivered: '2026-07-05', read: true, summary: 'Thông tin về mức đóng và thời hạn gia hạn bảo hiểm y tế.' },
-  { n: 16, title: 'Khảo sát nhu cầu đào tạo ngoại ngữ', tags: [4, 5], delivered: '2026-06-27', read: true, summary: 'Khảo sát nhu cầu học tiếng Anh, tiếng Nhật của cán bộ.' },
-  { n: 17, title: 'Thông báo nghỉ hè năm 2026', tags: [6], delivered: '2026-06-18', read: true, summary: 'Lịch nghỉ hè của cán bộ, viên chức khối hành chính và giảng dạy.' },
-  { n: 18, title: 'Xét nâng lương trước thời hạn do lập thành tích', tags: [1, 3], delivered: '2026-06-05', read: true, summary: 'Hồ sơ đề nghị nâng lương trước thời hạn nộp trước ngày 20/06.' },
-  { n: 19, title: 'Quy định mới về giờ chuẩn giảng dạy', tags: [6], delivered: '2026-05-21', read: true, summary: 'Áp dụng định mức giờ chuẩn mới từ năm học 2026-2027.' },
-  { n: 20, title: 'Mời tham gia chương trình sức khỏe cộng đồng', tags: [6], delivered: '2026-05-10', read: true, summary: 'Khám sức khỏe định kỳ miễn phí dành cho cán bộ, viên chức.' },
-  { n: 21, title: 'Hướng dẫn thanh toán công tác phí', tags: [6], delivered: '2026-04-29', read: true, summary: 'Quy trình và biểu mẫu thanh toán công tác phí trong nước.' },
-  { n: 22, title: 'Danh hiệu Nhà giáo ưu tú: mở nhận hồ sơ', tags: [3], delivered: '2026-04-15', read: true, summary: 'Mở nhận hồ sơ đề nghị xét tặng danh hiệu Nhà giáo ưu tú.' },
-  { n: 23, title: 'Bồi dưỡng chức danh nghề nghiệp giảng viên chính', tags: [5], delivered: '2026-04-02', read: true, summary: 'Kế hoạch mở lớp bồi dưỡng chức danh giảng viên chính hạng II.' },
-  { n: 24, title: 'Thông báo thay đổi giờ làm việc mùa hè', tags: [6], delivered: '2026-03-20', read: true, summary: 'Giờ làm việc mùa hè áp dụng từ 01/04 đến 30/09.' },
-  { n: 25, title: 'Khảo sát chất lượng bữa ăn căng tin', tags: [4], delivered: '2026-03-08', read: true, summary: 'Ý kiến đóng góp về chất lượng căng tin giúp Nhà trường cải thiện.' },
-  { n: 26, title: 'Nhắc nộp báo cáo sáng kiến cải tiến', tags: [6], delivered: '2026-02-24', read: true, summary: 'Hạn nộp báo cáo sáng kiến cải tiến năm học 2025-2026.' },
+  { n: 13, title: 'Kết quả bình xét thi đua học kỳ II', tags: [3], delivered: '2026-07-22', summary: 'Công bố kết quả bình xét thi đua học kỳ II năm học 2025-2026.' },
+  { n: 14, title: 'Tập huấn an toàn phòng cháy chữa cháy', tags: [5, 6], delivered: '2026-07-14', summary: 'Tập huấn bắt buộc cho toàn thể cán bộ, viên chức ngày 25/07.' },
+  { n: 15, title: 'Chế độ bảo hiểm y tế năm 2027', tags: [6], delivered: '2026-07-05', summary: 'Thông tin về mức đóng và thời hạn gia hạn bảo hiểm y tế.' },
+  { n: 16, title: 'Khảo sát nhu cầu đào tạo ngoại ngữ', tags: [4, 5], delivered: '2026-06-27', summary: 'Khảo sát nhu cầu học tiếng Anh, tiếng Nhật của cán bộ.' },
+  { n: 17, title: 'Thông báo nghỉ hè năm 2026', tags: [6], delivered: '2026-06-18', summary: 'Lịch nghỉ hè của cán bộ, viên chức khối hành chính và giảng dạy.' },
+  { n: 18, title: 'Xét nâng lương trước thời hạn do lập thành tích', tags: [1, 3], delivered: '2026-06-05', summary: 'Hồ sơ đề nghị nâng lương trước thời hạn nộp trước ngày 20/06.' },
+  { n: 19, title: 'Quy định mới về giờ chuẩn giảng dạy', tags: [6], delivered: '2026-05-21', summary: 'Áp dụng định mức giờ chuẩn mới từ năm học 2026-2027.' },
+  { n: 20, title: 'Mời tham gia chương trình sức khỏe cộng đồng', tags: [6], delivered: '2026-05-10', summary: 'Khám sức khỏe định kỳ miễn phí dành cho cán bộ, viên chức.' },
+  { n: 21, title: 'Hướng dẫn thanh toán công tác phí', tags: [6], delivered: '2026-04-29', summary: 'Quy trình và biểu mẫu thanh toán công tác phí trong nước.' },
+  { n: 22, title: 'Danh hiệu Nhà giáo ưu tú: mở nhận hồ sơ', tags: [3], delivered: '2026-04-15', summary: 'Mở nhận hồ sơ đề nghị xét tặng danh hiệu Nhà giáo ưu tú.' },
+  { n: 23, title: 'Bồi dưỡng chức danh nghề nghiệp giảng viên chính', tags: [5], delivered: '2026-04-02', summary: 'Kế hoạch mở lớp bồi dưỡng chức danh giảng viên chính hạng II.' },
+  { n: 24, title: 'Thông báo thay đổi giờ làm việc mùa hè', tags: [6], delivered: '2026-03-20', summary: 'Giờ làm việc mùa hè áp dụng từ 01/04 đến 30/09.' },
+  { n: 25, title: 'Khảo sát chất lượng bữa ăn căng tin', tags: [4], delivered: '2026-03-08', summary: 'Ý kiến đóng góp về chất lượng căng tin giúp Nhà trường cải thiện.' },
+  { n: 26, title: 'Nhắc nộp báo cáo sáng kiến cải tiến', tags: [6], delivered: '2026-02-24', summary: 'Hạn nộp báo cáo sáng kiến cải tiến năm học 2025-2026.' },
 ]
 
 function buildPosts(): MockPost[] {
@@ -208,10 +202,9 @@ function buildPosts(): MockPost[] {
       tags: tag(...s.tags),
       publishedAt: day(s.delivered),
       deliveredAt: day(s.delivered),
-      readAt: s.read ? day(s.delivered) : null,
       ackAt: s.ack ? day(s.delivered) : null,
       requiresAck: Boolean(s.requiresAck),
-      pinned: Boolean(s.pinned),
+      isNew: false,
       updatedAfterDelivery: Boolean(s.updated),
       seriesId: s.series ?? null,
       hasAttachments: Boolean(s.files?.length),
@@ -234,8 +227,6 @@ function rejectWhenViewingAs() {
   if (VIEWING_AS) throw new ApiError(403, VIEW_AS_MESSAGE)
 }
 
-const unreadCount = () => posts.filter((p) => !p.item.readAt).length
-
 const fold = (text: string) =>
   text
     .normalize('NFD')
@@ -245,7 +236,6 @@ const fold = (text: string) =>
     .toLowerCase()
 
 function matches(item: InboxItem, q: InboxQuery): boolean {
-  if (q.unread && item.readAt) return false
   if (q.tags?.length && !item.tags.some((t) => q.tags!.includes(t.id))) return false
   if (q.from && item.deliveredAt < q.from) return false
   if (q.to && item.deliveredAt > q.to) return false
@@ -268,7 +258,7 @@ export async function listMock(query: InboxQuery, cursor: string | undefined, li
   const sorted = posts
     .map((p) => p.item)
     .filter((i) => matches(i, query))
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.deliveredAt.getTime() - a.deliveredAt.getTime() || b.id.localeCompare(a.id))
+    .sort((a, b) => b.deliveredAt.getTime() - a.deliveredAt.getTime() || b.id.localeCompare(a.id))
   const start = cursor ? Number(cursor) || 0 : 0
   const items = sorted.slice(start, start + limit)
   return { items: clone(items), nextCursor: start + limit < sorted.length ? String(start + limit) : null }
@@ -300,38 +290,14 @@ export async function tagsMock(): Promise<InboxTag[]> {
   return clone(TAGS)
 }
 
-export async function unreadCountMock(): Promise<number> {
-  await delay(20)
-  return unreadCount()
-}
-
-export async function readMock(id: string): Promise<number> {
-  await delay(30)
-  rejectWhenViewingAs()
-  const post = posts.find((p) => p.item.id === id)
-  if (!post) throw new ApiError(404, 'Không tìm thấy thông báo.')
-  post.item.readAt ??= new Date()
-  return unreadCount()
-}
-
-export async function ackMock(id: string): Promise<number> {
+export async function ackMock(id: string): Promise<void> {
   await delay(30)
   rejectWhenViewingAs()
   const post = posts.find((p) => p.item.id === id)
   if (!post) throw new ApiError(404, 'Không tìm thấy thông báo.')
   if (!post.item.requiresAck) throw new ApiError(400, 'Thông báo này không yêu cầu xác nhận.')
   const now = new Date()
-  post.item.readAt ??= now
   post.item.ackAt ??= now
-  return unreadCount()
-}
-
-export async function readAllMock(): Promise<number> {
-  await delay(30)
-  rejectWhenViewingAs()
-  const now = new Date()
-  for (const p of posts) p.item.readAt ??= now
-  return 0
 }
 
 // ---- test hook ---------------------------------------------------------------------------------------------------
@@ -349,10 +315,9 @@ export function publishMockNotification(title: string): string {
         tags: tag(6),
         publishedAt: now,
         deliveredAt: now,
-        readAt: null,
         ackAt: null,
         requiresAck: false,
-        pinned: false,
+        isNew: true,
         updatedAfterDelivery: false,
         seriesId: null,
         hasAttachments: false,

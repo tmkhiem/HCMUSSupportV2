@@ -1,6 +1,5 @@
 import LogoutIcon from '@mui/icons-material/Logout'
 import Avatar from '@mui/material/Avatar'
-import Badge from '@mui/material/Badge'
 import Box from '@mui/material/Box'
 import ButtonBase from '@mui/material/ButtonBase'
 import Chip from '@mui/material/Chip'
@@ -18,7 +17,6 @@ import type { RoleName } from '../auth/types'
 import { joinParts } from '../lib/format'
 import SectionLabel from '../ui/SectionLabel'
 import { useSystemInfo } from './useSystemInfo'
-import { useNavBadges } from './useNavBadges'
 
 function initial(fullName: string): string {
   const last = fullName.trim().split(/\s+/).at(-1) ?? ''
@@ -32,49 +30,39 @@ export default function AccountMenu({ size = 44 }: { size?: number }) {
   const info = useSystemInfo()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const menuId = useId()
-  const hasUnread = (useNavBadges().unread ?? 0) > 0
   const open = Boolean(anchor)
 
   const roles: RoleName[] = me.roles
 
   return (
     <>
-      <Badge
-        variant="dot"
-        color="error"
-        overlap="circular"
-        invisible={!hasUnread}
-        slotProps={{ badge: { 'data-testid': 'avatar-dot' } as object }}
-        sx={{ '& .MuiBadge-badge': { top: 4, right: 4, boxShadow: '0 0 0 2px #fff' } }}
+      <ButtonBase
+        aria-label="Tài khoản"
+        aria-haspopup="true"
+        aria-controls={open ? menuId : undefined}
+        aria-expanded={open ? 'true' : undefined}
+        onClick={(e) => setAnchor(e.currentTarget)}
+        sx={(t) => ({
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          border: '2px solid #fff',
+          bgcolor: '#fff',
+          boxShadow: t.custom.shadow.blocky,
+          transition: `transform ${t.custom.motion.flyInMs}ms ${t.custom.motion.ease}`,
+          '&:hover': { transform: 'scale(1.05)' },
+          '&:active': { transform: 'scale(0.95)' },
+        })}
       >
-        <ButtonBase
-          aria-label="Tài khoản"
-          aria-haspopup="true"
-          aria-controls={open ? menuId : undefined}
-          aria-expanded={open ? 'true' : undefined}
-          onClick={(e) => setAnchor(e.currentTarget)}
-          sx={(t) => ({
-            width: size,
-            height: size,
-            borderRadius: '50%',
-            border: '2px solid #fff',
-            bgcolor: '#fff',
-            boxShadow: t.custom.shadow.blocky,
-            transition: `transform ${t.custom.motion.flyInMs}ms ${t.custom.motion.ease}`,
-            '&:hover': { transform: 'scale(1.05)' },
-            '&:active': { transform: 'scale(0.95)' },
-          })}
+        <Avatar
+          src={me.photoUrl ?? undefined}
+          alt=""
+          slotProps={{ img: { referrerPolicy: 'no-referrer' } }}
+          sx={{ width: '100%', height: '100%', bgcolor: 'secondary.main', color: 'primary.main', fontSize: size * 0.4 }}
         >
-          <Avatar
-            src={me.photoUrl ?? undefined}
-            alt=""
-            slotProps={{ img: { referrerPolicy: 'no-referrer' } }}
-            sx={{ width: '100%', height: '100%', bgcolor: 'secondary.main', color: 'primary.main', fontSize: size * 0.4 }}
-          >
-            {initial(me.fullName)}
-          </Avatar>
-        </ButtonBase>
-      </Badge>
+          {initial(me.fullName)}
+        </Avatar>
+      </ButtonBase>
 
       <Popover
         id={menuId}

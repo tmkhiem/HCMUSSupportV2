@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HCMUSSupportV2.Backend.Modules.Notifications.Inbox;
 
-/// <summary>The signed-in employee's notification inbox. Reads follow view-as; read/ack/read-all are rejected while acting as someone.</summary>
+/// <summary>The signed-in employee's notification inbox. Reads follow view-as; ack is rejected while acting as someone.</summary>
 [ApiController]
 [ApiException]
 [Authorize(Policy = Policies.Employee)]
@@ -13,42 +13,25 @@ namespace HCMUSSupportV2.Backend.Modules.Notifications.Inbox;
 public class NotificationsController(InboxService inbox, ICurrentUser user) : ControllerBase
 {
     /// <summary>
-    /// Inbox page, pinned first then newest delivery first (keyset cursor). Filters: <c>q</c> (accent-insensitive full text),
-    /// <c>tags</c> (tag ids, any of), <c>from</c>/<c>to</c> (delivery time, inclusive), <c>unread</c>.
+    /// Inbox page, newest delivery first (keyset cursor). Filters: <c>q</c> (accent-insensitive full text),
+    /// <c>tags</c> (tag ids, any of), <c>from</c>/<c>to</c> (delivery time, inclusive). Each item says whether it is new
+    /// (delivered after the employee's previous sign-in).
     /// </summary>
     [HttpGet]
     public Task<Page<InboxItemDto>> List(
         [FromQuery] string? q, [FromQuery] long[]? tags, [FromQuery] DateTimeOffset? from, [FromQuery] DateTimeOffset? to,
-        [FromQuery] bool unread, [FromQuery] string? cursor, [FromQuery] int limit = 20, CancellationToken ct = default) =>
-        inbox.ListAsync(user.RequireEffectiveCode(), new InboxFilter(q, tags?.ToList(), from, to, unread), cursor, limit, ct);
-
-    [HttpGet("unread-count")]
-    public Task<UnreadCountDto> UnreadCount(CancellationToken ct) => inbox.UnreadCountAsync(user.RequireEffectiveCode(), ct);
+        [FromQuery] string? cursor, [FromQuery] int limit = 20, CancellationToken ct = default) =>
+        inbox.ListAsync(user.RequireEffectiveCode(), new InboxFilter(q, tags?.ToList(), from, to), cursor, limit, ct);
 
     /// <summary>404 when the employee has no delivery of this notification.</summary>
     [HttpGet("{id:guid}")]
     public Task<InboxDetailDto> Get(Guid id, CancellationToken ct) => inbox.GetAsync(user.RequireEffectiveCode(), id, ct);
-
-    [HttpPost("{id:guid}/read")]
-    public async Task<UnreadCountDto> Read(Guid id, CancellationToken ct)
-    {
-        RejectWhenActingAs();
-        return await inbox.MarkReadAsync(user.RequireCode(), id, ct);
-    }
 
     [HttpPost("{id:guid}/ack")]
     public async Task<UnreadCountDto> Acknowledge(Guid id, CancellationToken ct)
     {
         RejectWhenActingAs();
         return await inbox.AcknowledgeAsync(user.RequireCode(), id, ct);
-    }
-
-    [HttpPost("read-all")]
-    public async Task<UnreadCountDto> ReadAll(CancellationToken ct)
-    {
-        RejectWhenActingAs();
-        await inbox.ReadAllAsync(user.RequireCode(), ct);
-        return new UnreadCountDto(0);
     }
 
     /// <summary>Downloads an attachment (404 without a delivery).</summary>

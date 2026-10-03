@@ -112,16 +112,18 @@ targeting it). Archived and expired posts are not backfilled. Removing someone f
 ## Inbox API (`/api/notifications`, any signed-in employee)
 
 All reads use the effective employee (`ICurrentUser.RequireEffectiveCode()`, so view-as shows the viewed employee's inbox).
-`read`, `ack` and `read-all` use the real employee and answer **403 while acting as someone**.
+`ack` uses the real employee and answer **403 while acting as someone**.
 
 | Endpoint | Notes |
 |---|---|
-| `GET notifications?q&tags&from&to&unread&cursor&limit` | `{items, nextCursor}`; pinned first (`pinned_until > now`), then newest delivery; keyset cursor on `(pinned, delivered_at, id)`; `q` = `websearch_to_tsquery('vn_unaccent', f_unaccent(q))`; `tags` = tag ids (any of); `from`/`to` inclusive on `delivered_at` |
-| item | `{id, title, summary, tags, publishedAt, deliveredAt, readAt, ackAt, requiresAck, pinned, updatedAfterDelivery, seriesId, hasAttachments}` |
+| `GET notifications?q&tags&from&to&cursor&limit` | `{items, nextCursor}`; newest delivery first (no pinning, no read filter); keyset cursor on `(delivered_at, id)`; `q` = `websearch_to_tsquery('vn_unaccent', f_unaccent(q))`; `tags` = tag ids (any of); `from`/`to` inclusive on `delivered_at` |
+| item | `{id, title, summary, tags, publishedAt, deliveredAt, ackAt, requiresAck, isNew, updatedAfterDelivery, seriesId, hasAttachments}` |
 | `GET notifications/{id}` | item fields + `bodyMd`, `variables`, `vars` (array of rows, `[]` when none), `attachments[{fileId, fileName, contentType, sizeBytes}]`, `series {id, name, previous[{id, title, publishedAt}]}` (earlier published posts of the series that were also delivered to this employee). 404 without a visible delivery |
-| `POST notifications/{id}/read` | idempotent; returns `{count}` (new unread count) |
-| `POST notifications/{id}/ack` | needs `requires_ack` (400 otherwise); also marks read |
-| `POST notifications/read-all`, `GET notifications/unread-count` | |
+| `POST notifications/{id}/ack` | needs `requires_ack` (400 otherwise); also sets `read_at` (kept for the author's counters only) |
+
+There are no read receipts in the employee UI. `isNew` = delivered after the employee's *previous* sign-in
+(`employees.previous_login_at`; `last_login_at` is stamped by `LoginRecorder` at each sign-in, which first moves the old value into `previous_login_at`;
+a null previous login makes everything new). No UI uses it yet.
 | `GET notifications/{id}/attachments/{fileId}` | download; 404 without a delivery |
 | `GET tags` | tag list for filter chips |
 | `GET files/{id}` | serves body images only (image content types that are not attachments); `nosniff`, private cache |

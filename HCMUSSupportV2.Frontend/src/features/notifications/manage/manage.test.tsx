@@ -210,22 +210,20 @@ describe('ManageRow', () => {
       </MemoryRouter>,
     )
 
-  it('shows the status, series, first tag plus count, the ack flag and the read rate', () => {
+  it('shows the status, series, first tag plus count, the ack flag and the recipient count', () => {
     renderRow(item())
     expect(screen.getByTestId('status-chip')).toHaveTextContent('Đã đăng')
     expect(screen.getByRole('link', { name: 'Mở lớp bồi dưỡng' })).toHaveAttribute('href', '/quan-ly/thong-bao/abc')
     expect(screen.getByText('Chuỗi A')).toBeInTheDocument()
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.getByText('Cần xác nhận')).toBeInTheDocument()
-    expect(screen.getByText(/50\/200 đã đọc/)).toBeInTheDocument()
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25')
+    expect(screen.getByText('200 người nhận')).toBeInTheDocument()
   })
 
-  it('a draft has no read bar and offers delete; a published one offers archive but not delete', async () => {
+  it('a draft has no recipients and offers delete; a published one offers archive but not delete', async () => {
     const user = userEvent.setup()
     const onAction = vi.fn()
     const { unmount } = renderRow(item({ status: 'draft', recipientCount: 0, publishedAt: null }), onAction)
-    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(screen.getByText('Chưa gửi cho ai')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Thao tác với/ }))
     expect(screen.queryByRole('menuitem', { name: 'Lưu trữ' })).not.toBeInTheDocument()

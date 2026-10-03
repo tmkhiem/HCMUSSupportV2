@@ -1,5 +1,4 @@
 import CloseIcon from '@mui/icons-material/Close'
-import Badge from '@mui/material/Badge'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
@@ -10,7 +9,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { useCurrentUser } from '../auth/authContext'
 import PngIcon from '../ui/PngIcon'
 import { activeNavIndex, visibleNav } from './nav'
-import { useNavBadges } from './useNavBadges'
 
 export interface SidebarNavProps {
   /** Mobile drawer variant: bigger brand, close button, 16 px breathing room above the list. */
@@ -29,7 +27,6 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
   const { sidebar, motion } = theme.custom
   const me = useCurrentUser()
   const { pathname } = useLocation()
-  const badges = useNavBadges()
 
   const entries = visibleNav(me)
   const active = activeNavIndex(entries, pathname)
@@ -87,7 +84,6 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
           <List disablePadding sx={{ position: 'relative', zIndex: 1 }}>
             {entries.map((entry, i) => {
               const isActive = i === active
-              const count = entry.badge ? badges[entry.badge] : undefined
               return (
                 <ListItemButton
                   key={entry.id}
@@ -106,18 +102,16 @@ export default function SidebarNav({ mobile, onNavigate, onClose }: SidebarNavPr
                   }}
                 >
                   <Box sx={{ width: 36, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-                    <Badge badgeContent={count} color="error" max={99} overlap="circular">
-                      <PngIcon
-                        name={entry.icon}
-                        size={32}
-                        className="nav-icon"
-                        sx={{
-                          opacity: isActive ? 1 : 0.8,
-                          transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                          transition: `transform ${motion.flyInMs}ms ${motion.ease}, opacity ${motion.flyInMs}ms`,
-                        }}
-                      />
-                    </Badge>
+                    <PngIcon
+                      name={entry.icon}
+                      size={32}
+                      className="nav-icon"
+                      sx={{
+                        opacity: isActive ? 1 : 0.8,
+                        transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                        transition: `transform ${motion.flyInMs}ms ${motion.ease}, opacity ${motion.flyInMs}ms`,
+                      }}
+                    />
                   </Box>
                   <Typography
                     variant="sectionLabel"

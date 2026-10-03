@@ -62,7 +62,7 @@ export class NotificationsClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    list(q: string | null | undefined, tags: number[] | null | undefined, from: Date | null | undefined, to: Date | null | undefined, unread: boolean | undefined, cursor: string | null | undefined, limit: number | undefined): Promise<PageOfInboxItemDto> {
+    list(q: string | null | undefined, tags: number[] | null | undefined, from: Date | null | undefined, to: Date | null | undefined, cursor: string | null | undefined, limit: number | undefined): Promise<PageOfInboxItemDto> {
         let url_ = this.baseUrl + "/api/notifications?";
         if (q !== undefined && q !== null)
             url_ += "q=" + encodeURIComponent("" + q) + "&";
@@ -72,10 +72,6 @@ export class NotificationsClient {
             url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
         if (to !== undefined && to !== null)
             url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
-        if (unread === null)
-            throw new globalThis.Error("The parameter 'unread' cannot be null.");
-        else if (unread !== undefined)
-            url_ += "unread=" + encodeURIComponent("" + unread) + "&";
         if (cursor !== undefined && cursor !== null)
             url_ += "cursor=" + encodeURIComponent("" + cursor) + "&";
         if (limit === null)
@@ -112,40 +108,6 @@ export class NotificationsClient {
             });
         }
         return Promise.resolve<PageOfInboxItemDto>(null as any);
-    }
-
-    unreadCount(): Promise<UnreadCountDto> {
-        let url_ = this.baseUrl + "/api/notifications/unread-count";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processUnreadCount(_response);
-        });
-    }
-
-    protected processUnreadCount(response: Response): Promise<UnreadCountDto> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UnreadCountDto.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UnreadCountDto>(null as any);
     }
 
     get(id: string): Promise<InboxDetailDto> {
@@ -185,43 +147,6 @@ export class NotificationsClient {
         return Promise.resolve<InboxDetailDto>(null as any);
     }
 
-    read(id: string): Promise<UnreadCountDto> {
-        let url_ = this.baseUrl + "/api/notifications/{id}/read";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processRead(_response);
-        });
-    }
-
-    protected processRead(response: Response): Promise<UnreadCountDto> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UnreadCountDto.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UnreadCountDto>(null as any);
-    }
-
     acknowledge(id: string): Promise<UnreadCountDto> {
         let url_ = this.baseUrl + "/api/notifications/{id}/ack";
         if (id === undefined || id === null)
@@ -242,40 +167,6 @@ export class NotificationsClient {
     }
 
     protected processAcknowledge(response: Response): Promise<UnreadCountDto> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UnreadCountDto.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UnreadCountDto>(null as any);
-    }
-
-    readAll(): Promise<UnreadCountDto> {
-        let url_ = this.baseUrl + "/api/notifications/read-all";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processReadAll(_response);
-        });
-    }
-
-    protected processReadAll(response: Response): Promise<UnreadCountDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
@@ -5009,10 +4900,9 @@ export class InboxItemDto implements IInboxItemDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    readAt?: Date | undefined;
     ackAt?: Date | undefined;
     requiresAck?: boolean;
-    pinned?: boolean;
+    isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
@@ -5038,10 +4928,9 @@ export class InboxItemDto implements IInboxItemDto {
             }
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.deliveredAt = _data["deliveredAt"] ? new Date(_data["deliveredAt"].toString()) : undefined as any;
-            this.readAt = _data["readAt"] ? new Date(_data["readAt"].toString()) : undefined as any;
             this.ackAt = _data["ackAt"] ? new Date(_data["ackAt"].toString()) : undefined as any;
             this.requiresAck = _data["requiresAck"];
-            this.pinned = _data["pinned"];
+            this.isNew = _data["isNew"];
             this.updatedAfterDelivery = _data["updatedAfterDelivery"];
             this.seriesId = _data["seriesId"];
             this.hasAttachments = _data["hasAttachments"];
@@ -5067,10 +4956,9 @@ export class InboxItemDto implements IInboxItemDto {
         }
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["deliveredAt"] = this.deliveredAt ? this.deliveredAt.toISOString() : undefined as any;
-        data["readAt"] = this.readAt ? this.readAt.toISOString() : undefined as any;
         data["ackAt"] = this.ackAt ? this.ackAt.toISOString() : undefined as any;
         data["requiresAck"] = this.requiresAck;
-        data["pinned"] = this.pinned;
+        data["isNew"] = this.isNew;
         data["updatedAfterDelivery"] = this.updatedAfterDelivery;
         data["seriesId"] = this.seriesId;
         data["hasAttachments"] = this.hasAttachments;
@@ -5085,10 +4973,9 @@ export interface IInboxItemDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    readAt?: Date | undefined;
     ackAt?: Date | undefined;
     requiresAck?: boolean;
-    pinned?: boolean;
+    isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
@@ -5142,42 +5029,6 @@ export interface ITagDto {
     sort?: number;
 }
 
-export class UnreadCountDto implements IUnreadCountDto {
-    count?: number;
-
-    constructor(data?: IUnreadCountDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.count = _data["count"];
-        }
-    }
-
-    static fromJS(data: any): UnreadCountDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new UnreadCountDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["count"] = this.count;
-        return data;
-    }
-}
-
-export interface IUnreadCountDto {
-    count?: number;
-}
-
 export class InboxDetailDto implements IInboxDetailDto {
     id?: string;
     title?: string;
@@ -5185,10 +5036,9 @@ export class InboxDetailDto implements IInboxDetailDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    readAt?: Date | undefined;
     ackAt?: Date | undefined;
     requiresAck?: boolean;
-    pinned?: boolean;
+    isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
@@ -5219,10 +5069,9 @@ export class InboxDetailDto implements IInboxDetailDto {
             }
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.deliveredAt = _data["deliveredAt"] ? new Date(_data["deliveredAt"].toString()) : undefined as any;
-            this.readAt = _data["readAt"] ? new Date(_data["readAt"].toString()) : undefined as any;
             this.ackAt = _data["ackAt"] ? new Date(_data["ackAt"].toString()) : undefined as any;
             this.requiresAck = _data["requiresAck"];
-            this.pinned = _data["pinned"];
+            this.isNew = _data["isNew"];
             this.updatedAfterDelivery = _data["updatedAfterDelivery"];
             this.seriesId = _data["seriesId"];
             this.hasAttachments = _data["hasAttachments"];
@@ -5261,10 +5110,9 @@ export class InboxDetailDto implements IInboxDetailDto {
         }
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["deliveredAt"] = this.deliveredAt ? this.deliveredAt.toISOString() : undefined as any;
-        data["readAt"] = this.readAt ? this.readAt.toISOString() : undefined as any;
         data["ackAt"] = this.ackAt ? this.ackAt.toISOString() : undefined as any;
         data["requiresAck"] = this.requiresAck;
-        data["pinned"] = this.pinned;
+        data["isNew"] = this.isNew;
         data["updatedAfterDelivery"] = this.updatedAfterDelivery;
         data["seriesId"] = this.seriesId;
         data["hasAttachments"] = this.hasAttachments;
@@ -5292,10 +5140,9 @@ export interface IInboxDetailDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    readAt?: Date | undefined;
     ackAt?: Date | undefined;
     requiresAck?: boolean;
-    pinned?: boolean;
+    isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
@@ -5590,6 +5437,42 @@ export interface ISeriesPreviousDto {
     id?: string;
     title?: string;
     publishedAt?: Date | undefined;
+}
+
+export class UnreadCountDto implements IUnreadCountDto {
+    count?: number;
+
+    constructor(data?: IUnreadCountDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.count = _data["count"];
+        }
+    }
+
+    static fromJS(data: any): UnreadCountDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UnreadCountDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["count"] = this.count;
+        return data;
+    }
+}
+
+export interface IUnreadCountDto {
+    count?: number;
 }
 
 export class AudienceEstimateDto implements IAudienceEstimateDto {

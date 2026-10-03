@@ -377,10 +377,6 @@ public class NotificationImportAndStreamTests(PostgresFixture database) : IAsync
         Assert.Equal(1, (int)count["count"]!);
         Assert.True(await stream.SawHeartbeatAsync(), "no heartbeat comment arrived");
 
-        // Reading in another tab updates this stream's badge.
-        await (await _host.SignInAsync(reader)).ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{id}/read");
-        Assert.Equal(0, (int)(await stream.NextEventAsync("unread-count"))["count"]!);
-
         // Someone who is not a recipient only sees their own (unchanged) state.
         Assert.Equal(0, (int)(await outsiderStream.NextEventAsync("unread-count"))["count"]!);
         Assert.False(outsiderStream.Seen("notification"));

@@ -13,8 +13,6 @@ export interface NavEntry {
   match?: string
   /** Hidden from people without this role (admins always see it). Pages still need `RequireRole`. */
   role?: Role
-  /** Key into `useNavBadges()` for a count badge. */
-  badge?: 'unread'
 }
 
 /**
@@ -22,7 +20,7 @@ export interface NavEntry {
  * Labels render in the section-label style (normal case, bold).
  */
 export const NAV: readonly NavEntry[] = [
-  { id: 'news', label: 'Tin tức', icon: 'bell', to: '/tin-tuc', badge: 'unread' },
+  { id: 'news', label: 'Tin tức', icon: 'bell', to: '/tin-tuc' },
   { id: 'profile', label: 'Hồ sơ cá nhân', icon: 'profile-card', to: '/ho-so' },
   { id: 'innovation', label: 'Sáng kiến', icon: 'light-bulb', to: '/sang-kien' },
   { id: 'teaching', label: 'Giảng dạy', icon: 'graduation-hat', to: '/giang-day' },

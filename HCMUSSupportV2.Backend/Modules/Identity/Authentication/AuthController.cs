@@ -34,6 +34,7 @@ public record DevLoginRequest(string EmployeeCode);
 public class AuthController(
     AppDbContext db,
     PrincipalFactory principals,
+    LoginRecorder logins,
     IAuditLogger audit,
     IAntiforgery antiforgery,
     IWebHostEnvironment env,
@@ -115,6 +116,7 @@ public class AuthController(
         await HttpContext.SignInAsync(AuthSchemes.Cookie, principal);
         HttpContext.User = principal;
         var code = IdentityClaims.CodeOf(principal)!;
+        await logins.RecordAsync(code, ct);
         await audit.LogAsync(AuthAuditActions.DevLogin, "employee", code, new { method = "dev" }, ct);
 
         XsrfTokens.Issue(HttpContext, antiforgery, env);
