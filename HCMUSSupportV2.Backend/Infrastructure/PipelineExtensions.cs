@@ -33,7 +33,9 @@ public static class PipelineExtensions
         app.MapControllers();
         // SPA fallback for client-side routes; unknown /api/* and /assets/* paths must stay 404, not index.html
         // (a stale hashed script answered with HTML fails in the browser with a module-script MIME type error).
-        app.MapFallbackToFile("{*path:regex(^(?!(api|assets)(/|$)).*$)}", "index.html",
+        // Paths ending in a file extension (/icons/32/bell.png, /bg-logo.svg) are excluded too: the static file middleware
+        // skips a request that already matched an endpoint, so a catch-all that matched them would answer index.html.
+        app.MapFallbackToFile("{*path:regex(^(?!(api|assets)(/|$))(?!.*[.][A-Za-z0-9]+$).*$)}", "index.html",
             new StaticFileOptions { OnPrepareResponse = NoCacheIndexHtml });
         return app;
     }
