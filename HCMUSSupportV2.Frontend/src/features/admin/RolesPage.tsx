@@ -133,17 +133,34 @@ function RoleDrawerBody({ code, onClose }: { code: string; onClose: () => void }
 
 export function Component() {
   const [q, setQ] = useState('')
-  const [role, setRole] = useState('')
+  const [role, setRole] = useState('assigned')
   const [selected, setSelected] = useState<string | null>(null)
   const dq = useDebounced(q)
 
+  const assignedOnly = role === 'assigned'
   const list = useInfiniteQuery({
     queryKey: ['admin', 'roles-list', dq, role],
     queryFn: ({ pageParam }) => rolesClient.list(dq || undefined, role || undefined, pageParam, 50),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: !assignedOnly,
   })
-  const rows: RoleRowDto[] = list.data?.pages.flatMap((p) => p.items ?? []) ?? []
+  // "Đã có quyền": everyone holding editor or admin, merged (the backend filters one role at a time).
+  const assigned = useQuery({
+    queryKey: ['admin', 'roles-list', dq, 'assigned'],
+    queryFn: async () => {
+      const [admins, editors] = await Promise.all([
+        rolesClient.list(dq || undefined, 'admin', undefined, 200),
+        rolesClient.list(dq || undefined, 'editor', undefined, 200),
+      ])
+      const byCode = new Map<string, RoleRowDto>()
+      for (const r of [...(admins.items ?? []), ...(editors.items ?? [])]) if (r.code) byCode.set(r.code, r)
+      return [...byCode.values()].sort((a, b) => (a.code ?? '').localeCompare(b.code ?? ''))
+    },
+    enabled: assignedOnly,
+  })
+  const active = assignedOnly ? assigned : list
+  const rows: RoleRowDto[] = assignedOnly ? (assigned.data ?? []) : (list.data?.pages.flatMap((p) => p.items ?? []) ?? [])
 
   return (
     <>
@@ -159,14 +176,15 @@ export function Component() {
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><PngIcon name="search" size={20} /></InputAdornment> } }}
         />
         <TextField select size="small" label="Quyền" value={role} onChange={(e) => setRole(e.target.value)} sx={{ minWidth: 180 }}>
-          <MenuItem value="">Tất cả</MenuItem>
+          <MenuItem value="assigned">Đã có quyền</MenuItem>
+          <MenuItem value="">Tất cả cán bộ</MenuItem>
           <MenuItem value="admin">Quản trị viên</MenuItem>
           <MenuItem value="editor">Biên tập viên</MenuItem>
           <MenuItem value="employee">Chỉ là nhân viên</MenuItem>
         </TextField>
       </Stack>
 
-      <PageState error={list.error} loading={list.isPending} empty={rows.length === 0} emptyMessage="Không có cán bộ phù hợp." errorFallback="Không tải được danh sách cán bộ." onRetry={() => list.refetch()}>
+      <PageState error={active.error} loading={active.isPending} empty={rows.length === 0} emptyMessage="Không có cán bộ phù hợp." errorFallback="Không tải được danh sách cán bộ." onRetry={() => active.refetch()}>
         <AcrylicCard sx={{ overflow: 'hidden' }}>
           <TableContainer>
             <Table size="small" aria-label="Danh sách phân quyền">
@@ -197,7 +215,7 @@ export function Component() {
           </TableContainer>
         </AcrylicCard>
         <Stack sx={{ mt: 2 }}>
-          <LoadMore visible={Boolean(list.hasNextPage)} loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()} />
+          <LoadMore visible={!assignedOnly && Boolean(list.hasNextPage)} loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()} />
         </Stack>
       </PageState>
 
