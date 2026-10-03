@@ -120,6 +120,7 @@ async function apiSession(playwright: PlaywrightWorkerArgs['playwright'], baseUR
     get: (url: string) => ctx.get(url),
     post: (url: string, data?: unknown) => ctx.post(url, { headers, data }),
     put: (url: string, data: unknown) => ctx.put(url, { headers, data }),
+    delete: (url: string) => ctx.delete(url, { headers }),
     dispose: () => ctx.dispose(),
   }
 }
