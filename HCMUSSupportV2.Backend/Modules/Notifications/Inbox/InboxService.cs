@@ -120,6 +120,9 @@ public class InboxService(AppDbContext db, IFileStore files)
         var hasMore = rows.Count > limit;
         if (hasMore) rows.RemoveAt(rows.Count - 1);
         var ids = rows.Select(x => x.Id).ToList();
+        // Telemetry for editors: these notifications reached the employee's client.
+        await db.Set<Domain.NotificationDelivery>().Where(d => d.EmployeeCode == code && ids.Contains(d.NotificationId) && !d.Fetched)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.Fetched, true), ct);
         var tags = await (
             from nt in db.Set<Domain.NotificationTag>().AsNoTracking()
             join t in db.Set<Domain.Tag>().AsNoTracking() on nt.TagId equals t.Id
@@ -150,6 +153,9 @@ public class InboxService(AppDbContext db, IFileStore files)
             select new { n = nf, d = dl, prev = em.PreviousLoginAt }).FirstOrDefaultAsync(ct) ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
         var n = row.n;
         var d = row.d;
+        if (!d.Opened)
+            await db.Set<Domain.NotificationDelivery>().Where(x => x.EmployeeCode == code && x.NotificationId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Opened, true).SetProperty(x => x.Fetched, true), ct);
 
         var tags = await (
             from nt in db.Set<Domain.NotificationTag>().AsNoTracking()

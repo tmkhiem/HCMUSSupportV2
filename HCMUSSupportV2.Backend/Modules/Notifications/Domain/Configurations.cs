@@ -131,6 +131,8 @@ public class NotificationDeliveryConfiguration : IEntityTypeConfiguration<Notifi
         b.Property(x => x.EmployeeCode).HasMaxLength(50);
         b.Property(x => x.Vars).HasColumnType("jsonb");
         b.Property(x => x.DeliveredAt).HasDefaultValueSql("now()");
+        b.Property(x => x.Fetched).HasDefaultValue(false);
+        b.Property(x => x.Opened).HasDefaultValue(false);
 
         b.HasIndex(x => new { x.EmployeeCode, x.DeliveredAt })
             .IsDescending(false, true)

@@ -113,6 +113,12 @@ public class NotificationDelivery
     public string? Vars { get; set; }
     public DateTimeOffset DeliveredAt { get; set; }
     public DateTimeOffset? DismissedAt { get; set; }
+
+    /// <summary>Telemetry for editors/admins only: the employee's client has fetched the inbox listing containing this notification.</summary>
+    public bool Fetched { get; set; }
+
+    /// <summary>Telemetry for editors/admins only: the employee opened the notification to read its details.</summary>
+    public bool Opened { get; set; }
 }
 
 public class NotificationAttachment

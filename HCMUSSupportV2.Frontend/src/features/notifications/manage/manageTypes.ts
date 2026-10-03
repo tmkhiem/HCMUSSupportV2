@@ -135,6 +135,10 @@ export interface ManageRevision {
 
 export interface ManageStats {
   recipientCount: number
+  /** Recipients whose client has fetched the notification in their inbox listing. */
+  fetchedCount: number
+  /** Recipients who opened the notification to read it. */
+  openedCount: number
 }
 
 export interface ImportColumn {

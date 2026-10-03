@@ -349,7 +349,8 @@ public class NotificationEditorService(
     {
         var n = await db.Set<Notification>().AsNoTracking().Where(x => x.Id == id)
             .Select(x => new { x.RecipientCount }).FirstOrDefaultAsync(ct) ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
-        return new NotificationStatsDto(n.RecipientCount);
+        var d = db.Set<NotificationDelivery>().Where(x => x.NotificationId == id);
+        return new NotificationStatsDto(n.RecipientCount, await d.CountAsync(x => x.Fetched, ct), await d.CountAsync(x => x.Opened, ct));
     }
 
     /// <summary>The variable rows of an MSCB from the applied (else the latest pending) import, and whether that MSCB is in the audience.</summary>

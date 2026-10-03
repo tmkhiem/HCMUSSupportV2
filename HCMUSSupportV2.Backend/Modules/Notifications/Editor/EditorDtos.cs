@@ -80,7 +80,7 @@ public record ManageNotificationDto(
 
 public record RevisionDto(int Version, string Title, string Summary, string BodyMd, IReadOnlyList<VariableDto> Variables, PersonRef? EditedBy, DateTimeOffset EditedAt);
 
-public record NotificationStatsDto(int RecipientCount);
+public record NotificationStatsDto(int RecipientCount, int FetchedCount, int OpenedCount);
 
 public record PreviewVarsDto(
     string EmployeeCode,

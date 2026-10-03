@@ -4,7 +4,7 @@ import { formatNumber } from '../../../lib/format'
 import { AcrylicCard, PageState, SectionLabel } from '../../../ui'
 import { useStats } from './manageQueries'
 
-/** Recipient count of a notification that went out. */
+/** Recipient, fetched and opened counts of a notification that went out. */
 export default function StatsPanel({ notificationId }: { notificationId: string }) {
   const stats = useStats(notificationId, true)
   const s = stats.data
@@ -17,6 +17,8 @@ export default function StatsPanel({ notificationId }: { notificationId: string 
           {s && (
             <Box sx={{ display: 'grid', gap: 1.5 }}>
               <Typography variant="body2">{formatNumber(s.recipientCount)} người nhận</Typography>
+              <Typography variant="body2">{formatNumber(s.fetchedCount)} đã tải thông báo</Typography>
+              <Typography variant="body2">{formatNumber(s.openedCount)} đã mở xem</Typography>
             </Box>
           )}
         </PageState>

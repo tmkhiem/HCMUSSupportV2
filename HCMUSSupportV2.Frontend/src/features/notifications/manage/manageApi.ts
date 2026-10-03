@@ -210,7 +210,7 @@ export async function fetchRevisions(id: string): Promise<ManageRevision[]> {
 
 export async function fetchStats(id: string): Promise<ManageStats> {
   const s = await notificationsApi.stats(id)
-  return { recipientCount: s.recipientCount ?? 0 }
+  return { recipientCount: s.recipientCount ?? 0, fetchedCount: s.fetchedCount ?? 0, openedCount: s.openedCount ?? 0 }
 }
 
 interface PreviewVarsJson {

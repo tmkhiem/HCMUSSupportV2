@@ -373,7 +373,7 @@ export async function installFake(page: Page, customize?: (s: State) => void): P
         { version: 1, title: n.title, summary: n.summary, bodyMd: '# Bản đầu\n\nNội dung khi đăng.', variables: n.variables, editedBy: { code: 'T0001', fullName: 'Nguyễn Thử Nghiệm' }, editedAt: day(-9) },
       ])
     }
-    if (action === 'stats') return json(route, { recipientCount: n.recipientCount })
+    if (action === 'stats') return json(route, { recipientCount: n.recipientCount, fetchedCount: 0, openedCount: 0 })
     if (action === 'preview-vars') {
       const code = url.searchParams.get('employee') ?? ''
       const emp = EMPLOYEES.find((e) => e.code === code)

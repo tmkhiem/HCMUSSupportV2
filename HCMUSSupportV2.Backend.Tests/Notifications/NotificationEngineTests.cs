@@ -134,18 +134,40 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Adding_a_recipient_to_a_published_notification_delivers_to_them_and_never_recalls()
+    public async Task Replacing_the_audience_of_a_published_notification_delivers_to_new_people_and_removes_the_old_ones()
     {
         var first = await _host.EmployeeAsync();
         var second = await _host.EmployeeAsync();
         var editor = await _host.EditorApiAsync();
-        var id = await _host.PublishAsync(editor, Draft("Bổ sung người nhận", employees: [first]));
+        var id = await _host.PublishAsync(editor, Draft("Đổi người nhận", employees: [first]));
 
-        // Replace the audience: the new person is delivered, the removed one keeps what they already received.
-        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Put, $"{Manage}/{id}", Draft("Bổ sung người nhận", employees: [second], version: 1));
+        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Put, $"{Manage}/{id}", Draft("Đổi người nhận", employees: [second], version: 1));
 
-        Assert.True(await Wait.UntilAsync(async () => (await _host.RecipientsAsync(id)).Contains(second), TimeSpan.FromSeconds(20)));
-        Assert.Contains(first, await _host.RecipientsAsync(id));
+        Assert.True(await Wait.UntilAsync(async () => (await _host.RecipientsAsync(id)).SetEquals([second]), TimeSpan.FromSeconds(20)));
+        var removed = await _host.SignInAsync(first);
+        Assert.Empty((await removed.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray());
+    }
+
+    [Fact]
+    public async Task Editors_see_whether_recipients_fetched_and_opened_the_notification()
+    {
+        var reader = await _host.EmployeeAsync();
+        var editor = await _host.EditorApiAsync();
+        var id = await _host.PublishAsync(editor, Draft("Theo dõi", employees: [reader]));
+
+        var before = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{id}/stats");
+        Assert.Equal(0, (int?)before["fetchedCount"]);
+        Assert.Equal(0, (int?)before["openedCount"]);
+
+        var inbox = await _host.SignInAsync(reader);
+        await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications");
+        var listed = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{id}/stats");
+        Assert.Equal(1, (int?)listed["fetchedCount"]);
+        Assert.Equal(0, (int?)listed["openedCount"]);
+
+        await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications/{id}");
+        var opened = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{id}/stats");
+        Assert.Equal(1, (int?)opened["openedCount"]);
     }
 
     [Fact]
