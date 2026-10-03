@@ -20,6 +20,8 @@ const POSITIONS = ['Giảng viên', 'Giảng viên chính', 'Chuyên viên', 'K�
 
 const at = (iso: string) => new Date(`${iso}T09:00:00+07:00`)
 
+const fullNameOf = (n: number) => `${LAST[n % LAST.length]} ${MIDDLE[n % MIDDLE.length]} ${FIRST[n % FIRST.length]}`
+
 function seed(): ManagedEmployee[] {
   const list: ManagedEmployee[] = []
   for (let n = 1; n <= 40; n++) {
@@ -29,14 +31,14 @@ function seed(): ManagedEmployee[] {
     const emails = noEmail
       ? []
       : [
-          { email: `${code.toLowerCase()}@example.test`, isPrimary: true, note: n === 1 ? 'Tài khoản thử nghiệm' : null, addedBy: n === 1 ? null : 'T0002', addedAt: at('2026-03-10'), hrmConflict: false },
+          { email: `${code.toLowerCase()}@example.test`, isPrimary: true, note: n === 1 ? 'Tài khoản thử nghiệm' : null, addedBy: n === 1 ? null : 'T0002', addedAt: at('2026-03-10'), hrmConflict: false, hrmConflictOwners: [] },
           ...(n % 3 === 0
-            ? [{ email: `${code.toLowerCase()}.alt@example.test`, isPrimary: false, note: 'Email cũ', addedBy: 'T0002', addedAt: at('2026-05-02'), hrmConflict: n === 12 }]
+            ? [{ email: `${code.toLowerCase()}.alt@example.test`, isPrimary: false, note: 'Email cũ', addedBy: 'T0002', addedAt: at('2026-05-02'), hrmConflict: n === 12, hrmConflictOwners: n === 12 ? [{ code: 'T0004', fullName: fullNameOf(4) }] : [] }]
             : []),
         ]
     list.push({
       code,
-      fullName: `${LAST[n % LAST.length]} ${MIDDLE[n % MIDDLE.length]} ${FIRST[n % FIRST.length]}`,
+      fullName: fullNameOf(n),
       status: n === 9 ? 'inactive' : n === 33 ? 'retired' : 'active',
       source: n > 35 ? 'manual' : 'hrm',
       unitId: unit + 1,
@@ -111,7 +113,7 @@ export async function addMock(code: string, input: AddEmailInput): Promise<Manag
   const primary = e.emails.length === 0 || input.isPrimary
   const emails = [
     ...e.emails.map((m) => (primary ? { ...m, isPrimary: false } : m)),
-    { email, isPrimary: primary, note: input.note.trim() || null, addedBy: 'T0001', addedAt: new Date(), hrmConflict: false },
+    { email, isPrimary: primary, note: input.note.trim() || null, addedBy: 'T0001', addedAt: new Date(), hrmConflict: false, hrmConflictOwners: [] },
   ]
   return save({ ...e, emails })
 }
@@ -127,6 +129,13 @@ export async function removeMock(code: string, email: string): Promise<ManagedEm
   const rest = e.emails.filter((m) => m !== target)
   if (target.isPrimary && rest.length > 0) rest[0] = { ...rest[0], isPrimary: true }
   return save({ ...e, emails: rest })
+}
+
+export async function acceptConflictMock(code: string, email: string): Promise<ManagedEmployee> {
+  await delay()
+  const e = find(code)
+  if (!e.emails.some((m) => m.email.toLowerCase() === email.toLowerCase())) throw new ApiError(404, 'Không tìm thấy email này của cán bộ.')
+  return save({ ...e, emails: e.emails.map((m) => (m.email.toLowerCase() === email.toLowerCase() ? { ...m, hrmConflict: false, hrmConflictOwners: [] } : m)) })
 }
 
 export async function setPrimaryMock(code: string, email: string): Promise<ManagedEmployee> {
@@ -222,7 +231,7 @@ export async function importMock(file: File, dryRun: boolean, removeMissing: boo
       const first = employee.emails.length === 0 && !report.added.some((a) => a.code === employee.code)
       report.addedCount++
       report.added.push({ row: r + 1, code: employee.code, fullName: employee.fullName, email, isPrimary: first })
-      changes.push(() => void save({ ...find(employee.code), emails: [...find(employee.code).emails, { email, isPrimary: first, note: 'Nhập từ tệp', addedBy: 'T0001', addedAt: new Date(), hrmConflict: false }] }))
+      changes.push(() => void save({ ...find(employee.code), emails: [...find(employee.code).emails, { email, isPrimary: first, note: 'Nhập từ tệp', addedBy: 'T0001', addedAt: new Date(), hrmConflict: false, hrmConflictOwners: [] }] }))
     }
   }
   report.employees = touched.size

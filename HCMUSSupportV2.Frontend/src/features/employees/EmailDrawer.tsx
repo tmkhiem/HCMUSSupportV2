@@ -5,6 +5,7 @@ import StarBorderIcon from '@mui/icons-material/StarBorder'
 import StarIcon from '@mui/icons-material/Star'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import Alert from '@mui/material/Alert'
+import Popover from '@mui/material/Popover'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
@@ -26,7 +27,7 @@ import Typography from '@mui/material/Typography'
 import { useState } from 'react'
 import { PageState, SectionLabel, errorMessage } from '../../ui'
 import { MAX_EMAILS, emailProblem, statusLabel } from './employeesFormat'
-import { useAddEmail, useEmployee, useRemoveEmail, useSetPrimaryEmail } from './employeesQueries'
+import { useAcceptHrmConflict, useAddEmail, useEmployee, useRemoveEmail, useSetPrimaryEmail } from './employeesQueries'
 import type { ManagedEmail, ManagedEmployee } from './employeesTypes'
 
 export interface EmailDrawerProps {
@@ -37,17 +38,79 @@ export interface EmailDrawerProps {
 
 const dateFormat = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' })
 
+/** Click the "Trùng email HRM" chip: who the address belongs to in HRM, and the two ways to resolve it. */
+function ConflictPopover({
+  anchor,
+  email,
+  employeeCode,
+  busy,
+  onClose,
+  onKeep,
+  onRemove,
+}: {
+  anchor: HTMLElement | null
+  email: ManagedEmail
+  employeeCode: string
+  busy: boolean
+  onClose: () => void
+  onKeep: () => void
+  onRemove: () => void
+}) {
+  return (
+    <Popover
+      open={anchor !== null}
+      anchorEl={anchor}
+      onClose={onClose}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      slotProps={{ paper: { sx: { mt: 1, p: 2, width: 340, maxWidth: '90vw', bgcolor: 'background.paper' } } }}
+    >
+      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+        Email trùng với HRM
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+        {email.email} là email cá nhân trong HRM của:
+      </Typography>
+      <Stack component="ul" spacing={0.5} sx={{ listStyle: 'none', m: 0, p: 0, my: 1 }} aria-label="Cán bộ trùng email">
+        {email.hrmConflictOwners.length === 0 ? (
+          <Typography component="li" variant="body2">
+            một cán bộ khác
+          </Typography>
+        ) : (
+          email.hrmConflictOwners.map((o) => (
+            <Typography component="li" key={o.code} variant="body2" sx={{ fontWeight: 700 }}>
+              {o.fullName} · {o.code}
+            </Typography>
+          ))
+        )}
+      </Stack>
+      <Stack spacing={1} sx={{ mt: 1.5 }}>
+        <Button variant="contained" size="small" disabled={busy} onClick={onKeep}>
+          Giữ email này cho MSCB {employeeCode}
+        </Button>
+        <Button variant="outlined" color="error" size="small" disabled={busy} onClick={onRemove}>
+          Gỡ email này
+        </Button>
+      </Stack>
+    </Popover>
+  )
+}
+
 function EmailRow({
   email,
+  employeeCode,
   busy,
   onPrimary,
   onRemove,
+  onKeepConflict,
 }: {
   email: ManagedEmail
+  employeeCode: string
   busy: boolean
   onPrimary: () => void
   onRemove: () => void
+  onKeepConflict: () => void
 }) {
+  const [conflictAnchor, setConflictAnchor] = useState<HTMLElement | null>(null)
   return (
     <Stack
       component="li"
@@ -63,9 +126,32 @@ function EmailRow({
         <Stack direction="row" spacing={0.75} useFlexGap sx={{ mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
           {email.isPrimary && <Chip size="small" color="primary" label="Email chính" />}
           {email.hrmConflict && (
-            <Tooltip title="Địa chỉ này là email cá nhân của một cán bộ khác trong HRM.">
-              <Chip size="small" color="warning" variant="outlined" icon={<WarningAmberIcon />} label="Trùng email HRM" />
-            </Tooltip>
+            <>
+              <Chip
+                size="small"
+                color="warning"
+                variant="outlined"
+                icon={<WarningAmberIcon />}
+                label="Trùng email HRM"
+                onClick={(e) => setConflictAnchor(e.currentTarget)}
+                aria-haspopup="dialog"
+              />
+              <ConflictPopover
+                anchor={conflictAnchor}
+                email={email}
+                employeeCode={employeeCode}
+                busy={busy}
+                onClose={() => setConflictAnchor(null)}
+                onKeep={() => {
+                  setConflictAnchor(null)
+                  onKeepConflict()
+                }}
+                onRemove={() => {
+                  setConflictAnchor(null)
+                  onRemove()
+                }}
+              />
+            </>
           )}
           {email.note && (
             <Typography variant="caption" color="text.secondary">
@@ -106,6 +192,7 @@ function Panel({ employee, onClose }: { employee: ManagedEmployee; onClose: () =
   const add = useAddEmail(employee.code)
   const remove = useRemoveEmail(employee.code)
   const setPrimary = useSetPrimaryEmail(employee.code)
+  const keepConflict = useAcceptHrmConflict(employee.code)
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
   const [primary, setPrimaryFlag] = useState(false)
@@ -113,7 +200,7 @@ function Panel({ employee, onClose }: { employee: ManagedEmployee; onClose: () =
   const [confirm, setConfirm] = useState<ManagedEmail | null>(null)
 
   const problem = emailProblem(email, employee.emails)
-  const busy = add.isPending || remove.isPending || setPrimary.isPending
+  const busy = add.isPending || remove.isPending || setPrimary.isPending || keepConflict.isPending
   const full = employee.emails.length >= MAX_EMAILS
   const lastOne = employee.emails.length === 1
 
@@ -133,7 +220,7 @@ function Panel({ employee, onClose }: { employee: ManagedEmployee; onClose: () =
     )
   }
 
-  const writeError = add.error ?? remove.error ?? setPrimary.error
+  const writeError = add.error ?? remove.error ?? setPrimary.error ?? keepConflict.error
 
   return (
     <>
@@ -173,6 +260,7 @@ function Panel({ employee, onClose }: { employee: ManagedEmployee; onClose: () =
               add.reset()
               remove.reset()
               setPrimary.reset()
+              keepConflict.reset()
             }}
           >
             {errorMessage(writeError, 'Không lưu được thay đổi. Vui lòng thử lại.')}
@@ -190,9 +278,11 @@ function Panel({ employee, onClose }: { employee: ManagedEmployee; onClose: () =
               <EmailRow
                 key={m.email}
                 email={m}
+                employeeCode={employee.code}
                 busy={busy}
                 onPrimary={() => setPrimary.mutate(m.email)}
                 onRemove={() => setConfirm(m)}
+                onKeepConflict={() => keepConflict.mutate(m.email)}
               />
             ))}
           </Stack>

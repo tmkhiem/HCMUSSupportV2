@@ -2,6 +2,12 @@
 
 export type EmployeeStatus = 'active' | 'inactive' | 'retired'
 
+/** An employee whose HRM personal email equals a mapped address. */
+export interface HrmConflictOwner {
+  code: string
+  fullName: string
+}
+
 export interface ManagedEmail {
   email: string
   isPrimary: boolean
@@ -11,6 +17,8 @@ export interface ManagedEmail {
   addedAt: Date | null
   /** The address is the HRM personal email of a different employee. */
   hrmConflict: boolean
+  /** Who owns the address in HRM (when `hrmConflict`). */
+  hrmConflictOwners: HrmConflictOwner[]
 }
 
 export interface ManagedEmployee {

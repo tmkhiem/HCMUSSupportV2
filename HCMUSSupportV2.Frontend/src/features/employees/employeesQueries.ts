@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
-import { addEmail, fetchEmployee, fetchEmployees, importEmails, removeEmail, setPrimaryEmail } from './employeesApi'
+import { acceptHrmConflict, addEmail, fetchEmployee, fetchEmployees, importEmails, removeEmail, setPrimaryEmail } from './employeesApi'
 import type { AddEmailInput, EmployeeFilters, ManagedEmployee } from './employeesTypes'
 
 export const employeeKeys = {
@@ -46,6 +46,7 @@ function useEmailMutation<TInput>(run: (input: TInput) => Promise<ManagedEmploye
 
 export const useAddEmail = (code: string) => useEmailMutation((input: AddEmailInput) => addEmail(code, input))
 export const useRemoveEmail = (code: string) => useEmailMutation((email: string) => removeEmail(code, email))
+export const useAcceptHrmConflict = (code: string) => useEmailMutation((email: string) => acceptHrmConflict(code, email))
 export const useSetPrimaryEmail = (code: string) => useEmailMutation((email: string) => setPrimaryEmail(code, email))
 
 export interface ImportInput {

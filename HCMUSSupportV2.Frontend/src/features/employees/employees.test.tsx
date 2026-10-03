@@ -41,6 +41,7 @@ const mail = (email: string, over: Partial<ManagedEmail> = {}): ManagedEmail => 
   addedBy: 'T0002',
   addedAt: new Date(2026, 2, 10),
   hrmConflict: false,
+  hrmConflictOwners: [],
   ...over,
 })
 

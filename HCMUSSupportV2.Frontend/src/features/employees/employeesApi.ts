@@ -26,6 +26,7 @@ const toEmail = (d: ManagedEmailDto): ManagedEmail => ({
   addedBy: d.addedBy ?? null,
   addedAt: d.addedAt ?? null,
   hrmConflict: d.hrmConflict ?? false,
+  hrmConflictOwners: (d.hrmConflictOwners ?? []).map((o) => ({ code: o.code ?? '', fullName: o.fullName ?? '' })),
 })
 
 export const toEmployee = (d: ManagedEmployeeDto): ManagedEmployee => ({
@@ -113,6 +114,12 @@ export async function removeEmail(code: string, email: string): Promise<ManagedE
 export async function setPrimaryEmail(code: string, email: string): Promise<ManagedEmployee> {
   if (isMock()) return (await mock()).setPrimaryMock(code, email)
   return toEmployee(await manageEmployeesClient.setPrimary(code, email))
+}
+
+/** Keeps an email that equals another employee's HRM personal email: it stops being flagged. */
+export async function acceptHrmConflict(code: string, email: string): Promise<ManagedEmployee> {
+  if (isMock()) return (await mock()).acceptConflictMock(code, email)
+  return toEmployee(await manageEmployeesClient.acceptHrmConflict(code, email))
 }
 
 /** `dryRun` only reports; the same file with `dryRun=false` applies it. */
