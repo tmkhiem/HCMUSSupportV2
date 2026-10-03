@@ -1,8 +1,3 @@
-import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
-import EventRepeatOutlined from '@mui/icons-material/EventRepeatOutlined'
-import LayersOutlined from '@mui/icons-material/LayersOutlined'
-import PercentOutlined from '@mui/icons-material/PercentOutlined'
-import TrendingUpOutlined from '@mui/icons-material/TrendingUpOutlined'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { formatDate, formatDecimal } from '../../../lib/format'
@@ -14,6 +9,7 @@ import { formatMonthsToRaise } from '../careerFormat'
 import CareerBreadcrumb from '../CareerBreadcrumb'
 import SalaryChart from './SalaryChart'
 import SalaryTimeline from './SalaryTimeline'
+import PngIcon from '../../../ui/PngIcon'
 
 /** A raise within this many months gets the warm emphasis tint. */
 const SOON_MONTHS = 3
@@ -48,7 +44,7 @@ export function Component() {
               >
                 <StatCard
                   index={1}
-                  icon={<AccountTreeOutlined color="primary" />}
+                  icon={<PngIcon name="account-tree" size={28} />}
                   label="Ngạch"
                   value={
                     cur?.gradeName ? (
@@ -59,23 +55,23 @@ export function Component() {
                   }
                   hint={cur?.gradeCode ? `Mã ngạch ${cur.gradeCode}` : undefined}
                 />
-                <StatCard index={2} icon={<LayersOutlined color="primary" />} label="Bậc" value={cur?.step} />
+                <StatCard index={2} icon={<PngIcon name="layers" size={28} />} label="Bậc" value={cur?.step} />
                 <StatCard
                   index={3}
-                  icon={<TrendingUpOutlined color="primary" />}
+                  icon={<PngIcon name="trending-up" size={28} />}
                   label="Hệ số"
                   value={cur?.coefficient == null ? null : formatDecimal(cur.coefficient)}
                   hint={cur?.effectiveFrom ? `Hưởng từ ${formatDate(cur.effectiveFrom)}` : undefined}
                 />
                 <StatCard
                   index={4}
-                  icon={<PercentOutlined color="primary" />}
+                  icon={<PngIcon name="percent" size={28} />}
                   label="Vượt khung"
                   value={cur?.overGradePct == null ? null : `${formatDecimal(cur.overGradePct, 0)}%`}
                 />
                 <StatCard
                   index={5}
-                  icon={<EventRepeatOutlined color="warning" />}
+                  icon={<PngIcon name="event-repeat" size={28} />}
                   label="Kỳ nâng lương"
                   value={cur?.monthsToNextRaise == null ? null : formatMonthsToRaise(cur.monthsToNextRaise)}
                   hint={cur?.nextRaiseOn ? `Dự kiến ${formatDate(cur.nextRaiseOn)}` : undefined}

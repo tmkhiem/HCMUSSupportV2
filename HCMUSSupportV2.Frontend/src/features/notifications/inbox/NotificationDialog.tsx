@@ -1,7 +1,6 @@
 import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined'
 import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined'
 import CloseIcon from '@mui/icons-material/Close'
-import LayersOutlined from '@mui/icons-material/LayersOutlined'
 import PushPinOutlined from '@mui/icons-material/PushPinOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -107,7 +106,7 @@ export function Component() {
                 <CalendarMonthOutlined sx={{ fontSize: 16 }} />
                 {formatDate(data.deliveredAt)}
               </Typography>
-              {data.series && <Chip size="small" variant="outlined" icon={<LayersOutlined />} label={data.series.name} />}
+              {data.series && <Chip size="small" variant="outlined" icon={<PngIcon name="layers" size={18} />} label={data.series.name} />}
               {data.tags.map((t) => (
                 <Chip key={t.id} size="small" variant="tag" label={t.name} />
               ))}

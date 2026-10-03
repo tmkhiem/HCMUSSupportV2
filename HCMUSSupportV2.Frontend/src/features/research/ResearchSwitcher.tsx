@@ -1,8 +1,7 @@
-import ArticleOutlined from '@mui/icons-material/ArticleOutlined'
-import BiotechOutlined from '@mui/icons-material/BiotechOutlined'
 import Box from '@mui/material/Box'
 import { Link as RouterLink } from 'react-router-dom'
 import { flyInSx } from '../../ui/flyInSx'
+import PngIcon from '../../ui/PngIcon'
 
 export type ResearchTab = 'de-tai' | 'bai-bao'
 
@@ -30,8 +29,8 @@ const labelSx = {
  */
 export default function ResearchSwitcher({ active }: { active: ResearchTab }) {
   const tabs = [
-    { key: 'de-tai', to: '/nckh/de-tai', short: 'Đề tài', long: 'Đề tài nghiên cứu', icon: <BiotechOutlined fontSize="small" /> },
-    { key: 'bai-bao', to: '/nckh/bai-bao', short: 'Bài báo', long: 'Bài báo khoa học', icon: <ArticleOutlined fontSize="small" /> },
+    { key: 'de-tai', to: '/nckh/de-tai', short: 'Đề tài', long: 'Đề tài nghiên cứu', icon: <PngIcon name="biotech" size={24} /> },
+    { key: 'bai-bao', to: '/nckh/bai-bao', short: 'Bài báo', long: 'Bài báo khoa học', icon: <PngIcon name="article" size={24} /> },
   ] as const
   return (
     <Box

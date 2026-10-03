@@ -1,4 +1,3 @@
-import EventAvailableOutlined from '@mui/icons-material/EventAvailableOutlined'
 import Box from '@mui/material/Box'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
@@ -56,7 +55,7 @@ export function Component() {
                 />
                 <StatCard
                   index={2}
-                  icon={<EventAvailableOutlined color="primary" />}
+                  icon={<PngIcon name="event-available" size={28} />}
                   label="Số ngày"
                   value={stats.totalDays}
                   hint={hint}

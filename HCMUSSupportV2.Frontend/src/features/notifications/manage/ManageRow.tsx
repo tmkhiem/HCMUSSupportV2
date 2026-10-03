@@ -1,7 +1,6 @@
 import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlined from '@mui/icons-material/EditOutlined'
-import InventoryOutlined from '@mui/icons-material/InventoryOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -21,6 +20,7 @@ import { flyInSx } from '../../../ui'
 import StatusChip from './StatusChip'
 import { rowDateLabel } from './labels'
 import type { ManageItem } from './manageTypes'
+import PngIcon from '../../../ui/PngIcon'
 
 export type RowAction = 'clone' | 'archive' | 'delete'
 
@@ -129,7 +129,7 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
         {canArchive && (
           <MenuItem onClick={() => pick('archive')}>
             <ListItemIcon>
-              <InventoryOutlined fontSize="small" />
+              <PngIcon name="inventory" size={20} />
             </ListItemIcon>
             <ListItemText>Lưu trữ</ListItemText>
           </MenuItem>

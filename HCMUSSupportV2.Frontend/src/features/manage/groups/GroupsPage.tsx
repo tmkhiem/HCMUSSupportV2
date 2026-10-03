@@ -1,5 +1,4 @@
 import AddOutlined from '@mui/icons-material/AddOutlined'
-import GroupsOutlined from '@mui/icons-material/GroupsOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -167,7 +166,7 @@ export function Component() {
             <GroupEditor key={selectedId} id={selectedId} />
           ) : (
             <AcrylicCard sx={{ p: 6, textAlign: 'center' }}>
-              <GroupsOutlined sx={{ fontSize: 56, opacity: 0.3, mb: 1 }} />
+              <PngIcon name="groups" size={56} sx={{ opacity: 0.5, mb: 1, mx: 'auto' }} />
               <Typography color="text.secondary">Chọn một nhóm ở danh sách để xem và chỉnh sửa.</Typography>
             </AcrylicCard>
           )}

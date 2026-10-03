@@ -1,8 +1,4 @@
-import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import DownloadOutlined from '@mui/icons-material/DownloadOutlined'
-import ImageOutlined from '@mui/icons-material/ImageOutlined'
-import PictureAsPdfOutlined from '@mui/icons-material/PictureAsPdfOutlined'
-import TableChartOutlined from '@mui/icons-material/TableChartOutlined'
 import Box from '@mui/material/Box'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
@@ -13,12 +9,13 @@ import { formatBytes, formatDate, joinParts } from '../../../lib/format'
 import SectionLabel from '../../../ui/SectionLabel'
 import { attachmentUrl } from './inboxApi'
 import type { InboxAttachment, InboxSeries } from './inboxTypes'
+import PngIcon from '../../../ui/PngIcon'
 
 function fileIcon(contentType: string) {
-  if (contentType === 'application/pdf') return <PictureAsPdfOutlined />
-  if (contentType.startsWith('image/')) return <ImageOutlined />
-  if (contentType.includes('spreadsheet') || contentType.includes('excel')) return <TableChartOutlined />
-  return <DescriptionOutlined />
+  if (contentType === 'application/pdf') return <PngIcon name="picture-as-pdf" size={24} />
+  if (contentType.startsWith('image/')) return <PngIcon name="image" size={24} />
+  if (contentType.includes('spreadsheet') || contentType.includes('excel')) return <PngIcon name="table-chart" size={24} />
+  return <PngIcon name="description" size={24} />
 }
 
 const sectionSx = { mt: 3.5 } as const

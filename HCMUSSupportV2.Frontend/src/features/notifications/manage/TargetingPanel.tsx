@@ -1,4 +1,3 @@
-import GroupsOutlined from '@mui/icons-material/GroupsOutlined'
 import UploadFileOutlined from '@mui/icons-material/UploadFileOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -13,6 +12,7 @@ import { EmployeeMultiPicker, GroupMultiPicker } from './Pickers'
 import { recipientTemplateUrl } from './manageApi'
 import { useAudienceEstimate } from './manageQueries'
 import type { EmployeeRef, GroupRef, ImportSummary, NotificationStatus } from './manageTypes'
+import PngIcon from '../../../ui/PngIcon'
 
 export interface TargetingValue {
   audienceAll: boolean
@@ -82,7 +82,7 @@ export default function TargetingPanel({ value, onChange, importSummary, notific
 
         <Box sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 2 }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <GroupsOutlined fontSize="small" color="action" />
+            <PngIcon name="groups" size={24} />
             <Typography sx={{ fontWeight: 600, flex: 1, minWidth: 140 }}>Danh sách từ tệp</Typography>
             <Button size="small" variant="outlined" startIcon={<UploadFileOutlined />} disabled={disabled || uploading} onClick={onUpload}>
               Tải danh sách

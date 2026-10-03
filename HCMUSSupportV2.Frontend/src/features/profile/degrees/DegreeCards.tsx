@@ -1,4 +1,3 @@
-import SchoolOutlined from '@mui/icons-material/SchoolOutlined'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
@@ -7,6 +6,7 @@ import { alpha } from '@mui/material/styles'
 import AcrylicCard from '../../../ui/AcrylicCard'
 import type { DegreeEntry } from '../educationApi'
 import { degreePlace, degreeYears } from '../educationFormat'
+import PngIcon from '../../../ui/PngIcon'
 
 /** Diploma-style cards, one per degree; the caller passes them already sorted newest first. */
 export default function DegreeCards({ items }: { items: DegreeEntry[] }) {
@@ -48,7 +48,7 @@ export default function DegreeCards({ items }: { items: DegreeEntry[] }) {
                   color: 'primary.main',
                 }}
               >
-                <SchoolOutlined />
+                <PngIcon name="school" size={28} />
               </Box>
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="h6" component="h2" sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>

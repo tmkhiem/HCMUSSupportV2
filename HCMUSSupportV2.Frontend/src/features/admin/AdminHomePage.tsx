@@ -1,10 +1,3 @@
-import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined'
-import FactCheckOutlined from '@mui/icons-material/FactCheckOutlined'
-import GroupsOutlined from '@mui/icons-material/GroupsOutlined'
-import KeyOutlined from '@mui/icons-material/KeyOutlined'
-import SyncOutlined from '@mui/icons-material/SyncOutlined'
-import TableChartOutlined from '@mui/icons-material/TableChartOutlined'
-import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
@@ -24,6 +17,7 @@ import StatCard from '../../ui/StatCard'
 import { dashboardClient } from './clients'
 import { formatDateTime } from '../../lib/format'
 import { actionLabel } from './auditLabels'
+import PngIcon from '../../ui/PngIcon'
 
 interface QuickAction {
   to: string
@@ -33,13 +27,13 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { to: '/quan-tri/phan-quyen', title: 'Phân quyền', text: 'Gán quyền biên tập viên và quản trị viên', icon: <AdminPanelSettingsOutlined color="primary" /> },
-  { to: '/quan-tri/xem-thu', title: 'Xem thử', text: 'Xem hệ thống với tư cách một cán bộ (chỉ đọc)', icon: <VisibilityOutlined color="primary" /> },
-  { to: '/quan-ly/nhom', title: 'Nhóm', text: 'Nhóm người nhận thông báo và quy tắc nhóm', icon: <GroupsOutlined color="primary" /> },
-  { to: '/quan-tri/nhat-ky', title: 'Nhật ký', text: 'Tra cứu nhật ký thao tác của quản trị', icon: <FactCheckOutlined color="primary" /> },
-  { to: '/quan-tri/dong-bo', title: 'Đồng bộ', text: 'Lịch sử đồng bộ HRM và các vấn đề cần xử lý', icon: <SyncOutlined color="primary" /> },
-  { to: '/quan-tri/du-lieu', title: 'Dữ liệu', text: 'Nhập dữ liệu giảng dạy, đề tài và bài báo từ Excel', icon: <TableChartOutlined color="primary" /> },
-  { to: '/quan-tri/api-clients', title: 'API clients', text: 'Tạo và thu hồi khóa truy cập cho công cụ Sync', icon: <KeyOutlined color="primary" /> },
+  { to: '/quan-tri/phan-quyen', title: 'Phân quyền', text: 'Gán quyền biên tập viên và quản trị viên', icon: <PngIcon name="admin-panel-settings" size={24} /> },
+  { to: '/quan-tri/xem-thu', title: 'Xem thử', text: 'Xem hệ thống với tư cách một cán bộ (chỉ đọc)', icon: <PngIcon name="visibility" size={24} /> },
+  { to: '/quan-ly/nhom', title: 'Nhóm', text: 'Nhóm người nhận thông báo và quy tắc nhóm', icon: <PngIcon name="groups" size={24} /> },
+  { to: '/quan-tri/nhat-ky', title: 'Nhật ký', text: 'Tra cứu nhật ký thao tác của quản trị', icon: <PngIcon name="fact-check" size={24} /> },
+  { to: '/quan-tri/dong-bo', title: 'Đồng bộ', text: 'Lịch sử đồng bộ HRM và các vấn đề cần xử lý', icon: <PngIcon name="sync" size={24} /> },
+  { to: '/quan-tri/du-lieu', title: 'Dữ liệu', text: 'Nhập dữ liệu giảng dạy, đề tài và bài báo từ Excel', icon: <PngIcon name="table-chart" size={24} /> },
+  { to: '/quan-tri/api-clients', title: 'API clients', text: 'Tạo và thu hồi khóa truy cập cho công cụ Sync', icon: <PngIcon name="key" size={24} /> },
 ]
 
 function tileValue(t: DashboardTile): string {
@@ -77,7 +71,7 @@ export function Component() {
               <Grid key={t.key} size={{ xs: 12, sm: 6, lg: 4 }}>
                 <StatCard
                   index={i + 1}
-                  icon={<AdminPanelSettingsOutlined color={t.severity === 'danger' ? 'error' : 'primary'} />}
+                  icon={<PngIcon name="admin-panel-settings" size={28} />}
                   label={t.label ?? ''}
                   value={tileValue(t)}
                   hint={t.hint}

@@ -1,7 +1,5 @@
 import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
-import HistoryOutlined from '@mui/icons-material/HistoryOutlined'
-import InventoryOutlined from '@mui/icons-material/InventoryOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import SaveOutlined from '@mui/icons-material/SaveOutlined'
 import ScheduleSendOutlined from '@mui/icons-material/ScheduleSendOutlined'
@@ -47,6 +45,7 @@ import type { FieldErrors } from './draft'
 import { archiveNotification, cloneNotification, createNotification, publishNotification, scheduleNotification, updateNotification, uploadBodyImage } from './manageApi'
 import { useDeleteNotification, useStoreDetail } from './manageQueries'
 import type { DraftForm, EmployeeRef, ManageAttachment, ManageDetail, ManageRevision } from './manageTypes'
+import PngIcon from '../../../ui/PngIcon'
 
 type Dialog = 'schedule' | 'publish' | 'archive' | 'delete' | 'revisions' | 'import' | 'tags' | null
 
@@ -286,7 +285,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
             </IconButton>
             <Menu anchorEl={menu} open={menu !== null} onClose={() => setMenu(null)}>
               <MenuItem disabled={!saved} onClick={() => { setMenu(null); setDialog('revisions') }}>
-                <ListItemIcon><HistoryOutlined fontSize="small" /></ListItemIcon>
+                <ListItemIcon><PngIcon name="history" size={20} /></ListItemIcon>
                 <ListItemText>Lịch sử chỉnh sửa</ListItemText>
               </MenuItem>
               <MenuItem disabled={!saved} onClick={() => void clone()}>
@@ -295,7 +294,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
               </MenuItem>
               {canArchive && (
                 <MenuItem onClick={() => { setMenu(null); setDialogError(null); setDialog('archive') }}>
-                  <ListItemIcon><InventoryOutlined fontSize="small" /></ListItemIcon>
+                  <ListItemIcon><PngIcon name="inventory" size={20} /></ListItemIcon>
                   <ListItemText>Lưu trữ</ListItemText>
                 </MenuItem>
               )}

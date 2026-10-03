@@ -1,5 +1,3 @@
-import EmojiEventsOutlined from '@mui/icons-material/EmojiEventsOutlined'
-import MilitaryTechOutlined from '@mui/icons-material/MilitaryTechOutlined'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -9,6 +7,7 @@ import SectionLabel from '../../../ui/SectionLabel'
 import type { CommendationGroup } from '../careerApi'
 import { formatPartialDate } from '../../../lib/partialDate'
 import { academicYearLabel } from '../careerFormat'
+import PngIcon from '../../../ui/PngIcon'
 
 export type CommendationKind = 'award' | 'title'
 
@@ -22,7 +21,7 @@ export default function CommendationGroups({
   kind: CommendationKind
   index: number
 }) {
-  const Icon = kind === 'award' ? EmojiEventsOutlined : MilitaryTechOutlined
+  const iconName = kind === 'award' ? 'emoji-events' : 'military-tech'
   let n = 0
   return (
     <Stack spacing={3} data-testid={`commendation-groups-${kind}`}>
@@ -50,7 +49,7 @@ export default function CommendationGroups({
                     color: 'warning.dark',
                   }}
                 >
-                  <Icon />
+                  <PngIcon name={iconName} size={28} />
                 </Box>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="subtitle2" component="h3" sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>

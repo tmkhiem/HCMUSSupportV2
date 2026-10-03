@@ -1,4 +1,3 @@
-import ClassOutlined from '@mui/icons-material/ClassOutlined'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -35,7 +34,7 @@ export default function ProgramSection({ program, year, index }: { program: Teac
           value={formatHours(stats.totalStandardHours)}
           hint={`Năm học ${year}`}
         />
-        <StatCard index={index + 1} icon={<ClassOutlined color="primary" />} label="Số lớp" value={formatNumber(stats.classes)} />
+        <StatCard index={index + 1} icon={<PngIcon name="class" size={28} />} label="Số lớp" value={formatNumber(stats.classes)} />
         <StatCard index={index + 2} icon={<PngIcon name="book-open" size={28} />} label="Số môn" value={formatNumber(stats.courses)} />
       </Box>
       <Stack sx={{ mt: 2.5, gap: 3 }}>

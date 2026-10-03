@@ -1,5 +1,3 @@
-import MailOutlined from '@mui/icons-material/MailOutlined'
-import PhoneOutlined from '@mui/icons-material/PhoneOutlined'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -10,6 +8,7 @@ import { useCurrentUser } from '../../../auth/authContext'
 import { joinParts } from '../../../lib/format'
 import AcrylicCard from '../../../ui/AcrylicCard'
 import type { ProfileHero } from '../api'
+import PngIcon from '../../../ui/PngIcon'
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/)
@@ -83,8 +82,8 @@ export default function HeroCard({ hero }: { hero: ProfileHero }) {
           useFlexGap
           sx={{ flexWrap: 'wrap', alignItems: { xs: 'center', md: 'center' }, justifyContent: { xs: 'center', md: 'flex-start' } }}
         >
-          <ContactLine icon={<MailOutlined color="primary" fontSize="small" />}>{hero.email ?? '—'}</ContactLine>
-          <ContactLine icon={<PhoneOutlined color="primary" fontSize="small" />}>{hero.phone ?? '—'}</ContactLine>
+          <ContactLine icon={<PngIcon name="mail" size={20} />}>{hero.email ?? '—'}</ContactLine>
+          <ContactLine icon={<PngIcon name="phone" size={20} />}>{hero.phone ?? '—'}</ContactLine>
         </Stack>
       </Box>
     </AcrylicCard>

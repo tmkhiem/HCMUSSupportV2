@@ -1,4 +1,3 @@
-import PersonRemoveOutlined from '@mui/icons-material/PersonRemoveOutlined'
 import UploadFileOutlined from '@mui/icons-material/UploadFileOutlined'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
@@ -24,6 +23,7 @@ import { groupsClient } from '../../admin/clients'
 import { formatDateTime } from '../../../lib/format'
 import { useDebounced } from '../../../lib/useDebounced'
 import LoadMore from '../../admin/LoadMore'
+import PngIcon from '../../../ui/PngIcon'
 
 function Summary({ label, items }: { label: string; items: readonly string[] | undefined }) {
   if (!items || items.length === 0) return null
@@ -161,7 +161,7 @@ export default function GroupMembers({ groupId, editable }: { groupId: number; e
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
         <TextField size="small" label="Tìm thành viên" value={q} onChange={(e) => setQ(e.target.value)} sx={{ minWidth: 240 }} />
         {editable && (
-          <Button color="error" startIcon={<PersonRemoveOutlined />} disabled={selected.size === 0 || remove.isPending} onClick={() => remove.mutate([...selected])}>
+          <Button color="error" startIcon={<PngIcon name="person-remove" size={20} />} disabled={selected.size === 0 || remove.isPending} onClick={() => remove.mutate([...selected])}>
             Xóa {selected.size > 0 ? `${selected.size} ` : ''}đã chọn
           </Button>
         )}

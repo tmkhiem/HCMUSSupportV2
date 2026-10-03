@@ -1,4 +1,3 @@
-import PersonAddOutlined from '@mui/icons-material/PersonAddOutlined'
 import Autocomplete from '@mui/material/Autocomplete'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
@@ -11,6 +10,7 @@ import { useCurrentUser } from '../../../auth/authContext'
 import { useDebounced } from '../../../lib/useDebounced'
 import { rolesClient } from '../../admin/clients'
 import { parseCodes } from './memberCodes'
+import PngIcon from '../../../ui/PngIcon'
 
 interface Picked {
   code: string
@@ -93,7 +93,7 @@ export default function MemberPicker({ onAdd, pending }: { onAdd: (codes: string
         </Typography>
       )}
       <Stack direction="row">
-        <Button variant="contained" startIcon={<PersonAddOutlined />} disabled={count === 0 || pending} onClick={submit}>
+        <Button variant="contained" startIcon={<PngIcon name="person-add" size={20} />} disabled={count === 0 || pending} onClick={submit}>
           {pending ? 'Đang thêm…' : count > 0 ? `Thêm ${count} người` : 'Thêm'}
         </Button>
       </Stack>

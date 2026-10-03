@@ -1,4 +1,3 @@
-import CategoryOutlined from '@mui/icons-material/CategoryOutlined'
 import Box from '@mui/material/Box'
 import { formatNumber } from '../../lib/format'
 import StatCard from '../../ui/StatCard'
@@ -25,7 +24,7 @@ export default function InnovationStats({ stats, index }: { stats: Stats; index:
         <StatCard
           key={t.label}
           index={index + 1 + i}
-          icon={<CategoryOutlined color="primary" />}
+          icon={<PngIcon name="category" size={28} />}
           label={t.label}
           value={formatNumber(t.count)}
           hint="sáng kiến"

@@ -1,4 +1,3 @@
-import MilitaryTechOutlined from '@mui/icons-material/MilitaryTechOutlined'
 import Box from '@mui/material/Box'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
@@ -45,7 +44,7 @@ export function Component() {
                 />
                 <StatCard
                   index={2}
-                  icon={<MilitaryTechOutlined color="primary" />}
+                  icon={<PngIcon name="military-tech" size={28} />}
                   label="Danh hiệu"
                   value={data.titleCount}
                   hint="Số danh hiệu thi đua"
