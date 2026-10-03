@@ -171,7 +171,7 @@ test('D09: clone last year, upload a sheet, preview as a recipient, publish; the
     await expect(post).toContainText('Cảm ơn sự đóng góp của anh/chị.')
     await expect(post).not.toContainText('3,66')
   } finally {
-    for (const id of created) await admin.post(`/api/manage/notifications/${id}/archive`)
+    for (const id of created) await admin.delete(`/api/manage/notifications/${id}`)
     if (seriesId !== undefined) await admin.delete(`/api/manage/series/${seriesId}`)
     await admin.dispose()
     await recipient.dispose()

@@ -2,16 +2,14 @@ import type { VarsRow } from '../body/remarkVars'
 
 /** View models of the editor side of notifications (`/api/manage/...`). The mappers are in `manageApi.ts`. */
 
-export type NotificationStatus = 'draft' | 'scheduled' | 'published' | 'archived'
+export type NotificationStatus = 'draft' | 'published'
 
 export const STATUS_LABEL: Record<NotificationStatus, string> = {
   draft: 'Bản nháp',
-  scheduled: 'Đã lên lịch',
   published: 'Đã đăng',
-  archived: 'Đã lưu trữ',
 }
 
-export const STATUS_ORDER: readonly NotificationStatus[] = ['draft', 'scheduled', 'published', 'archived']
+export const STATUS_ORDER: readonly NotificationStatus[] = ['draft', 'published']
 
 export type VariableType = 'text' | 'date' | 'number' | 'money'
 
@@ -42,9 +40,7 @@ export interface ManageItem {
   seriesId: number | null
   seriesName: string | null
   tags: ManageTag[]
-  publishAt: Date | null
   publishedAt: Date | null
-  expiresAt: Date | null
   audienceAll: boolean
   recipientCount: number
   version: number
@@ -107,9 +103,7 @@ export interface ManageDetail {
   seriesId: number | null
   seriesName: string | null
   tags: ManageTag[]
-  publishAt: Date | null
   publishedAt: Date | null
-  expiresAt: Date | null
   audienceAll: boolean
   groups: GroupRef[]
   employees: EmployeeRef[]
@@ -195,7 +189,6 @@ export interface DraftForm {
   variables: DeclaredVariable[]
   seriesId: number | null
   tagIds: number[]
-  expiresAt: string | null
   audienceAll: boolean
   groups: GroupRef[]
   employees: EmployeeRef[]
@@ -209,7 +202,6 @@ export interface WriteRequest {
   bodyMd: string
   variables: DeclaredVariable[]
   tagIds: number[]
-  expiresAt: string | null
   audienceAll: boolean
   groupIds: number[]
   employeeCodes: string[]

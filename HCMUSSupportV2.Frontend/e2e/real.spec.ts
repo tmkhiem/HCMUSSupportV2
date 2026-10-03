@@ -185,7 +185,7 @@ test('inbox: a post published by T0001 reaches T0003 and opens', async ({
     // No live stream is ever requested (employees reload to see new posts).
     expect(streamRequests, 'the app does not open a live stream').toEqual([])
   } finally {
-    if (notificationId) await admin.post(`/api/manage/notifications/${notificationId}/archive`)
+    if (notificationId) await admin.delete(`/api/manage/notifications/${notificationId}`)
     await admin.dispose()
     await employee.dispose()
   }

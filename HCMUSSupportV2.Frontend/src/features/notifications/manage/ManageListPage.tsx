@@ -21,7 +21,7 @@ import ConfirmDialog from './ConfirmDialog'
 import ManageRow from './ManageRow'
 import type { RowAction } from './ManageRow'
 import TagsSeriesDialog from './TagsSeriesDialog'
-import { archiveNotification, cloneNotification } from './manageApi'
+import { cloneNotification } from './manageApi'
 import { EMPTY_MANAGE_FILTERS, hasManageFilters, parseManageFilters, serializeManageFilters, toListQuery } from './manageFilters'
 import type { ManageFilters } from './manageFilters'
 import { useDeleteNotification, useManageList, useManageSeries, useManageTags, useStoreDetail } from './manageQueries'
@@ -34,7 +34,7 @@ const FLY_IN_ROWS = 10
 
 /**
  * `/manage/notifications`: every notification the editor can manage. Status chips, search, tag and series filters (all in
- * the URL), the read-rate bar per row, quick actions (copy, archive, delete) and the tag / series dialog.
+ * the URL), the read-rate bar per row, quick actions (copy, delete) and the tag / series dialog.
  */
 export function Component() {
   const navigate = useNavigate()
@@ -62,8 +62,6 @@ export function Component() {
         const copy = await cloneNotification(item.id)
         storeDetail(copy)
         void navigate(`/manage/notifications/${copy.id}`)
-      } else if (action === 'archive') {
-        storeDetail(await archiveNotification(item.id))
       } else {
         await remove.mutateAsync(item.id)
       }
@@ -154,20 +152,8 @@ export function Component() {
       </Box>
 
       <ConfirmDialog
-        open={pending?.action === 'archive'}
-        title="Lưu trữ thông báo?"
-        confirmLabel="Lưu trữ"
-        tone="error"
-        busy={busy}
-        error={actionError}
-        onClose={() => setPending(null)}
-        onConfirm={() => pending && void run('archive', pending.item)}
-      >
-        “{pending?.item.title}” sẽ biến mất khỏi hộp thư của người nhận. Dữ liệu đã gửi vẫn được giữ.
-      </ConfirmDialog>
-      <ConfirmDialog
         open={pending?.action === 'delete'}
-        title="Xóa bản nháp?"
+        title={pending?.item.status === 'draft' ? 'Xóa bản nháp?' : 'Xóa thông báo?'}
         confirmLabel="Xóa"
         tone="error"
         busy={busy}
@@ -175,7 +161,7 @@ export function Component() {
         onClose={() => setPending(null)}
         onConfirm={() => pending && void run('delete', pending.item)}
       >
-        Bản nháp “{pending?.item.title}” và các tệp đính kèm sẽ bị xóa vĩnh viễn.
+        “{pending?.item.title}”, các tệp đính kèm và dữ liệu đã gửi sẽ bị xóa vĩnh viễn; người nhận không còn thấy thông báo này.
       </ConfirmDialog>
 
       <TagsSeriesDialog open={dialog !== null} initialTab={dialog ?? 'tags'} onClose={() => setDialog(null)} />

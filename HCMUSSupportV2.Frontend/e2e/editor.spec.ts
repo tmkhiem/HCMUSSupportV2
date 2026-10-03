@@ -8,8 +8,8 @@ import { makeXlsx } from './xlsx.ts'
 
 /**
  * D09 Quản lý thông báo against a stateful fake of `/api/manage/*` (e2e/editorFake.ts), mock auth, port 5683.
- * Seed: 6 notifications (published salary 2025 with an applied sheet, published all-staff, scheduled, draft 2026,
- * archived, published to one employee), 4 tags, 2 series, 2 groups, 5 employees (T0005 inactive).
+ * Seed: 6 notifications (published salary 2025 with an applied sheet, published all-staff, draft survey, draft 2026,
+ * published holiday notice, published to one employee), 4 tags, 2 series, 2 groups, 5 employees (T0005 inactive).
  * Screenshots go to docs/screenshots/d09/.
  */
 
@@ -64,7 +64,7 @@ test.describe('desktop 1440', () => {
     await expect(salary).toContainText('Nâng lương thường xuyên')
     await expect(salary).toContainText('Lương')
     await expect(salary).toContainText('284 người nhận')
-    await expect(row(page, 'Khảo sát mức độ hài lòng quý II')).toContainText('Đăng lúc')
+    await expect(row(page, 'Khảo sát mức độ hài lòng quý II').getByTestId('status-chip')).toHaveText('Bản nháp')
     await expect(row(page, DRAFT_2026).getByTestId('status-chip')).toHaveText('Bản nháp')
     await expect(row(page, DRAFT_2026)).toContainText('Chưa gửi cho ai')
     await expectNoHorizontalScroll(page)
@@ -75,7 +75,7 @@ test.describe('desktop 1440', () => {
     await openList(page)
     await page.getByRole('button', { name: 'Đã đăng', exact: true }).click()
     await expect(page).toHaveURL(/status=published/)
-    await expect(rows(page)).toHaveCount(3)
+    await expect(rows(page)).toHaveCount(4)
     await page.getByRole('button', { name: 'Đã đăng', exact: true }).click() // toggles off
     await expect(rows(page)).toHaveCount(6)
 
@@ -83,7 +83,7 @@ test.describe('desktop 1440', () => {
     await page.getByRole('option', { name: 'Lương' }).click()
     await expect(page).toHaveURL(/tag=1/)
     await expect(rows(page)).toHaveCount(2)
-    await page.getByLabel('Chuỗi', { exact: true }).click()
+    await page.getByLabel('Chuỗi thông báo', { exact: true }).click()
     await page.getByRole('option', { name: 'Khảo sát hằng quý' }).click()
     await expect(rows(page)).toHaveCount(0)
     await expect(page.getByText('Không có thông báo nào phù hợp bộ lọc.')).toBeVisible()
@@ -98,10 +98,10 @@ test.describe('desktop 1440', () => {
     await expect(rows(page)).toHaveCount(1)
   })
 
-  test('row actions: copy opens the new draft, archive and delete ask first', async ({ page }) => {
+  test('row actions: copy opens the new draft, delete asks first', async ({ page }) => {
     const fake = await openList(page)
     await row(page, SALARY_2025).getByRole('button', { name: /^Thao tác với/ }).click()
-    await expect(page.getByRole('menuitem', { name: 'Xóa bản nháp' })).toHaveCount(0) // only drafts can be deleted
+    await expect(page.getByRole('menuitem', { name: 'Lưu trữ' })).toHaveCount(0) // there is no archiving
     await page.getByRole('menuitem', { name: 'Sao chép thành bản nháp' }).click()
     await expect(page).toHaveURL(/\/manage\/notifications\/0198b000-/)
     await expect(page.getByTestId('title-input')).toHaveValue(SALARY_2025)
@@ -111,11 +111,11 @@ test.describe('desktop 1440', () => {
     await page.goto('/manage/notifications')
     await expect(rows(page)).toHaveCount(7)
     await row(page, 'Mở lớp bồi dưỡng').getByRole('button', { name: /^Thao tác với/ }).click()
-    await page.getByRole('menuitem', { name: 'Lưu trữ' }).click()
-    const archive = page.getByRole('dialog', { name: 'Lưu trữ thông báo?' })
-    await expect(archive).toContainText('biến mất khỏi hộp thư')
-    await archive.getByRole('button', { name: 'Lưu trữ' }).click()
-    await expect(row(page, 'Mở lớp bồi dưỡng').getByTestId('status-chip')).toHaveText('Đã lưu trữ')
+    await page.getByRole('menuitem', { name: 'Xóa thông báo' }).click()
+    const remove = page.getByRole('dialog', { name: 'Xóa thông báo?' })
+    await expect(remove).toContainText('không còn thấy thông báo này')
+    await remove.getByRole('button', { name: 'Xóa' }).click()
+    await expect(row(page, 'Mở lớp bồi dưỡng')).toHaveCount(0)
 
     await row(page, DRAFT_2026).getByRole('button', { name: /^Thao tác với/ }).click()
     await page.getByRole('menuitem', { name: 'Xóa bản nháp' }).click()
@@ -262,38 +262,23 @@ test.describe('desktop 1440', () => {
     await shot(page, 'editor-lower-1440')
   })
 
-  test('schedule, publish, then archive; a published notification shows recipient stats', async ({ page }) => {
+  test('publish; a published notification shows recipient stats', async ({ page }) => {
     await openEditor(page, SEED_ID(4))
     // No audience: the server refuses and the dialog shows why.
-    await page.getByRole('button', { name: 'Đăng ngay' }).click()
-    const publish = page.getByRole('dialog', { name: 'Đăng thông báo ngay?' })
-    await publish.getByRole('button', { name: 'Đăng ngay' }).click()
+    await page.getByRole('button', { name: 'Đăng', exact: true }).click()
+    const publish = page.getByRole('dialog', { name: 'Đăng thông báo?' })
+    await publish.getByRole('button', { name: 'Đăng', exact: true }).click()
     await expect(publish.getByRole('alert')).toContainText('chưa sẵn sàng')
     await expect(page.getByText('Chưa chọn người nhận.')).toBeVisible()
     await publish.getByRole('button', { name: 'Hủy' }).click()
 
     await page.getByRole('switch', { name: 'Tất cả nhân sự (đã có email)' }).check()
-    await page.getByRole('button', { name: 'Lên lịch' }).click()
-    const schedule = page.getByRole('dialog', { name: 'Lên lịch đăng' })
-    await expect(schedule.getByRole('button', { name: 'Lên lịch', exact: true })).toBeDisabled()
-    await schedule.getByRole('spinbutton').first().click()
-    await page.keyboard.type('010120300830')
-    await schedule.getByRole('button', { name: /^Lên lịch 01\/01\/2030 08:30/ }).click()
-    await expect(page.getByTestId('status-chip')).toHaveText('Đã lên lịch')
-    await expect(page.getByText('Sẽ tự động đăng lúc 01/01/2030 08:30.')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Đăng ngay' }).click()
-    await page.getByRole('dialog', { name: 'Đăng thông báo ngay?' }).getByRole('button', { name: 'Đăng ngay' }).click()
+    await page.getByRole('button', { name: 'Đăng', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Đăng thông báo?' }).getByRole('button', { name: 'Đăng', exact: true }).click()
     await expect(page.getByTestId('status-chip')).toHaveText('Đã đăng')
     await toast(page, 'Đã đăng thông báo.')
     await expect(page.getByTestId('stats-panel')).toContainText('người nhận')
-    await expect(page.getByRole('button', { name: 'Đăng ngay' })).toHaveCount(0)
-
-    await page.getByRole('button', { name: 'Thêm thao tác' }).click()
-    await page.getByRole('menuitem', { name: 'Lưu trữ' }).click()
-    await page.getByRole('dialog', { name: 'Lưu trữ thông báo?' }).getByRole('button', { name: 'Lưu trữ' }).click()
-    await expect(page.getByTestId('status-chip')).toHaveText('Đã lưu trữ')
-    await expect(page.getByText('Thông báo đã lưu trữ và không còn hiện trong hộp thư người nhận.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Đăng', exact: true })).toHaveCount(0)
   })
 
   test('a published notification: revisions can be reloaded into the form, saving shows the update notice', async ({ page }) => {

@@ -6,7 +6,6 @@ import {
   ManageSeriesClient,
   ManageTagsClient,
   NotificationWriteRequest,
-  ScheduleRequest,
   SeriesRequest,
   TagRequest,
 } from '../../../api/generated-client'
@@ -48,7 +47,7 @@ const lookupApi = new AudienceLookupClient(undefined, clientFetch)
 
 export const PAGE_SIZE = 20
 
-const STATUSES: readonly string[] = ['draft', 'scheduled', 'published', 'archived']
+const STATUSES: readonly string[] = ['draft', 'published']
 const toStatus = (s: string | undefined): NotificationStatus => (STATUSES.includes(s ?? '') ? (s as NotificationStatus) : 'draft')
 const toDate = (v: Date | string | undefined | null): Date | null => {
   if (!v) return null
@@ -80,9 +79,7 @@ export function toManageItem(d: G.IManageNotificationListItem): ManageItem {
     seriesId: d.seriesId ?? null,
     seriesName: d.seriesName ?? null,
     tags: (d.tags ?? []).map(toTag),
-    publishAt: toDate(d.publishAt),
     publishedAt: toDate(d.publishedAt),
-    expiresAt: toDate(d.expiresAt),
     audienceAll: d.audienceAll ?? false,
     recipientCount: d.recipientCount ?? 0,
     version: d.version ?? 1,
@@ -104,9 +101,7 @@ export function toManageDetail(d: G.IManageNotificationDto): ManageDetail {
     seriesId: d.seriesId ?? null,
     seriesName: d.seriesName ?? null,
     tags: (d.tags ?? []).map(toTag),
-    publishAt: toDate(d.publishAt),
     publishedAt: toDate(d.publishedAt),
-    expiresAt: toDate(d.expiresAt),
     audienceAll: audience?.all ?? false,
     groups: (audience?.groups ?? []).map((g) => ({ id: g.id ?? 0, name: g.name ?? '', memberCount: g.memberCount ?? 0 })),
     employees: (audience?.employees ?? []).map((e) => ({ code: e.code ?? '', fullName: e.fullName ?? null, status: e.status ?? null })),
@@ -190,10 +185,7 @@ export async function updateNotification(id: string, request: WriteRequest): Pro
 }
 
 export const deleteNotification = (id: string) => notificationsApi.delete(id)
-export const scheduleNotification = async (id: string, publishAt: Date) =>
-  toManageDetail(await notificationsApi.schedule(id, ScheduleRequest.fromJS({ publishAt: publishAt.toISOString() })))
 export const publishNotification = async (id: string) => toManageDetail(await notificationsApi.publish(id))
-export const archiveNotification = async (id: string) => toManageDetail(await notificationsApi.archive(id))
 export const cloneNotification = async (id: string) => toManageDetail(await notificationsApi.clone(id))
 
 export async function fetchRevisions(id: string): Promise<ManageRevision[]> {

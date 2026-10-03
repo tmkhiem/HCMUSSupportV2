@@ -10,13 +10,10 @@ export const EMPTY_DRAFT: DraftForm = {
   variables: [],
   seriesId: null,
   tagIds: [],
-  expiresAt: null,
   audienceAll: false,
   groups: [],
   employees: [],
 }
-
-const iso = (d: Date | null) => (d ? d.toISOString() : null)
 
 /** The editable part of a loaded notification. */
 export function formFromDetail(d: ManageDetail): DraftForm {
@@ -28,14 +25,13 @@ export function formFromDetail(d: ManageDetail): DraftForm {
     variables: d.variables.map((v) => ({ ...v })),
     seriesId: d.seriesId,
     tagIds: d.tags.map((t) => t.id),
-    expiresAt: iso(d.expiresAt),
     audienceAll: d.audienceAll,
     groups: d.groups.map((g) => ({ ...g })),
     employees: d.employees.map((e) => ({ ...e })),
   }
 }
 
-/** Loads an older version's content into the form (the audience, tags and dates stay as they are). */
+/** Loads an older version's content into the form (the audience and tags stay as they are). */
 export function applyRevision(form: DraftForm, r: ManageRevision): DraftForm {
   return {
     ...form,
@@ -55,7 +51,6 @@ export function toWriteRequest(form: DraftForm, version?: number): WriteRequest 
     bodyMd: form.bodyMd,
     variables: form.variables.map((v) => ({ key: v.key.trim(), label: v.label.trim() || v.key.trim(), type: v.type })),
     tagIds: [...form.tagIds],
-    expiresAt: form.expiresAt,
     audienceAll: form.audienceAll,
     groupIds: form.groups.map((g) => g.id),
     employeeCodes: form.employees.map((e) => e.code),

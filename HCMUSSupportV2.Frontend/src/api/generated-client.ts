@@ -503,47 +503,6 @@ export class ManageNotificationsClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    schedule(id: string, request: ScheduleRequest): Promise<ManageNotificationDto> {
-        let url_ = this.baseUrl + "/api/manage/notifications/{id}/schedule";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processSchedule(_response);
-        });
-    }
-
-    protected processSchedule(response: Response): Promise<ManageNotificationDto> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ManageNotificationDto.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ManageNotificationDto>(null as any);
-    }
-
     publish(id: string): Promise<ManageNotificationDto> {
         let url_ = this.baseUrl + "/api/manage/notifications/{id}/publish";
         if (id === undefined || id === null)
@@ -564,43 +523,6 @@ export class ManageNotificationsClient {
     }
 
     protected processPublish(response: Response): Promise<ManageNotificationDto> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ManageNotificationDto.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ManageNotificationDto>(null as any);
-    }
-
-    archive(id: string): Promise<ManageNotificationDto> {
-        let url_ = this.baseUrl + "/api/manage/notifications/{id}/archive";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processArchive(_response);
-        });
-    }
-
-    protected processArchive(response: Response): Promise<ManageNotificationDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
@@ -5628,9 +5550,7 @@ export class ManageNotificationListItem implements IManageNotificationListItem {
     seriesId?: number | undefined;
     seriesName?: string | undefined;
     tags?: TagDto[];
-    publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
-    expiresAt?: Date | undefined;
     audienceAll?: boolean;
     recipientCount?: number;
     version?: number;
@@ -5657,9 +5577,7 @@ export class ManageNotificationListItem implements IManageNotificationListItem {
                 for (let item of _data["tags"])
                     this.tags!.push(TagDto.fromJS(item));
             }
-            this.publishAt = _data["publishAt"] ? new Date(_data["publishAt"].toString()) : undefined as any;
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
-            this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
             this.audienceAll = _data["audienceAll"];
             this.recipientCount = _data["recipientCount"];
             this.version = _data["version"];
@@ -5686,9 +5604,7 @@ export class ManageNotificationListItem implements IManageNotificationListItem {
             for (let item of this.tags)
                 data["tags"].push(item ? item.toJSON() : undefined as any);
         }
-        data["publishAt"] = this.publishAt ? this.publishAt.toISOString() : undefined as any;
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
-        data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
         data["audienceAll"] = this.audienceAll;
         data["recipientCount"] = this.recipientCount;
         data["version"] = this.version;
@@ -5704,9 +5620,7 @@ export interface IManageNotificationListItem {
     seriesId?: number | undefined;
     seriesName?: string | undefined;
     tags?: TagDto[];
-    publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
-    expiresAt?: Date | undefined;
     audienceAll?: boolean;
     recipientCount?: number;
     version?: number;
@@ -5725,9 +5639,7 @@ export class ManageNotificationDto implements IManageNotificationDto {
     seriesId?: number | undefined;
     seriesName?: string | undefined;
     tags?: TagDto[];
-    publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
-    expiresAt?: Date | undefined;
     audience?: AudienceDto;
     attachments?: AttachmentDto[];
     recipientCount?: number;
@@ -5767,9 +5679,7 @@ export class ManageNotificationDto implements IManageNotificationDto {
                 for (let item of _data["tags"])
                     this.tags!.push(TagDto.fromJS(item));
             }
-            this.publishAt = _data["publishAt"] ? new Date(_data["publishAt"].toString()) : undefined as any;
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
-            this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
             this.audience = _data["audience"] ? AudienceDto.fromJS(_data["audience"]) : undefined as any;
             if (Array.isArray(_data["attachments"])) {
                 this.attachments = [] as any;
@@ -5813,9 +5723,7 @@ export class ManageNotificationDto implements IManageNotificationDto {
             for (let item of this.tags)
                 data["tags"].push(item ? item.toJSON() : undefined as any);
         }
-        data["publishAt"] = this.publishAt ? this.publishAt.toISOString() : undefined as any;
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
-        data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
         data["audience"] = this.audience ? this.audience.toJSON() : undefined as any;
         if (Array.isArray(this.attachments)) {
             data["attachments"] = [];
@@ -5844,9 +5752,7 @@ export interface IManageNotificationDto {
     seriesId?: number | undefined;
     seriesName?: string | undefined;
     tags?: TagDto[];
-    publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
-    expiresAt?: Date | undefined;
     audience?: AudienceDto;
     attachments?: AttachmentDto[];
     recipientCount?: number;
@@ -6161,7 +6067,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
     bodyMd?: string | undefined;
     variables?: VariableDto[] | undefined;
     tagIds?: number[] | undefined;
-    expiresAt?: Date | undefined;
     audienceAll?: boolean;
     groupIds?: number[] | undefined;
     employeeCodes?: string[] | undefined;
@@ -6192,7 +6097,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
                 for (let item of _data["tagIds"])
                     this.tagIds!.push(item);
             }
-            this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
             this.audienceAll = _data["audienceAll"];
             if (Array.isArray(_data["groupIds"])) {
                 this.groupIds = [] as any;
@@ -6231,7 +6135,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
             for (let item of this.tagIds)
                 data["tagIds"].push(item);
         }
-        data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
         data["audienceAll"] = this.audienceAll;
         if (Array.isArray(this.groupIds)) {
             data["groupIds"] = [];
@@ -6255,46 +6158,9 @@ export interface INotificationWriteRequest {
     bodyMd?: string | undefined;
     variables?: VariableDto[] | undefined;
     tagIds?: number[] | undefined;
-    expiresAt?: Date | undefined;
     audienceAll?: boolean;
     groupIds?: number[] | undefined;
     employeeCodes?: string[] | undefined;
-}
-
-export class ScheduleRequest implements IScheduleRequest {
-    publishAt?: Date;
-
-    constructor(data?: IScheduleRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.publishAt = _data["publishAt"] ? new Date(_data["publishAt"].toString()) : undefined as any;
-        }
-    }
-
-    static fromJS(data: any): ScheduleRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new ScheduleRequest();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["publishAt"] = this.publishAt ? this.publishAt.toISOString() : undefined as any;
-        return data;
-    }
-}
-
-export interface IScheduleRequest {
-    publishAt?: Date;
 }
 
 export class RevisionDto implements IRevisionDto {

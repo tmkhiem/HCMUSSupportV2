@@ -2,7 +2,6 @@ import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import SaveOutlined from '@mui/icons-material/SaveOutlined'
-import ScheduleSendOutlined from '@mui/icons-material/ScheduleSendOutlined'
 import SendOutlined from '@mui/icons-material/SendOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -32,7 +31,6 @@ import ConfirmDialog from './ConfirmDialog'
 import ImportDialog from './ImportDialog'
 import PreviewPanel from './PreviewPanel'
 import RevisionsDialog from './RevisionsDialog'
-import ScheduleDialog from './ScheduleDialog'
 import SettingsPanel from './SettingsPanel'
 import StartFromPanel from './StartFromPanel'
 import StatsPanel from './StatsPanel'
@@ -42,12 +40,12 @@ import TargetingPanel from './TargetingPanel'
 import VariablesPanel from './VariablesPanel'
 import { EMPTY_DRAFT, applyRevision, conflictVersion, fieldErrorsOf, formFromDetail, isDirty, splitBodyIssue, toWriteRequest, variableKeyError } from './draft'
 import type { FieldErrors } from './draft'
-import { archiveNotification, cloneNotification, createNotification, publishNotification, scheduleNotification, updateNotification, uploadBodyImage } from './manageApi'
+import { cloneNotification, createNotification, publishNotification, updateNotification, uploadBodyImage } from './manageApi'
 import { useDeleteNotification, useStoreDetail } from './manageQueries'
 import type { DraftForm, EmployeeRef, ManageAttachment, ManageDetail, ManageRevision } from './manageTypes'
 import PngIcon from '../../../ui/PngIcon'
 
-type Dialog = 'schedule' | 'publish' | 'archive' | 'delete' | 'revisions' | 'import' | 'tags' | null
+type Dialog = 'publish' | 'delete' | 'revisions' | 'import' | 'tags' | null
 
 /**
  * The form of one notification. `initial` is the saved notification (null for a new one). The workspace keeps the draft,
@@ -68,7 +66,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
   const [errors, setErrors] = useState<FieldErrors>({})
   const [banner, setBanner] = useState<string | null>(null)
   const [conflict, setConflict] = useState<number | null | undefined>(undefined)
-  const [busy, setBusy] = useState<'save' | 'publish' | 'schedule' | 'archive' | null>(null)
+  const [busy, setBusy] = useState<'save' | 'publish' | null>(null)
   const [dialog, setDialog] = useState<Dialog>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -95,13 +93,13 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
 
   const patch = (p: Partial<DraftForm>) => setForm((f) => ({ ...f, ...p }))
   const status = saved?.status ?? 'draft'
-  const live = status === 'published' || status === 'archived'
+  const live = status === 'published'
   const validVariables = useMemo(
     () => form.variables.filter((v, i) => variableKeyError(v.key, form.variables.filter((_, j) => j !== i).map((o) => o.key)) === null).map((v) => ({ key: v.key.trim(), label: v.label.trim() || v.key.trim() })),
     [form.variables],
   )
 
-  /** The server's copy is the truth after save, publish, archive, schedule and import. */
+  /** The server's copy is the truth after save, publish and import. */
   const adopt = (detail: ManageDetail) => {
     const next = formFromDetail(detail)
     setSaved(detail)
@@ -155,7 +153,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
     return detail ? detail.id : null
   }
 
-  const lifecycle = async (kind: 'publish' | 'schedule' | 'archive', run: (id: string) => Promise<ManageDetail>) => {
+  const lifecycle = async (kind: 'publish', run: (id: string) => Promise<ManageDetail>) => {
     setDialogError(null)
     setBusy(kind)
     try {
@@ -167,7 +165,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
       const detail = await run(id)
       setDialog(null)
       adopt(detail)
-      setToast(kind === 'publish' ? 'Đã đăng thông báo.' : kind === 'schedule' ? 'Đã lên lịch đăng.' : 'Đã lưu trữ thông báo.')
+      setToast('Đã đăng thông báo.')
     } catch (e) {
       setDialogError(errorMessage(e, 'Không thực hiện được. Vui lòng thử lại.'))
       setErrors(fieldErrorsOf(e))
@@ -197,7 +195,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
       dirtyRef.current = false
       void navigate('/manage/notifications', { replace: true })
     } catch (e) {
-      setDialogError(errorMessage(e, 'Không xóa được bản nháp.'))
+      setDialogError(errorMessage(e, 'Không xóa được thông báo.'))
     }
   }
 
@@ -208,9 +206,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
 
   const bodyIssues = (errors.bodyMd ?? []).map(splitBodyIssue)
   const title = form.title.trim() || (saved ? 'Thông báo chưa có tiêu đề' : 'Soạn thông báo mới')
-  const canSchedule = status === 'draft' || status === 'scheduled'
-  const canPublish = status === 'draft' || status === 'scheduled'
-  const canArchive = status === 'published' || status === 'scheduled'
+  const canPublish = status === 'draft'
   const savedHint = saved ? `Phiên bản ${saved.version} · lưu ${formatDateTime(saved.updatedAt)}` : 'Chưa lưu'
 
   const editorPane = (
@@ -270,14 +266,9 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
             >
               Lưu
             </Button>
-            {canSchedule && (
-              <Button variant="outlined" size="small" startIcon={<ScheduleSendOutlined />} disabled={busy !== null} onClick={() => { setDialogError(null); setDialog('schedule') }} sx={{ bgcolor: 'common.white' }}>
-                Lên lịch
-              </Button>
-            )}
             {canPublish && (
               <Button variant="contained" size="small" startIcon={<SendOutlined />} disabled={busy !== null} onClick={() => { setDialogError(null); setDialog('publish') }}>
-                Đăng ngay
+                Đăng
               </Button>
             )}
             <IconButton aria-label="Thêm thao tác" aria-haspopup="menu" onClick={(e) => setMenu(e.currentTarget)}>
@@ -292,16 +283,10 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
                 <ListItemIcon><ContentCopyOutlined fontSize="small" /></ListItemIcon>
                 <ListItemText>Sao chép thành bản nháp</ListItemText>
               </MenuItem>
-              {canArchive && (
-                <MenuItem onClick={() => { setMenu(null); setDialogError(null); setDialog('archive') }}>
-                  <ListItemIcon><PngIcon name="inventory" size={20} /></ListItemIcon>
-                  <ListItemText>Lưu trữ</ListItemText>
-                </MenuItem>
-              )}
-              {status === 'draft' && saved && (
+              {saved && (
                 <MenuItem sx={{ color: 'error.main' }} onClick={() => { setMenu(null); setDialogError(null); setDialog('delete') }}>
                   <ListItemIcon><DeleteOutlineIcon fontSize="small" color="error" /></ListItemIcon>
-                  <ListItemText>Xóa bản nháp</ListItemText>
+                  <ListItemText>{status === 'draft' ? 'Xóa bản nháp' : 'Xóa thông báo'}</ListItemText>
                 </MenuItem>
               )}
             </Menu>
@@ -326,8 +311,6 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
             {conflict !== undefined && ' Bấm “Lưu đè” để ghi đè bằng bản của bạn.'}
           </Alert>
         )}
-        {status === 'archived' && <Alert severity="info">Thông báo đã lưu trữ và không còn hiện trong hộp thư người nhận.</Alert>}
-        {status === 'scheduled' && saved?.publishAt && <Alert severity="info">Sẽ tự động đăng lúc {formatDateTime(saved.publishAt)}.</Alert>}
         {status === 'published' && (
           <Alert severity="info">
             Thông báo đã đăng. Thêm người nhận sẽ gửi tiếp (họ thấy thông báo khi đăng nhập, vẫn hiển thị theo ngày đăng gốc); bỏ người nhận sẽ gỡ thông báo khỏi trang thông báo của họ.
@@ -396,8 +379,7 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
             <SettingsPanel
               form={form}
               onChange={patch}
-              publishAt={saved?.publishAt ?? null}
-              errors={{ expiresAt: errors.expiresAt?.[0], seriesId: errors.seriesId?.[0], tagIds: errors.tagIds?.[0] }}
+              errors={{ seriesId: errors.seriesId?.[0], tagIds: errors.tagIds?.[0] }}
               onManageTags={() => setDialog('tags')}
             />
             <AttachmentsPanel
@@ -414,30 +396,18 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
       {/* dialogs */}
       <ConfirmDialog
         open={dialog === 'publish'}
-        title="Đăng thông báo ngay?"
-        confirmLabel="Đăng ngay"
+        title="Đăng thông báo?"
+        confirmLabel="Đăng"
         busy={busy === 'publish'}
         error={dialogError}
         onClose={() => setDialog(null)}
         onConfirm={() => void lifecycle('publish', publishNotification)}
       >
-        Thông báo sẽ được gửi ngay đến người nhận đã chọn{dirty ? ' (các thay đổi chưa lưu sẽ được lưu trước)' : ''}. Bạn vẫn có thể sửa và lưu trữ sau đó.
-      </ConfirmDialog>
-      <ConfirmDialog
-        open={dialog === 'archive'}
-        title="Lưu trữ thông báo?"
-        confirmLabel="Lưu trữ"
-        tone="error"
-        busy={busy === 'archive'}
-        error={dialogError}
-        onClose={() => setDialog(null)}
-        onConfirm={() => void lifecycle('archive', archiveNotification)}
-      >
-        Thông báo sẽ biến mất khỏi hộp thư của người nhận. Dữ liệu đã gửi vẫn được giữ.
+        Thông báo sẽ được gửi ngay đến người nhận đã chọn{dirty ? ' (các thay đổi chưa lưu sẽ được lưu trước)' : ''}. Bạn vẫn có thể sửa sau đó.
       </ConfirmDialog>
       <ConfirmDialog
         open={dialog === 'delete'}
-        title="Xóa bản nháp?"
+        title={status === 'draft' ? 'Xóa bản nháp?' : 'Xóa thông báo?'}
         confirmLabel="Xóa"
         tone="error"
         busy={removeDraft.isPending}
@@ -445,18 +415,8 @@ export default function EditorWorkspace({ initial, onCreated }: { initial: Manag
         onClose={() => setDialog(null)}
         onConfirm={() => void deleteDraft()}
       >
-        Bản nháp và các tệp đính kèm sẽ bị xóa vĩnh viễn.
+        {status === 'draft' ? 'Bản nháp' : 'Thông báo'}, các tệp đính kèm và dữ liệu đã gửi sẽ bị xóa vĩnh viễn.
       </ConfirmDialog>
-      {dialog === 'schedule' && (
-        <ScheduleDialog
-          open
-          initial={saved?.publishAt ?? null}
-          busy={busy === 'schedule'}
-          error={dialogError}
-          onClose={() => setDialog(null)}
-          onSchedule={(at) => void lifecycle('schedule', (id) => scheduleNotification(id, at))}
-        />
-      )}
       {saved && dialog === 'revisions' && (
         <RevisionsDialog
           open

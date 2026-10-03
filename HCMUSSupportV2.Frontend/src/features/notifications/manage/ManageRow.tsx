@@ -20,9 +20,8 @@ import TagChip from '../TagChip'
 import StatusChip from './StatusChip'
 import { rowDateLabel } from './labels'
 import type { ManageItem } from './manageTypes'
-import PngIcon from '../../../ui/PngIcon'
 
-export type RowAction = 'clone' | 'archive' | 'delete'
+export type RowAction = 'clone' | 'delete'
 
 export interface ManageRowProps {
   item: ManageItem
@@ -37,8 +36,7 @@ export interface ManageRowProps {
 export default function ManageRow({ item, index, onAction }: ManageRowProps) {
   const menuId = useId()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
-  const sent = (item.status === 'published' || item.status === 'archived') && item.recipientCount > 0
-  const canArchive = item.status === 'published' || item.status === 'scheduled'
+  const sent = item.status === 'published' && item.recipientCount > 0
   const [firstTag, ...otherTags] = item.tags
   const pick = (action: RowAction) => {
     setAnchor(null)
@@ -117,22 +115,12 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
           </ListItemIcon>
           <ListItemText>Sao chép thành bản nháp</ListItemText>
         </MenuItem>
-        {canArchive && (
-          <MenuItem onClick={() => pick('archive')}>
-            <ListItemIcon>
-              <PngIcon name="inventory" size={20} />
-            </ListItemIcon>
-            <ListItemText>Lưu trữ</ListItemText>
-          </MenuItem>
-        )}
-        {item.status === 'draft' && (
-          <MenuItem onClick={() => pick('delete')} sx={{ color: 'error.main' }}>
-            <ListItemIcon>
-              <DeleteOutlineIcon fontSize="small" color="error" />
-            </ListItemIcon>
-            <ListItemText>Xóa bản nháp</ListItemText>
-          </MenuItem>
-        )}
+        <MenuItem onClick={() => pick('delete')} sx={{ color: 'error.main' }}>
+          <ListItemIcon>
+            <DeleteOutlineIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>{item.status === 'draft' ? 'Xóa bản nháp' : 'Xóa thông báo'}</ListItemText>
+        </MenuItem>
       </Menu>
     </Paper>
   )

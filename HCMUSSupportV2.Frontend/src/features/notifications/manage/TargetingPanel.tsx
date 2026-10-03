@@ -50,7 +50,7 @@ export default function TargetingPanel({ value, onChange, importSummary, notific
     importId: sheetApplied ? importSummary.importId : null,
   })
   const nothingChosen = !value.audienceAll && value.groups.length === 0 && value.employees.length === 0 && !sheetApplied
-  const live = status === 'published' || status === 'archived'
+  const live = status === 'published'
 
   return (
     <AcrylicCard sx={{ p: 2.5 }} data-testid="targeting-panel">

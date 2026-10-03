@@ -19,12 +19,10 @@ export interface FakeNotification {
   summaryIsCustom: boolean
   bodyMd: string
   variables: Variable[]
-  status: 'draft' | 'scheduled' | 'published' | 'archived'
+  status: 'draft' | 'published'
   seriesId: number | null
   tagIds: number[]
-  publishAt: string | null
   publishedAt: string | null
-  expiresAt: string | null
   audienceAll: boolean
   groupIds: number[]
   employeeCodes: string[]
@@ -71,9 +69,7 @@ function note(id: number, patch: Partial<FakeNotification>): FakeNotification {
     status: 'published',
     seriesId: null,
     tagIds: [],
-    publishAt: null,
     publishedAt: day(-id),
-    expiresAt: null,
     audienceAll: false,
     groupIds: [],
     employeeCodes: [],
@@ -115,9 +111,9 @@ export function seed() {
       version: 3,
     }),
     note(2, { title: 'Mở lớp bồi dưỡng nghiệp vụ sư phạm đợt 3', summary: 'Đăng ký trước ngày 30/06.', tagIds: [4], audienceAll: true, recipientCount: 380 }),
-    note(3, { title: 'Khảo sát mức độ hài lòng quý II', status: 'scheduled', publishedAt: null, publishAt: day(5), seriesId: 2, tagIds: [4], groupIds: [1], recipientCount: 0, updatedAt: day(-1) }),
+    note(3, { title: 'Khảo sát mức độ hài lòng quý II', status: 'draft', publishedAt: null, seriesId: 2, tagIds: [4], groupIds: [1], recipientCount: 0, updatedAt: day(-1) }),
     note(4, { title: 'Nâng lương thường xuyên năm 2026 (nháp)', status: 'draft', publishedAt: null, seriesId: 1, tagIds: [1], bodyMd: SALARY_BODY.replace('2025', '2026'), variables: SALARY_VARS, updatedAt: day(0) }),
-    note(5, { title: 'Lịch nghỉ hè 2026', status: 'archived', tagIds: [4], audienceAll: true, recipientCount: 380, publishedAt: day(-40) }),
+    note(5, { title: 'Lịch nghỉ hè 2026', tagIds: [4], audienceAll: true, recipientCount: 380, publishedAt: day(-40) }),
     note(6, { title: 'Khen thưởng sáng kiến cấp trường 2025', tagIds: [3], employeeCodes: ['T0003'], recipientCount: 1 }),
   ]
   return { tags, series, notifications, nextId: 100 }
@@ -148,9 +144,7 @@ function toDetail(s: State, n: FakeNotification) {
     seriesId: n.seriesId,
     seriesName: series?.name ?? null,
     tags,
-    publishAt: n.publishAt,
     publishedAt: n.publishedAt,
-    expiresAt: n.expiresAt,
     audience: {
       all: n.audienceAll,
       groups: GROUPS.filter((g) => n.groupIds.includes(g.id)).map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount })),
@@ -171,7 +165,7 @@ function toListItem(s: State, n: FakeNotification) {
   const d = toDetail(s, n)
   return {
     id: n.id, title: n.title, status: n.status, seriesId: n.seriesId, seriesName: d.seriesName, tags: d.tags,
-    publishAt: n.publishAt, publishedAt: n.publishedAt, expiresAt: n.expiresAt, audienceAll: n.audienceAll,
+    publishedAt: n.publishedAt, audienceAll: n.audienceAll,
     recipientCount: n.recipientCount,
     version: n.version, updatedAt: n.updatedAt,
   }
@@ -197,7 +191,6 @@ function applyWrite(n: FakeNotification, body: Record<string, unknown>) {
   n.variables = ((body.variables as Variable[] | undefined) ?? []).map((v) => ({ key: v.key, label: v.label || v.key, type: v.type || 'text' }))
   n.seriesId = (body.seriesId as number | null) ?? null
   n.tagIds = (body.tagIds as number[] | undefined) ?? []
-  n.expiresAt = (body.expiresAt as string | null) ?? null
   n.audienceAll = Boolean(body.audienceAll)
   n.groupIds = (body.groupIds as number[] | undefined) ?? []
   n.employeeCodes = (body.employeeCodes as string[] | undefined) ?? []
@@ -335,31 +328,21 @@ export async function installFake(page: Page, customize?: (s: State) => void): P
       return json(route, toDetail(state, n))
     }
     if (action === '' && method === 'DELETE') {
-      if (n.status !== 'draft') return problem(route, 409, 'Chỉ xóa được bản nháp. Hãy lưu trữ thông báo đã đăng.')
       state.notifications = state.notifications.filter((x) => x !== n)
       return route.fulfill({ status: 204 })
     }
-    if (action === 'publish' || action === 'schedule') {
+    if (action === 'publish') {
       const errors: Record<string, string[]> = {}
       if (!n.audienceAll && !n.groupIds.length && !n.employeeCodes.length && !n.importId) errors.audience = ['Chưa chọn người nhận.']
       if (Object.keys(errors).length) return json(route, { type: 'about:blank', title: 'Validation failed', status: 400, detail: 'Thông báo chưa sẵn sàng để đăng.', errors }, 400)
-      if (action === 'schedule') {
-        n.status = 'scheduled'
-        n.publishAt = String(body.publishAt)
-      } else {
-        n.status = 'published'
-        n.publishedAt = new Date().toISOString()
-        n.recipientCount = estimate(state, n)
-      }
+      n.status = 'published'
+      n.publishedAt = new Date().toISOString()
+      n.recipientCount = estimate(state, n)
       n.updatedAt = new Date().toISOString()
       return json(route, toDetail(state, n))
     }
-    if (action === 'archive') {
-      n.status = 'archived'
-      return json(route, toDetail(state, n))
-    }
     if (action === 'clone') {
-      const copy = note(state.nextId++, { ...structuredClone(n), id: undefined as never, status: 'draft', publishedAt: null, publishAt: null, version: 1, attachments: [], importId: null, importRows: null, recipientCount: 0 })
+      const copy = note(state.nextId++, { ...structuredClone(n), id: undefined as never, status: 'draft', publishedAt: null, version: 1, attachments: [], importId: null, importRows: null, recipientCount: 0 })
       copy.id = `0198b000-0000-7000-8000-${String(state.nextId++).padStart(12, '0')}`
       copy.updatedAt = new Date().toISOString()
       state.notifications.push(copy)

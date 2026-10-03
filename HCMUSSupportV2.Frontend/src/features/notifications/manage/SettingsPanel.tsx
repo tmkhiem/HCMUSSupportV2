@@ -5,9 +5,7 @@ import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
-import { useState } from 'react'
 import { AcrylicCard, SectionLabel } from '../../../ui'
-import DateTimeField from './DateTimeField'
 import { useManageSeries, useManageTags } from './manageQueries'
 import type { DraftForm } from './manageTypes'
 
@@ -15,15 +13,13 @@ export interface SettingsPanelProps {
   form: DraftForm
   onChange: (patch: Partial<DraftForm>) => void
   /** A notification that already went out keeps its publish time; the expiry check needs it. */
-  publishAt: Date | null
-  errors: { expiresAt?: string; seriesId?: string; tagIds?: string }
+  errors: { seriesId?: string; tagIds?: string }
   disabled?: boolean
   onManageTags: () => void
 }
 
 /** Series, tags, expiry. */
-export default function SettingsPanel({ form, onChange, publishAt, errors, disabled, onManageTags }: SettingsPanelProps) {
-  const [opened] = useState(() => new Date())
+export default function SettingsPanel({ form, onChange, errors, disabled, onManageTags }: SettingsPanelProps) {
   const tags = useManageTags()
   const series = useManageSeries()
   const selectedTags = (tags.data ?? []).filter((t) => form.tagIds.includes(t.id))
@@ -73,17 +69,6 @@ export default function SettingsPanel({ form, onChange, publishAt, errors, disab
             Quản lý thẻ và chuỗi
           </Button>
         </Box>
-
-        <DateTimeField
-          label="Hết hạn (không bắt buộc)"
-          value={form.expiresAt}
-          onChange={(expiresAt) => onChange({ expiresAt })}
-          minDateTime={publishAt ?? opened}
-          disabled={disabled}
-          error={Boolean(errors.expiresAt)}
-          helperText={errors.expiresAt ?? 'Sau thời điểm này thông báo biến khỏi hộp thư.'}
-          testId="expires-at"
-        />
       </Stack>
     </AcrylicCard>
   )

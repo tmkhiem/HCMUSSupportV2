@@ -22,9 +22,7 @@ const detail = (patch: Partial<ManageDetail> = {}): ManageDetail => ({
   seriesId: 1,
   seriesName: 'Nâng lương',
   tags: [{ id: 3, name: 'Lương', color: null, sort: 0 }],
-  publishAt: null,
   publishedAt: null,
-  expiresAt: new Date('2026-12-31T00:00:00Z'),
   audienceAll: false,
   groups: [{ id: 7, name: 'Nhóm A', memberCount: 4 }],
   employees: [{ code: 'T0003', fullName: 'Lê Nhân Viên', status: 'active' }],
@@ -44,7 +42,6 @@ describe('draft form', () => {
     const form = formFromDetail(detail())
     expect(form.summary).toBe('') // an automatic summary stays empty so the server derives it again
     expect(form.tagIds).toEqual([3])
-    expect(form.expiresAt).toBe('2026-12-31T00:00:00.000Z')
     const request = toWriteRequest(form, 4)
     expect(request).toMatchObject({
       version: 4,
@@ -153,12 +150,11 @@ describe('API mapping', () => {
     const mapped = toManageDetail({
       id: 'x',
       title: 'T',
-      status: 'scheduled',
+      status: 'archived',
       variables: [{ key: 'A', type: 'bogus' }],
       audience: { all: true, groups: [{ id: 1, name: 'G', memberCount: 2 }], employees: [{ code: 'T1' }], import: { importId: 'i', status: 'applied', rows: 5, distinctEmployees: 4 } },
-      expiresAt: new Date('2026-01-01T00:00:00Z'),
     } as never)
-    expect(mapped.status).toBe('scheduled')
+    expect(mapped.status).toBe('draft') // an unknown status falls back to draft
     expect(mapped.variables).toEqual([{ key: 'A', label: 'A', type: 'text' }])
     expect(mapped.audienceAll).toBe(true)
     expect(mapped.groups).toEqual([{ id: 1, name: 'G', memberCount: 2 }])
@@ -183,9 +179,7 @@ const item = (patch: Partial<ManageItem> = {}): ManageItem => ({
   seriesId: null,
   seriesName: 'Chuỗi A',
   tags: [{ id: 1, name: 'Chung', color: null, sort: 0 }, { id: 2, name: 'Lương', color: null, sort: 1 }],
-  publishAt: null,
   publishedAt: new Date('2026-06-14T00:00:00Z'),
-  expiresAt: null,
   audienceAll: true,
   recipientCount: 200,
   version: 2,
@@ -210,22 +204,21 @@ describe('ManageRow', () => {
     expect(screen.getByText('200 người nhận')).toBeInTheDocument()
   })
 
-  it('a draft has no recipients and offers delete; a published one offers archive but not delete', async () => {
+  it('a draft has no recipients; both a draft and a published notification offer delete', async () => {
     const user = userEvent.setup()
     const onAction = vi.fn()
     const { unmount } = renderRow(item({ status: 'draft', recipientCount: 0, publishedAt: null }), onAction)
     expect(screen.getByText('Chưa gửi cho ai')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Thao tác với/ }))
-    expect(screen.queryByRole('menuitem', { name: 'Lưu trữ' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('menuitem', { name: 'Xóa bản nháp' }))
     expect(onAction).toHaveBeenCalledWith('delete', expect.objectContaining({ id: 'abc' }))
     unmount()
 
     renderRow(item(), onAction)
     await user.click(screen.getByRole('button', { name: /Thao tác với/ }))
-    expect(screen.queryByRole('menuitem', { name: 'Xóa bản nháp' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('menuitem', { name: 'Lưu trữ' }))
-    expect(onAction).toHaveBeenLastCalledWith('archive', expect.anything())
+    expect(screen.queryByRole('menuitem', { name: 'Lưu trữ' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('menuitem', { name: 'Xóa thông báo' }))
+    expect(onAction).toHaveBeenLastCalledWith('delete', expect.anything())
   })
 })
 

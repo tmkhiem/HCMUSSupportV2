@@ -5,9 +5,7 @@ import type { NotificationStatus } from './manageTypes'
 
 const COLOR: Record<NotificationStatus, ChipProps['color']> = {
   draft: 'default',
-  scheduled: 'warning',
   published: 'success',
-  archived: 'default',
 }
 
 /** The lifecycle state of a notification as a chip. */
@@ -17,7 +15,7 @@ export default function StatusChip({ status, size = 'small' }: { status: Notific
       size={size}
       label={STATUS_LABEL[status]}
       color={COLOR[status]}
-      variant={status === 'archived' || status === 'draft' ? 'outlined' : 'filled'}
+      variant={status === 'draft' ? 'outlined' : 'filled'}
       data-testid="status-chip"
       data-status={status}
       sx={{ fontWeight: 700 }}
