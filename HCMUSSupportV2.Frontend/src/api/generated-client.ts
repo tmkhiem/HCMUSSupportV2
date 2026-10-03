@@ -4384,6 +4384,53 @@ export class ManageEmployeesClient {
         return Promise.resolve<ManagedEmployeeDto>(null as any);
     }
 
+    acceptHrmConflict(code: string, email: string): Promise<ManagedEmployeeDto> {
+        let url_ = this.baseUrl + "/api/manage/employees/{code}/emails/{email}/hrm-conflict/accept";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        if (email === undefined || email === null)
+            throw new globalThis.Error("The parameter 'email' must be defined.");
+        url_ = url_.replace("{email}", encodeURIComponent("" + email));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "PUT",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAcceptHrmConflict(_response);
+        });
+    }
+
+    protected processAcceptHrmConflict(response: Response): Promise<ManagedEmployeeDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ManagedEmployeeDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ManagedEmployeeDto>(null as any);
+    }
+
     importEmails(dryRun: boolean | undefined, removeMissing: boolean | undefined, file: FileParameter | null | undefined): Promise<EmailImportReportDto> {
         let url_ = this.baseUrl + "/api/manage/employees/emails/import?";
         if (dryRun === null)
@@ -4864,7 +4911,6 @@ export class InboxItemDto implements IInboxItemDto {
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
     isNew?: boolean;
-    updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
 
@@ -4890,7 +4936,6 @@ export class InboxItemDto implements IInboxItemDto {
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.deliveredAt = _data["deliveredAt"] ? new Date(_data["deliveredAt"].toString()) : undefined as any;
             this.isNew = _data["isNew"];
-            this.updatedAfterDelivery = _data["updatedAfterDelivery"];
             this.seriesId = _data["seriesId"];
             this.hasAttachments = _data["hasAttachments"];
         }
@@ -4916,7 +4961,6 @@ export class InboxItemDto implements IInboxItemDto {
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["deliveredAt"] = this.deliveredAt ? this.deliveredAt.toISOString() : undefined as any;
         data["isNew"] = this.isNew;
-        data["updatedAfterDelivery"] = this.updatedAfterDelivery;
         data["seriesId"] = this.seriesId;
         data["hasAttachments"] = this.hasAttachments;
         return data;
@@ -4931,7 +4975,6 @@ export interface IInboxItemDto {
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
     isNew?: boolean;
-    updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
 }
@@ -4992,7 +5035,6 @@ export class InboxDetailDto implements IInboxDetailDto {
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
     isNew?: boolean;
-    updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
     bodyMd?: string;
@@ -5023,7 +5065,6 @@ export class InboxDetailDto implements IInboxDetailDto {
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.deliveredAt = _data["deliveredAt"] ? new Date(_data["deliveredAt"].toString()) : undefined as any;
             this.isNew = _data["isNew"];
-            this.updatedAfterDelivery = _data["updatedAfterDelivery"];
             this.seriesId = _data["seriesId"];
             this.hasAttachments = _data["hasAttachments"];
             this.bodyMd = _data["bodyMd"];
@@ -5062,7 +5103,6 @@ export class InboxDetailDto implements IInboxDetailDto {
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["deliveredAt"] = this.deliveredAt ? this.deliveredAt.toISOString() : undefined as any;
         data["isNew"] = this.isNew;
-        data["updatedAfterDelivery"] = this.updatedAfterDelivery;
         data["seriesId"] = this.seriesId;
         data["hasAttachments"] = this.hasAttachments;
         data["bodyMd"] = this.bodyMd;
@@ -5090,7 +5130,6 @@ export interface IInboxDetailDto {
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
     isNew?: boolean;
-    updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
     hasAttachments?: boolean;
     bodyMd?: string;
@@ -6328,6 +6367,8 @@ export interface IRevisionDto {
 
 export class NotificationStatsDto implements INotificationStatsDto {
     recipientCount?: number;
+    fetchedCount?: number;
+    openedCount?: number;
 
     constructor(data?: INotificationStatsDto) {
         if (data) {
@@ -6341,6 +6382,8 @@ export class NotificationStatsDto implements INotificationStatsDto {
     init(_data?: any) {
         if (_data) {
             this.recipientCount = _data["recipientCount"];
+            this.fetchedCount = _data["fetchedCount"];
+            this.openedCount = _data["openedCount"];
         }
     }
 
@@ -6354,12 +6397,16 @@ export class NotificationStatsDto implements INotificationStatsDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["recipientCount"] = this.recipientCount;
+        data["fetchedCount"] = this.fetchedCount;
+        data["openedCount"] = this.openedCount;
         return data;
     }
 }
 
 export interface INotificationStatsDto {
     recipientCount?: number;
+    fetchedCount?: number;
+    openedCount?: number;
 }
 
 export class PreviewVarsDto implements IPreviewVarsDto {
@@ -12729,6 +12776,7 @@ export class ManagedEmailDto implements IManagedEmailDto {
     addedBy?: string | undefined;
     addedAt?: Date;
     hrmConflict?: boolean;
+    hrmConflictOwners?: HrmConflictOwnerDto[];
 
     constructor(data?: IManagedEmailDto) {
         if (data) {
@@ -12747,6 +12795,11 @@ export class ManagedEmailDto implements IManagedEmailDto {
             this.addedBy = _data["addedBy"];
             this.addedAt = _data["addedAt"] ? new Date(_data["addedAt"].toString()) : undefined as any;
             this.hrmConflict = _data["hrmConflict"];
+            if (Array.isArray(_data["hrmConflictOwners"])) {
+                this.hrmConflictOwners = [] as any;
+                for (let item of _data["hrmConflictOwners"])
+                    this.hrmConflictOwners!.push(HrmConflictOwnerDto.fromJS(item));
+            }
         }
     }
 
@@ -12765,6 +12818,11 @@ export class ManagedEmailDto implements IManagedEmailDto {
         data["addedBy"] = this.addedBy;
         data["addedAt"] = this.addedAt ? this.addedAt.toISOString() : undefined as any;
         data["hrmConflict"] = this.hrmConflict;
+        if (Array.isArray(this.hrmConflictOwners)) {
+            data["hrmConflictOwners"] = [];
+            for (let item of this.hrmConflictOwners)
+                data["hrmConflictOwners"].push(item ? item.toJSON() : undefined as any);
+        }
         return data;
     }
 }
@@ -12776,6 +12834,47 @@ export interface IManagedEmailDto {
     addedBy?: string | undefined;
     addedAt?: Date;
     hrmConflict?: boolean;
+    hrmConflictOwners?: HrmConflictOwnerDto[];
+}
+
+export class HrmConflictOwnerDto implements IHrmConflictOwnerDto {
+    code?: string;
+    fullName?: string;
+
+    constructor(data?: IHrmConflictOwnerDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.fullName = _data["fullName"];
+        }
+    }
+
+    static fromJS(data: any): HrmConflictOwnerDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new HrmConflictOwnerDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["fullName"] = this.fullName;
+        return data;
+    }
+}
+
+export interface IHrmConflictOwnerDto {
+    code?: string;
+    fullName?: string;
 }
 
 export class AddEmployeeEmailRequest implements IAddEmployeeEmailRequest {
