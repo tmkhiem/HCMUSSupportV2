@@ -33,11 +33,11 @@ Also merged: `fix/build-wwwroot-flake`, `fix/ef-bundle-release` and `docs/env-ex
 
 ## In progress
 
-**D15 legacy migration**: done on the branch `feat/d15-legacy-migration` (not pushed, **not merged**; the owner reviews first). Runbook and results: [MIGRATION.md](MIGRATION.md).
+**D15 legacy migration**: done on `feat/d15-legacy-migration` (merged into `main`, not pushed). Runbook and results: [MIGRATION.md](MIGRATION.md).
 Verified against the real data repo on a temporary database (since dropped): a full run and a second run that reported nothing to do. Tests: 16 backend (`Legacy/LegacyMigrationTests`),
 18 sync (`LegacyMigrationTests`), 52 `tools/legacy-news` (vitest). The migration `D15_LegacyMigration` adds `legacy_import_marks`.
 
-**D18 parity check and cutover**: done on the branch `feat/d18-parity-cutover` (branched from `feat/d15-legacy-migration`, not pushed, **not merged**). The parity tool is `tools/parity-check` and the report [PARITY.md](PARITY.md): 5 sampled real employees, the edge cases and all 1,917 other roster people compared with v1, 0 mismatches (documented differences only). The owner's cutover steps (soak, Google redirect URIs and secret rotation, server upgrade, DNS, removing v1) are the checklist [CUTOVER.md](CUTOVER.md); none was run. The temporary database `hcmus_support_dev_m2_d18_a` is dropped.
+**D18 parity check and cutover**: done on the branch `feat/d18-parity-cutover` (merged into `main` together with D15, not pushed). The parity tool is `tools/parity-check` and the report [PARITY.md](PARITY.md): 5 sampled real employees, the edge cases and all 1,917 other roster people compared with v1, 0 mismatches (documented differences only). The owner's cutover steps (soak, Google redirect URIs and secret rotation, server upgrade, DNS, removing v1) are the checklist [CUTOVER.md](CUTOVER.md); none was run. The temporary database `hcmus_support_dev_m2_d18_a` is dropped.
 
 Otherwise nothing. The branches `feat/d09-notification-editor`, `feat/d14b-admin-pages`, `feat/d14c-employee-emails`, `feat/d12-education-pages`, `feat/d13-research-teaching-pages`, `integration/d12-d13-followups` and the three follow-up branches are merged and can be deleted from `origin`.
 
