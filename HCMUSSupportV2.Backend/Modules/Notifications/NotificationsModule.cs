@@ -15,8 +15,6 @@ public static class NotificationsModule
 {
     public static IServiceCollection AddNotificationsModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.SectionName));
-
         services.AddScoped<NotificationEditorService>();
         services.AddScoped<RecipientImportService>();
         services.AddScoped<InboxService>();
@@ -24,7 +22,6 @@ public static class NotificationsModule
 
         services.AddJobHandler<PublishNotificationJob>();
         services.AddJobHandler<BackfillNotificationsJob>();
-        services.AddHostedService<ScheduledNotificationSweeper>();
 
         // Late joiners: the groups engine and the roster/email code call these (every registered observer is called).
         services.AddScoped<IGroupMembershipObserver, NotificationAudienceObserver>();

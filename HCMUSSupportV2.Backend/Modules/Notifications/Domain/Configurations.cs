@@ -45,7 +45,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 {
     public void Configure(EntityTypeBuilder<Notification> b)
     {
-        b.ToTable("notifications", t => t.HasCheckConstraint("ck_notifications_status", "status IN ('draft','scheduled','published','archived')"));
+        b.ToTable("notifications", t => t.HasCheckConstraint("ck_notifications_status", "status IN ('draft','published')"));
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).ValueGeneratedNever();
         b.Property(x => x.Title).IsRequired().HasMaxLength(500);
@@ -66,7 +66,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
             "setweight(to_tsvector('vn_unaccent', coalesce(content_text, '')), 'C')", stored: true);
 
         b.HasIndex(x => x.Search).HasMethod("gin").HasDatabaseName("ix_notifications_search");
-        b.HasIndex(x => new { x.Status, x.PublishAt }).HasDatabaseName("ix_notifications_status_publish_at");
+        b.HasIndex(x => x.Status).HasDatabaseName("ix_notifications_status");
         b.HasIndex(x => x.SeriesId);
 
         b.HasOne<NotificationSeries>().WithMany().HasForeignKey(x => x.SeriesId).OnDelete(DeleteBehavior.SetNull);

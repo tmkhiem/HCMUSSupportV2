@@ -148,7 +148,7 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
         {
             Id = id, SeriesId = seriesId, Title = title, Summary = analysis!.Summary, SummaryIsCustom = false, BodyMd = body,
             ContentText = analysis.ContentText, Variables = variablesJson, Status = NotificationStatuses.Published,
-            PublishAt = publishedAt, PublishedAt = publishedAt,
+            PublishedAt = publishedAt,
             AudienceAll = all, Version = 1, CreatedAt = publishedAt, UpdatedAt = publishedAt,
         };
         db.Set<Notification>().Add(n);

@@ -51,7 +51,7 @@ public record InboxFilter(string? Q, List<long>? Tags, DateTimeOffset? From, Dat
 public class InboxService(AppDbContext db, IFileStore files)
 {
     // A delivery is visible while its notification is published and not expired.
-    private const string Visible = "n.status = 'published' AND (n.expires_at IS NULL OR n.expires_at > now())";
+    private const string Visible = "n.status = 'published'";
 
     public async Task<Page<InboxItemDto>> ListAsync(string code, InboxFilter filter, string? cursor, int limit, CancellationToken ct)
     {
@@ -149,7 +149,6 @@ public class InboxService(AppDbContext db, IFileStore files)
             join nf in db.Set<Domain.Notification>().AsNoTracking() on dl.NotificationId equals nf.Id
             join em in db.Set<Identity.Directory.Employee>().AsNoTracking() on dl.EmployeeCode equals em.Code
             where dl.EmployeeCode == code && dl.NotificationId == id && nf.Status == Domain.NotificationStatuses.Published
-                  && (nf.ExpiresAt == null || nf.ExpiresAt > DateTimeOffset.UtcNow)
             select new { n = nf, d = dl, prev = em.PreviousLoginAt }).FirstOrDefaultAsync(ct) ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
         var n = row.n;
         var d = row.d;
@@ -179,7 +178,6 @@ public class InboxService(AppDbContext db, IFileStore files)
                     join od in db.Set<Domain.NotificationDelivery>().AsNoTracking() on other.Id equals od.NotificationId
                     where od.EmployeeCode == code && other.SeriesId == sid && other.Id != id
                           && other.Status == Domain.NotificationStatuses.Published
-                          && (other.ExpiresAt == null || other.ExpiresAt > DateTimeOffset.UtcNow)
                           && other.PublishedAt < n.PublishedAt
                     orderby other.PublishedAt descending
                     select new SeriesPreviousDto(other.Id, other.Title, other.PublishedAt)).Take(50).ToListAsync(ct);
@@ -200,7 +198,7 @@ public class InboxService(AppDbContext db, IFileStore files)
             join nt in db.Set<Domain.Notification>().AsNoTracking() on dl.NotificationId equals nt.Id
             join at in db.Set<Domain.NotificationAttachment>().AsNoTracking() on nt.Id equals at.NotificationId
             where dl.EmployeeCode == code && nt.Id == notificationId && at.FileId == fileId
-                  && nt.Status == Domain.NotificationStatuses.Published && (nt.ExpiresAt == null || nt.ExpiresAt > DateTimeOffset.UtcNow)
+                  && nt.Status == Domain.NotificationStatuses.Published
             select at.Id).AnyAsync(ct);
         if (!allowed) throw ApiException.NotFound("Không tìm thấy tệp đính kèm.");
         return await files.OpenReadAsync(fileId, ct) ?? throw ApiException.NotFound("Không tìm thấy tệp đính kèm.");

@@ -20,12 +20,9 @@ public record NotificationWriteRequest(
     string? BodyMd,
     List<VariableDto>? Variables,
     List<long>? TagIds,
-    DateTimeOffset? ExpiresAt,
     bool AudienceAll,
     List<long>? GroupIds,
     List<string>? EmployeeCodes);
-
-public record ScheduleRequest(DateTimeOffset PublishAt);
 
 public record PersonRef(string Code, string? FullName);
 
@@ -46,9 +43,7 @@ public record ManageNotificationListItem(
     long? SeriesId,
     string? SeriesName,
     IReadOnlyList<TagDto> Tags,
-    DateTimeOffset? PublishAt,
     DateTimeOffset? PublishedAt,
-    DateTimeOffset? ExpiresAt,
     bool AudienceAll,
     int RecipientCount,
     int Version,
@@ -66,9 +61,7 @@ public record ManageNotificationDto(
     long? SeriesId,
     string? SeriesName,
     IReadOnlyList<TagDto> Tags,
-    DateTimeOffset? PublishAt,
     DateTimeOffset? PublishedAt,
-    DateTimeOffset? ExpiresAt,
     AudienceDto Audience,
     IReadOnlyList<AttachmentDto> Attachments,
     int RecipientCount,

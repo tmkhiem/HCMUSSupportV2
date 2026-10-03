@@ -43,7 +43,7 @@ public class ManageNotificationsController(NotificationEditorService service, Re
     public Task<ManageNotificationDto> Update(Guid id, [FromBody] NotificationWriteRequest request, CancellationToken ct) =>
         service.UpdateAsync(id, request, ct);
 
-    /// <summary>Deletes a draft; any other status answers 409.</summary>
+    /// <summary>Deletes a notification (draft or posted) with its deliveries, attachments and history.</summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
@@ -51,15 +51,8 @@ public class ManageNotificationsController(NotificationEditorService service, Re
         return NoContent();
     }
 
-    [HttpPost("{id:guid}/schedule")]
-    public Task<ManageNotificationDto> Schedule(Guid id, [FromBody] ScheduleRequest request, CancellationToken ct) =>
-        service.ScheduleAsync(id, request.PublishAt, ct);
-
     [HttpPost("{id:guid}/publish")]
     public Task<ManageNotificationDto> Publish(Guid id, CancellationToken ct) => service.PublishAsync(id, ct);
-
-    [HttpPost("{id:guid}/archive")]
-    public Task<ManageNotificationDto> Archive(Guid id, CancellationToken ct) => service.ArchiveAsync(id, ct);
 
     /// <summary>New draft with the same content, variables, tags, series and group/employee/all audiences (no recipient rows).</summary>
     [HttpPost("{id:guid}/clone")]

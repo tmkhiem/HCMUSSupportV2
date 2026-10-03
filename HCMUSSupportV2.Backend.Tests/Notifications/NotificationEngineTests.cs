@@ -171,11 +171,14 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Only_drafts_can_be_deleted()
+    public async Task A_posted_notification_can_be_deleted_with_its_deliveries()
     {
+        var reader = await _host.EmployeeAsync();
         var editor = await _host.EditorApiAsync();
-        var id = await _host.PublishAsync(editor, Draft(employees: [await _host.EmployeeAsync()]));
-        await editor.ExpectAsync(HttpStatusCode.Conflict, HttpMethod.Delete, $"{Manage}/{id}");
+        var id = await _host.PublishAsync(editor, Draft(employees: [reader]));
+        await editor.ExpectAsync(HttpStatusCode.NoContent, HttpMethod.Delete, $"{Manage}/{id}");
+        Assert.Empty(await _host.RecipientsAsync(id));
+        Assert.Empty((await (await _host.SignInAsync(reader)).ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray());
     }
 
     [Fact]
@@ -186,7 +189,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var error = await editor.ExpectAsync(HttpStatusCode.BadRequest, HttpMethod.Post, $"{Manage}/{empty}/publish");
         Assert.True(error["errors"]!.AsObject().ContainsKey("bodyMd"));
         Assert.True(error["errors"]!.AsObject().ContainsKey("audience"));
-        await editor.ExpectAsync(HttpStatusCode.BadRequest, HttpMethod.Post, $"{Manage}/{empty}/schedule", new { publishAt = DateTimeOffset.UtcNow.AddHours(-1) });
     }
 
     // ------------------------------------------------------------ audiences
@@ -282,71 +284,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal("3.33", (string?)detailA["vars"]![0]!["HeSoLuong"]);
     }
 
-    // ------------------------------------------------------------ scheduling
-
-    [Fact]
-    public async Task A_scheduled_notification_is_invisible_until_publish_at_and_then_published_by_the_job()
-    {
-        var reader = await _host.EmployeeAsync();
-        var editor = await _host.EditorApiAsync();
-        var id = await CreateAsync(editor, Draft("Hẹn giờ", employees: [reader]));
-        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{id}/schedule", new { publishAt = DateTimeOffset.UtcNow.AddSeconds(3) });
-
-        var inbox = await _host.SignInAsync(reader);
-        Assert.Empty((await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray());
-        Assert.Equal(HttpStatusCode.NotFound, (await inbox.GetAsync($"/api/notifications/{id}")).StatusCode);
-        Assert.Equal("scheduled", (string?)(await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{id}"))["status"]);
-
-        Assert.True(await Wait.UntilAsync(async () => (await _host.RecipientsAsync(id)).Contains(reader), TimeSpan.FromSeconds(30)),
-            "scheduled notification was not published");
-        var items = (await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray();
-        Assert.Equal("Hẹn giờ", (string?)items.Single()!["title"]);
-        Assert.Equal("published", (string?)(await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{id}"))["status"]);
-    }
-
-    [Fact]
-    public async Task The_sweeper_publishes_a_due_scheduled_notification_that_has_no_job()
-    {
-        var reader = await _host.EmployeeAsync();
-        var editor = await _host.EditorApiAsync();
-        var id = await CreateAsync(editor, Draft("Quên job", employees: [reader]));
-        // A scheduled row whose job was lost: set the state directly, with publish_at already due.
-        await _host.Factory.WithDbAsync(db => db.Database.ExecuteSqlRawAsync(
-            "UPDATE notifications SET status = 'scheduled', publish_at = now() - interval '1 minute' WHERE id = {0}::uuid", id));
-
-        Assert.True(await Wait.UntilAsync(async () => (await _host.RecipientsAsync(id)).Contains(reader), TimeSpan.FromSeconds(30)));
-    }
-
-    [Fact]
-    public async Task Archiving_hides_the_notification_from_the_inbox_but_keeps_the_deliveries()
-    {
-        var reader = await _host.EmployeeAsync();
-        var editor = await _host.EditorApiAsync();
-        var id = await _host.PublishAsync(editor, Draft(employees: [reader]));
-        var inbox = await _host.SignInAsync(reader);
-
-        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{id}/archive");
-
-        Assert.Empty((await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray());
-        Assert.Equal(HttpStatusCode.NotFound, (await inbox.GetAsync($"/api/notifications/{id}")).StatusCode);
-        Assert.Single(await _host.RecipientsAsync(id));
-        await editor.ExpectAsync(HttpStatusCode.Conflict, HttpMethod.Post, $"{Manage}/{id}/archive");
-    }
-
-    [Fact]
-    public async Task Expired_notifications_are_not_visible()
-    {
-        var reader = await _host.EmployeeAsync();
-        var editor = await _host.EditorApiAsync();
-        var id = await _host.PublishAsync(editor, Draft(employees: [reader], expiresAt: DateTimeOffset.UtcNow.AddHours(1)));
-        var inbox = await _host.SignInAsync(reader);
-        Assert.Single((await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray());
-
-        await _host.Factory.WithDbAsync(db => db.Database.ExecuteSqlRawAsync("UPDATE notifications SET expires_at = now() - interval '1 second' WHERE id = {0}::uuid", id));
-        Assert.Empty((await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications"))["items"]!.AsArray());
-        Assert.Equal(HttpStatusCode.NotFound, (await inbox.GetAsync($"/api/notifications/{id}")).StatusCode);
-    }
-
     // ------------------------------------------------------------ late joiners
 
     [Fact]
@@ -359,8 +296,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var otherGroup = await _host.CreateGroupAsync();
         var editor = await _host.EditorApiAsync();
         var id = await _host.PublishAsync(editor, Draft("Cho nhóm", groups: [group]));
-        var archived = await _host.PublishAsync(editor, Draft("Đã lưu trữ", groups: [group]));
-        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{archived}/archive");
+        var draft = await CreateAsync(editor, Draft("Bản nháp", groups: [group]));
 
         await _host.Factory.WithDbAsync(async db =>
         {
@@ -382,7 +318,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var recipients = await _host.RecipientsAsync(id);
         Assert.Contains(late, recipients);
         Assert.DoesNotContain(unrelated, recipients);
-        Assert.DoesNotContain(late, await _host.RecipientsAsync(archived)); // archived posts are not backfilled
+        Assert.DoesNotContain(late, await _host.RecipientsAsync(draft)); // drafts are not backfilled
         Assert.Equal(2, (int?)(await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{id}"))["recipientCount"]);
     }
 
@@ -592,7 +528,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(target, (string?)clone["audience"]!["employees"]![0]!["code"]);
         Assert.Null(clone["audience"]!["import"]);          // recipient rows are not copied
         Assert.Empty(clone["attachments"]!.AsArray());
-        Assert.Null(clone["publishAt"]);
 
         Assert.Equal(1, await _host.ScalarAsync("SELECT count(*)::int AS \"Value\" FROM notification_audiences WHERE notification_id = {0}::uuid AND kind = 'import'", source));
         Assert.Equal(0, await _host.ScalarAsync("SELECT count(*)::int AS \"Value\" FROM notification_audiences WHERE notification_id = {0}::uuid AND kind = 'import'", (string)clone["id"]!));
@@ -635,11 +570,10 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{id}/publish");
         await _host.WaitForFanOutAsync(id);
         await editor.ExpectAsync(HttpStatusCode.Created, HttpMethod.Post, $"{Manage}/{id}/clone");
-        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{id}/archive");
 
         var actions = await _host.Factory.WithDbAsync(db => db.Database
             .SqlQueryRaw<string>("SELECT action AS \"Value\" FROM audit_log WHERE target_id = {0} OR details::text LIKE {1}", id, $"%{id}%").ToListAsync());
-        foreach (var expected in new[] { "notification.created", "notification.updated", "notification.recipients_applied", "notification.published", "notification.archived" })
+        foreach (var expected in new[] { "notification.created", "notification.updated", "notification.recipients_applied", "notification.published" })
             Assert.Contains(expected, actions);
         Assert.Contains("notification.cloned", actions);
     }

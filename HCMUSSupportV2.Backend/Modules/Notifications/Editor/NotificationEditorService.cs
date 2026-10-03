@@ -57,7 +57,7 @@ public class NotificationEditorService(
 
         var items = rows.Select(n => new ManageNotificationListItem(
             n.Id, n.Title, n.Status, n.SeriesId, n.SeriesId is { } sid && series.TryGetValue(sid, out var sn) ? sn : null,
-            tags.GetValueOrDefault(n.Id) ?? [], n.PublishAt, n.PublishedAt, n.ExpiresAt, n.AudienceAll,
+            tags.GetValueOrDefault(n.Id) ?? [], n.PublishedAt, n.AudienceAll,
             n.RecipientCount, n.Version, n.UpdatedAt)).ToList();
         return new Page<ManageNotificationListItem>(items, hasMore ? Cursor.Encode(rows[^1].Id.ToString()) : null);
     }
@@ -109,7 +109,7 @@ public class NotificationEditorService(
 
         return new ManageNotificationDto(
             n.Id, n.Title, n.Summary, n.SummaryIsCustom, n.BodyMd, n.ContentText, ParseVariables(n.Variables), n.Status,
-            n.SeriesId, seriesName, tags, n.PublishAt, n.PublishedAt, n.ExpiresAt,
+            n.SeriesId, seriesName, tags, n.PublishedAt,
             new AudienceDto(n.AudienceAll, groups, employees, import), attachments,
             n.RecipientCount, n.Version,
             people.FirstOrDefault(p => p.Code == n.CreatedBy), people.FirstOrDefault(p => p.Code == n.UpdatedBy),
@@ -176,7 +176,7 @@ public class NotificationEditorService(
             n.Version++;
             n.UpdatedAt = now;
             n.UpdatedBy = user.Code;
-            var live = n.Status is NotificationStatuses.Published or NotificationStatuses.Archived;
+            var live = n.Status == NotificationStatuses.Published;
             if (live)
             {
                 if (contentChanged) n.ContentUpdatedAt = now;
@@ -207,9 +207,6 @@ public class NotificationEditorService(
     {
         var n = await db.Set<Notification>().FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
-        if (n.Status != NotificationStatuses.Draft)
-            throw ApiException.Conflict("Chỉ xóa được bản nháp. Hãy lưu trữ thông báo đã đăng.");
-
         var fileIds = await db.Set<NotificationAttachment>().Where(a => a.NotificationId == id).Select(a => a.FileId)
             .Concat(db.Set<NotificationRecipientImport>().Where(i => i.NotificationId == id && i.FileId != null).Select(i => i.FileId!.Value))
             .ToListAsync(ct);
@@ -222,56 +219,19 @@ public class NotificationEditorService(
 
     // ---------------------------------------------------------------- lifecycle
 
-    public async Task<ManageNotificationDto> ScheduleAsync(Guid id, DateTimeOffset publishAt, CancellationToken ct)
-    {
-        if (publishAt <= DateTimeOffset.UtcNow) throw ApiException.Invalid("publishAt", "Thời điểm đăng phải ở tương lai.");
-        var n = await db.Set<Notification>().FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
-        if (n.Status is not (NotificationStatuses.Draft or NotificationStatuses.Scheduled))
-            throw ApiException.Conflict("Chỉ lên lịch được bản nháp hoặc thông báo đang chờ đăng.");
-        await EnsureReadyAsync(n, publishAt, ct);
-
-        n.Status = NotificationStatuses.Scheduled;
-        n.PublishAt = publishAt.ToUniversalTime();
-        n.UpdatedAt = DateTimeOffset.UtcNow;
-        n.UpdatedBy = user.Code;
-        try { await db.SaveChangesAsync(ct); }
-        catch (DbUpdateConcurrencyException) { throw ApiException.Conflict("Thông báo vừa được thay đổi. Hãy tải lại."); }
-        // The job waits for publish_at; if the time is moved, the earlier job finds the post not due and does nothing.
-        await jobs.EnqueueAsync(NotificationJobTypes.Publish, new PublishPayload(id), runAt: publishAt, cancellationToken: ct);
-        await audit.LogAsync("notification.scheduled", "notification", id.ToString(), new { publishAt }, ct);
-        return await GetAsync(id, ct);
-    }
-
     public async Task<ManageNotificationDto> PublishAsync(Guid id, CancellationToken ct)
     {
         var n = await db.Set<Notification>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
-        if (n.Status is not (NotificationStatuses.Draft or NotificationStatuses.Scheduled))
-            throw ApiException.Conflict("Thông báo đã được đăng hoặc đã lưu trữ.");
-        await EnsureReadyAsync(n, DateTimeOffset.UtcNow, ct);
+        if (n.Status != NotificationStatuses.Draft)
+            throw ApiException.Conflict("Thông báo đã được đăng.");
+        await EnsureReadyAsync(n, ct);
 
-        if (!await PublishTransition.TryPublishAsync(db, id, immediate: true, ct))
+        if (!await PublishTransition.TryPublishAsync(db, id, ct))
             throw ApiException.Conflict("Thông báo vừa được thay đổi. Hãy tải lại.");
         await jobs.EnqueueAsync(NotificationJobTypes.Publish, new PublishPayload(id), cancellationToken: ct);
         await audit.LogAsync("notification.published", "notification", id.ToString(), new { by = "editor" }, ct);
         db.ChangeTracker.Clear();
-        return await GetAsync(id, ct);
-    }
-
-    public async Task<ManageNotificationDto> ArchiveAsync(Guid id, CancellationToken ct)
-    {
-        var exists = await db.Set<Notification>().Where(x => x.Id == id).Select(x => x.Status).FirstOrDefaultAsync(ct)
-            ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
-        if (exists is not (NotificationStatuses.Published or NotificationStatuses.Scheduled))
-            throw ApiException.Conflict("Chỉ lưu trữ được thông báo đã đăng hoặc đang chờ đăng.");
-
-        var changed = await db.Set<Notification>().Where(x => x.Id == id && (x.Status == NotificationStatuses.Published || x.Status == NotificationStatuses.Scheduled))
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, NotificationStatuses.Archived)
-                .SetProperty(x => x.UpdatedAt, DateTimeOffset.UtcNow).SetProperty(x => x.UpdatedBy, user.Code), ct);
-        if (changed == 0) throw ApiException.Conflict("Thông báo vừa được thay đổi. Hãy tải lại.");
-
-        await audit.LogAsync("notification.archived", "notification", id.ToString(), null, ct);
         return await GetAsync(id, ct);
     }
 
@@ -312,7 +272,7 @@ public class NotificationEditorService(
         return await GetAsync(copy.Id, ct);
     }
 
-    private async Task EnsureReadyAsync(Notification n, DateTimeOffset publishAt, CancellationToken ct)
+    private async Task EnsureReadyAsync(Notification n, CancellationToken ct)
     {
         var errors = new Dictionary<string, string[]>();
         if (string.IsNullOrWhiteSpace(n.Title)) errors["title"] = ["Thiếu tiêu đề."];
@@ -324,7 +284,6 @@ public class NotificationEditorService(
         }
         var hasAudience = n.AudienceAll || await db.Set<NotificationAudience>().AnyAsync(a => a.NotificationId == n.Id, ct);
         if (!hasAudience) errors["audience"] = ["Chưa chọn người nhận."];
-        if (n.ExpiresAt is { } exp && exp <= publishAt) errors["expiresAt"] = ["Thời điểm hết hạn phải sau thời điểm đăng."];
         if (errors.Count > 0)
             throw new ApiException(400, "Validation failed", "Thông báo chưa sẵn sàng để đăng.", errors);
     }
@@ -550,7 +509,6 @@ public class NotificationEditorService(
         n.SummaryIsCustom = p.SummaryIsCustom;
         n.Variables = p.VariablesJson;
         n.SeriesId = req.SeriesId;
-        n.ExpiresAt = req.ExpiresAt?.ToUniversalTime();
         n.AudienceAll = req.AudienceAll;
     }
 

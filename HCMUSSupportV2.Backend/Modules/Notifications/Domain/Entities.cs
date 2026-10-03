@@ -24,9 +24,7 @@ public class NotificationSeries
 public static class NotificationStatuses
 {
     public const string Draft = "draft";
-    public const string Scheduled = "scheduled";
     public const string Published = "published";
-    public const string Archived = "archived";
 }
 
 public class Notification
@@ -47,9 +45,7 @@ public class Notification
     /// <summary>jsonb: [{key,label,type}].</summary>
     public string Variables { get; set; } = "[]";
     public string Status { get; set; } = NotificationStatuses.Draft;
-    public DateTimeOffset? PublishAt { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }
-    public DateTimeOffset? ExpiresAt { get; set; }
     public bool AudienceAll { get; set; }
     public int RecipientCount { get; set; }
     public int Version { get; set; } = 1;

@@ -64,7 +64,6 @@ public partial class RecipientImportService(
     {
         var n = await db.Set<Notification>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == notificationId, ct)
             ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
-        if (n.Status == NotificationStatuses.Archived) throw ApiException.Conflict("Thông báo đã lưu trữ.");
 
         var ext = Path.GetExtension(fileName ?? "").ToLowerInvariant();
         if (ext is not (".xlsx" or ".csv")) throw ApiException.Invalid("file", "Chỉ nhận tệp .xlsx hoặc .csv.");
@@ -128,7 +127,6 @@ public partial class RecipientImportService(
         if (import.Status != ImportStatuses.Validated)
             throw ApiException.Conflict(import.Status == ImportStatuses.Applied ? "Bản nhập này đã được áp dụng." : "Bản nhập này không hợp lệ nên không áp dụng được.");
         var n = await db.Set<Notification>().FirstAsync(x => x.Id == notificationId, ct);
-        if (n.Status == NotificationStatuses.Archived) throw ApiException.Conflict("Thông báo đã lưu trữ.");
 
         var columns = JsonSerializer.Deserialize<List<ImportColumn>>(import.Columns, NotificationJson.Options) ?? [];
         var declared = NotificationEditorService.ParseVariables(n.Variables).ToList();
