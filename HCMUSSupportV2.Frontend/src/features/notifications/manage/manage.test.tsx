@@ -26,15 +26,12 @@ const detail = (patch: Partial<ManageDetail> = {}): ManageDetail => ({
   publishedAt: null,
   expiresAt: new Date('2026-12-31T00:00:00Z'),
   pinnedUntil: null,
-  requiresAck: true,
   audienceAll: false,
   groups: [{ id: 7, name: 'Nhóm A', memberCount: 4 }],
   employees: [{ code: 'T0003', fullName: 'Lê Nhân Viên', status: 'active' }],
   import: null,
   attachments: [],
   recipientCount: 0,
-  readCount: 0,
-  ackCount: 0,
   version: 4,
   createdBy: null,
   updatedBy: null,
@@ -57,8 +54,7 @@ describe('draft form', () => {
       tagIds: [3],
       groupIds: [7],
       employeeCodes: ['T0003'],
-      requiresAck: true,
-      audienceAll: false,
+          audienceAll: false,
     })
     expect(request.variables).toEqual([{ key: 'HeSoLuong', label: 'Hệ số lương', type: 'number' }])
   })
@@ -96,7 +92,7 @@ describe('draft form', () => {
       editedBy: null,
       editedAt: new Date(),
     })
-    expect(next).toMatchObject({ title: 'Bản cũ', bodyMd: 'Nội dung cũ', variables: [], summary: '', tagIds: [3], requiresAck: true })
+    expect(next).toMatchObject({ title: 'Bản cũ', bodyMd: 'Nội dung cũ', variables: [], summary: '', tagIds: [3] })
     expect(next.groups).toEqual(form.groups)
   })
 })
@@ -170,7 +166,7 @@ describe('API mapping', () => {
     expect(mapped.employees[0]).toMatchObject({ code: 'T1', fullName: null })
     expect(mapped.import).toMatchObject({ importId: 'i', rows: 5, distinctEmployees: 4 })
     expect(toManageDetail({ status: 'weird' }).status).toBe('draft')
-    expect(toManageItem({ id: 'a', title: 'b' })).toMatchObject({ status: 'draft', recipientCount: 0, readPercent: 0, tags: [] })
+    expect(toManageItem({ id: 'a', title: 'b' })).toMatchObject({ status: 'draft', recipientCount: 0, tags: [] })
   })
 
   it('reads preview rows as text', () => {
@@ -191,12 +187,8 @@ const item = (patch: Partial<ManageItem> = {}): ManageItem => ({
   publishAt: null,
   publishedAt: new Date('2026-06-14T00:00:00Z'),
   expiresAt: null,
-  requiresAck: true,
   audienceAll: true,
   recipientCount: 200,
-  readCount: 50,
-  ackCount: 10,
-  readPercent: 25,
   version: 2,
   updatedAt: new Date('2026-06-14T00:00:00Z'),
   ...patch,
@@ -210,13 +202,12 @@ describe('ManageRow', () => {
       </MemoryRouter>,
     )
 
-  it('shows the status, series, first tag plus count, the ack flag and the recipient count', () => {
+  it('shows the status, series, first tag plus count, and the recipient count', () => {
     renderRow(item())
     expect(screen.getByTestId('status-chip')).toHaveTextContent('Đã đăng')
     expect(screen.getByRole('link', { name: 'Mở lớp bồi dưỡng' })).toHaveAttribute('href', '/quan-ly/thong-bao/abc')
     expect(screen.getByText('Chuỗi A')).toBeInTheDocument()
     expect(screen.getByText('+1')).toBeInTheDocument()
-    expect(screen.getByText('Cần xác nhận')).toBeInTheDocument()
     expect(screen.getByText('200 người nhận')).toBeInTheDocument()
   })
 

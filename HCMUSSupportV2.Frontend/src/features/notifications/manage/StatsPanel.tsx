@@ -1,27 +1,10 @@
 import Box from '@mui/material/Box'
-import LinearProgress from '@mui/material/LinearProgress'
 import Typography from '@mui/material/Typography'
 import { formatNumber } from '../../../lib/format'
 import { AcrylicCard, PageState, SectionLabel } from '../../../ui'
 import { useStats } from './manageQueries'
 
-const pct = (n: number) => `${n.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`
-
-function Bar({ label, value, detail }: { label: string; value: number; detail: string }) {
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-        <Typography variant="body2">{label}</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-          {detail} · {pct(value)}
-        </Typography>
-      </Box>
-      <LinearProgress variant="determinate" value={Math.min(100, value)} aria-label={`${label} ${pct(value)}`} sx={{ height: 8, borderRadius: 999 }} />
-    </Box>
-  )
-}
-
-/** Recipient count and, when the notification asks for it, the acknowledgement rate. */
+/** Recipient count of a notification that went out. */
 export default function StatsPanel({ notificationId }: { notificationId: string }) {
   const stats = useStats(notificationId, true)
   const s = stats.data
@@ -34,7 +17,6 @@ export default function StatsPanel({ notificationId }: { notificationId: string 
           {s && (
             <Box sx={{ display: 'grid', gap: 1.5 }}>
               <Typography variant="body2">{formatNumber(s.recipientCount)} người nhận</Typography>
-              {s.requiresAck && <Bar label="Đã xác nhận" value={s.ackPercent} detail={`${formatNumber(s.ackCount)}/${formatNumber(s.recipientCount)}`} />}
             </Box>
           )}
         </PageState>

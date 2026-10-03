@@ -48,8 +48,7 @@ public record LegacyNewsPostDto(
     string? SeriesName,
     List<string>? TagNames,
     bool? AudienceAll,
-    string? PinnedUntil,
-    bool RequiresAck = false);
+    string? PinnedUntil);
 
 /// <summary><c>Kind</c> is <c>news</c> (default) or <c>banner</c>. <c>AllCoverage</c> is the share of the active roster (people with an email) a post without variables must cover to become <c>audience_all</c>.</summary>
 public record LegacyNewsRequest(List<LegacyNewsPostDto>? Posts, string? Kind = null, bool MarkRead = true, double AllCoverage = 0.9);

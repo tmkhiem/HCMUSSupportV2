@@ -97,7 +97,6 @@ export function buildPost(file: string, envelope: V1Envelope, options: BuildOpti
     seriesName: guess.seriesName, tagNames: guess.tagNames,
     audienceAll: options.audienceAll ?? null,
     pinnedUntil: options.pinnedUntil ?? null,
-    requiresAck: false,
   }
   return { post, info: { file, rows: rowCount, employees: Object.keys(rows).length, unusedColumns, warnings } }
 }

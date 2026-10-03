@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HCMUSSupportV2.Backend.Modules.Notifications.Inbox;
 
-/// <summary>The signed-in employee's notification inbox. Reads follow view-as; ack is rejected while acting as someone.</summary>
+/// <summary>The signed-in employee's notification inbox. Reads follow view-as.</summary>
 [ApiController]
 [ApiException]
 [Authorize(Policy = Policies.Employee)]
@@ -27,13 +27,6 @@ public class NotificationsController(InboxService inbox, ICurrentUser user) : Co
     [HttpGet("{id:guid}")]
     public Task<InboxDetailDto> Get(Guid id, CancellationToken ct) => inbox.GetAsync(user.RequireEffectiveCode(), id, ct);
 
-    [HttpPost("{id:guid}/ack")]
-    public async Task<UnreadCountDto> Acknowledge(Guid id, CancellationToken ct)
-    {
-        RejectWhenActingAs();
-        return await inbox.AcknowledgeAsync(user.RequireCode(), id, ct);
-    }
-
     /// <summary>Downloads an attachment (404 without a delivery).</summary>
     [HttpGet("{id:guid}/attachments/{fileId:guid}")]
     [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/octet-stream")]
@@ -42,10 +35,5 @@ public class NotificationsController(InboxService inbox, ICurrentUser user) : Co
         var content = await inbox.OpenAttachmentAsync(user.RequireEffectiveCode(), id, fileId, ct);
         Response.Headers["X-Content-Type-Options"] = "nosniff";
         return File(content.Stream, content.File.ContentType, content.File.FileName);
-    }
-
-    private void RejectWhenActingAs()
-    {
-        if (user.IsActingAs) throw ApiException.Forbidden("Đang xem với tư cách người khác (chỉ đọc): không thể thực hiện thao tác này.");
     }
 }

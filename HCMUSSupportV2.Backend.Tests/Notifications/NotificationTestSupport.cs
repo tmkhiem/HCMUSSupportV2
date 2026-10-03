@@ -84,12 +84,10 @@ public sealed class NotificationsHost : IAsyncDisposable
         {
             ["Jobs:Enabled"] = "true",
             ["Notifications:Scheduler:PollSeconds"] = "0.2",
-            ["Notifications:Sse:HeartbeatSeconds"] = "0.5",
-            ["Notifications:Realtime:Enabled"] = "true",   // the engine tests also cover the (opt-in) SSE stream
         };
         foreach (var (k, v) in settings ?? []) all[k] = v;
         Factory = new TestApiFactory(database, all, TestControllers.Add);
-        _ = Factory.Server; // start the host (job worker, sweeper and LISTEN connection)
+        _ = Factory.Server; // start the host (job worker, sweeper)
     }
 
     public Task<string> EmployeeAsync(string status = EmployeeStatuses.Active, string[]? emails = null, string[]? roles = null, string? fullName = null) =>
@@ -147,11 +145,11 @@ public sealed class NotificationsHost : IAsyncDisposable
     }
 
     public static object Draft(string title = "Thông báo thử", string body = "Nội dung", object? variables = null, bool all = false,
-        long[]? groups = null, string[]? employees = null, long[]? tags = null, int? version = null, bool requiresAck = false,
+        long[]? groups = null, string[]? employees = null, long[]? tags = null, int? version = null,
         long? seriesId = null, DateTimeOffset? expiresAt = null, DateTimeOffset? pinnedUntil = null, string? summary = null) => new
     {
         version, title, bodyMd = body, summary, variables = variables ?? Array.Empty<object>(), audienceAll = all,
-        groupIds = groups ?? [], employeeCodes = employees ?? [], tagIds = tags ?? [], requiresAck, seriesId, expiresAt, pinnedUntil,
+        groupIds = groups ?? [], employeeCodes = employees ?? [], tagIds = tags ?? [], seriesId, expiresAt, pinnedUntil,
     };
 
     public static async Task<string> CreateAsync(Api editor, object draft) =>

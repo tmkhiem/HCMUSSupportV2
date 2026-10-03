@@ -8,9 +8,9 @@ using static HCMUSSupportV2.Backend.Tests.Notifications.NotificationsHost;
 
 namespace HCMUSSupportV2.Backend.Tests.Notifications;
 
-/// <summary>Recipient import reports, apply and preview, attachments and images, and the SSE stream.</summary>
+/// <summary>Recipient import reports, apply and preview, attachments and images.</summary>
 [Collection(PostgresCollection.Name)]
-public class NotificationImportAndStreamTests(PostgresFixture database) : IAsyncLifetime
+public class NotificationImportTests(PostgresFixture database) : IAsyncLifetime
 {
     private NotificationsHost _host = null!;
     private const string Manage = "/api/manage/notifications";
@@ -346,146 +346,5 @@ public class NotificationImportAndStreamTests(PostgresFixture database) : IAsync
         Assert.Equal(HttpStatusCode.Unauthorized, (await _host.Factory.CreateSessionClient().GetAsync(url)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await reader.GetAsync($"/api/files/{Guid.NewGuid()}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await reader.UploadAsync($"{Manage}/images", "a.png", png)).StatusCode);
-    }
-
-    // ------------------------------------------------------------ SSE
-
-    [Fact]
-    public async Task The_stream_delivers_a_notification_and_unread_count_events_after_publish_and_heartbeats()
-    {
-        var reader = await _host.EmployeeAsync();
-        var outsider = await _host.EmployeeAsync();
-        var editor = await _host.EditorApiAsync();
-        var readerApi = await _host.SignInAsync(reader);
-        var outsiderApi = await _host.SignInAsync(outsider);
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        await using var stream = await SseStream.OpenAsync(readerApi.Client, cts.Token);
-        await using var outsiderStream = await SseStream.OpenAsync(outsiderApi.Client, cts.Token);
-        Assert.Equal("text/event-stream", stream.ContentType);
-
-        var first = await stream.NextEventAsync("unread-count");
-        Assert.Equal(0, (int)first["count"]!);
-
-        var id = await CreateAsync(editor, Draft("Tin nóng", employees: [reader]));
-        await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{id}/publish");
-
-        var arrived = await stream.NextEventAsync("notification");
-        Assert.Equal(id, (string?)arrived["id"]);
-        Assert.Equal("Tin nóng", (string?)arrived["title"]);
-        var count = await stream.NextEventAsync("unread-count");
-        Assert.Equal(1, (int)count["count"]!);
-        Assert.True(await stream.SawHeartbeatAsync(), "no heartbeat comment arrived");
-
-        // Someone who is not a recipient only sees their own (unchanged) state.
-        Assert.Equal(0, (int)(await outsiderStream.NextEventAsync("unread-count"))["count"]!);
-        Assert.False(outsiderStream.Seen("notification"));
-    }
-
-    [Fact]
-    public async Task The_stream_starts_with_the_current_unread_count_and_ends_when_the_client_disconnects()
-    {
-        var reader = await _host.EmployeeAsync();
-        var editor = await _host.EditorApiAsync();
-        await _host.PublishAsync(editor, Draft(employees: [reader]));
-        var api = await _host.SignInAsync(reader);
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await using (var stream = await SseStream.OpenAsync(api.Client, cts.Token))
-            Assert.Equal(1, (int)(await stream.NextEventAsync("unread-count"))["count"]!);
-
-        var hub = _host.Factory.Services.GetService(typeof(HCMUSSupportV2.Backend.Modules.Notifications.Realtime.SseHub)) as HCMUSSupportV2.Backend.Modules.Notifications.Realtime.SseHub;
-        Assert.True(await Wait.UntilAsync(() => Task.FromResult(!hub!.ConnectedCodes.Contains(reader)), TimeSpan.FromSeconds(10)), "subscription was not released");
-    }
-    [Fact]
-    public async Task The_stream_is_off_by_default_and_answers_404()
-    {
-        await using var host = new NotificationsHost(database, new() { ["Notifications:Realtime:Enabled"] = "false" });
-        var reader = await host.EmployeeAsync();
-        var api = await host.SignInAsync(reader);
-
-        var response = await api.Client.GetAsync("/api/notifications/stream");
-        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
-    }
-}
-
-/// <summary>A live SSE response read line by line in the background.</summary>
-public sealed class SseStream : IAsyncDisposable
-{
-    private readonly CancellationTokenSource _cts;
-    private readonly HttpResponseMessage _response;
-    private readonly Task _reader;
-    private readonly List<(string Event, string Data)> _events = [];
-    private int _heartbeats;
-    private int _cursor;
-    private readonly object _gate = new();
-
-    public string? ContentType => _response.Content.Headers.ContentType?.MediaType;
-
-    private SseStream(HttpResponseMessage response, CancellationToken ct)
-    {
-        _response = response;
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _reader = Task.Run(async () =>
-        {
-            try
-            {
-                await using var body = await response.Content.ReadAsStreamAsync(_cts.Token);
-                using var reader = new StreamReader(body, Encoding.UTF8);
-                string? name = null;
-                while (await reader.ReadLineAsync(_cts.Token) is { } line)
-                {
-                    if (line.StartsWith(": heartbeat")) { lock (_gate) _heartbeats++; }
-                    else if (line.StartsWith("event: ")) name = line[7..];
-                    else if (line.StartsWith("data: ") && name is not null) { lock (_gate) _events.Add((name, line[6..])); name = null; }
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch (IOException) { }
-        });
-    }
-
-    public static async Task<SseStream> OpenAsync(HttpClient client, CancellationToken ct)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/notifications/stream");
-        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return new SseStream(response, ct);
-    }
-
-    /// <summary>The next not yet consumed event with this name (waits up to 20 s).</summary>
-    public async Task<JsonNode> NextEventAsync(string name)
-    {
-        JsonNode? found = null;
-        var ok = await Wait.UntilAsync(() =>
-        {
-            lock (_gate)
-            {
-                for (var i = _cursor; i < _events.Count; i++)
-                {
-                    if (_events[i].Event != name) continue;
-                    found = JsonNode.Parse(_events[i].Data);
-                    _cursor = i + 1;
-                    return Task.FromResult(true);
-                }
-            }
-            return Task.FromResult(false);
-        }, TimeSpan.FromSeconds(20));
-        Assert.True(ok, $"no '{name}' event within 20 s; got: {string.Join(", ", Snapshot().Select(e => e.Event))}");
-        return found!;
-    }
-
-    public Task<bool> SawHeartbeatAsync() => Wait.UntilAsync(() => Task.FromResult(_heartbeats > 0), TimeSpan.FromSeconds(10));
-
-    public bool Seen(string name) => Snapshot().Any(e => e.Event == name);
-
-    private List<(string Event, string Data)> Snapshot() { lock (_gate) return [.. _events]; }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _cts.CancelAsync();
-        _response.Dispose();
-        try { await _reader; } catch { /* the test host is shutting the connection down */ }
-        _cts.Dispose();
     }
 }

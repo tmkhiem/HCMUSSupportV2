@@ -51,11 +51,9 @@ public class Notification
     public DateTimeOffset? PublishedAt { get; set; }
     public DateTimeOffset? ExpiresAt { get; set; }
     public DateTimeOffset? PinnedUntil { get; set; }
-    public bool RequiresAck { get; set; }
     public bool AudienceAll { get; set; }
     public int RecipientCount { get; set; }
     public int ReadCount { get; set; }
-    public int AckCount { get; set; }
     public int Version { get; set; } = 1;
 
     /// <summary>Set when the content is edited after publishing; the inbox shows "updated" for deliveries older than this.</summary>
@@ -117,7 +115,6 @@ public class NotificationDelivery
     public string? Vars { get; set; }
     public DateTimeOffset DeliveredAt { get; set; }
     public DateTimeOffset? ReadAt { get; set; }
-    public DateTimeOffset? AcknowledgedAt { get; set; }
     public DateTimeOffset? DismissedAt { get; set; }
 }
 

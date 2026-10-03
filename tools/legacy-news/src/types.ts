@@ -17,7 +17,6 @@ export interface LegacyPost {
   tagNames: string[]
   audienceAll: boolean | null
   pinnedUntil: string | null
-  requiresAck: boolean
 }
 
 /** What the tool learned about one file besides the payload (never posted). */

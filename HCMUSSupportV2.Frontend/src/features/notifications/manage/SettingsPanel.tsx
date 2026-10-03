@@ -2,10 +2,8 @@ import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
-import FormControlLabel from '@mui/material/FormControlLabel'
 import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
-import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import { useState } from 'react'
 import { AcrylicCard, SectionLabel } from '../../../ui'
@@ -23,7 +21,7 @@ export interface SettingsPanelProps {
   onManageTags: () => void
 }
 
-/** Series, tags, expiry and "Cần xác nhận". */
+/** Series, tags, expiry. */
 export default function SettingsPanel({ form, onChange, publishAt, errors, disabled, onManageTags }: SettingsPanelProps) {
   const [opened] = useState(() => new Date())
   const tags = useManageTags()
@@ -85,11 +83,6 @@ export default function SettingsPanel({ form, onChange, publishAt, errors, disab
           error={Boolean(errors.expiresAt)}
           helperText={errors.expiresAt ?? 'Sau thời điểm này thông báo biến khỏi hộp thư.'}
           testId="expires-at"
-        />
-        <FormControlLabel
-          control={<Switch checked={form.requiresAck} disabled={disabled} onChange={(e) => onChange({ requiresAck: e.target.checked })} />}
-          label="Cần xác nhận đã đọc"
-          slotProps={{ typography: { sx: { fontWeight: 600 } } }}
         />
       </Stack>
     </AcrylicCard>

@@ -63,7 +63,6 @@ test.describe('desktop 1440', () => {
     await expect(salary.getByTestId('status-chip')).toHaveText('Đã đăng')
     await expect(salary).toContainText('Nâng lương thường xuyên')
     await expect(salary).toContainText('Lương')
-    await expect(salary).toContainText('Cần xác nhận')
     await expect(salary).toContainText('284 người nhận')
     await expect(row(page, 'Khảo sát mức độ hài lòng quý II')).toContainText('Đăng lúc')
     await expect(row(page, DRAFT_2026).getByTestId('status-chip')).toHaveText('Bản nháp')

@@ -8,7 +8,6 @@ import { Link as RouterLink } from 'react-router-dom'
 import { formatDate } from '../../../lib/format'
 import { flyInSx } from '../../../ui'
 import type { InboxItem } from './inboxTypes'
-import { needsAck } from './inboxTypes'
 
 export interface InboxRowProps {
   item: InboxItem
@@ -19,7 +18,7 @@ export interface InboxRowProps {
 }
 
 /**
- * One inbox row: a compact acrylic link to `/tin-tuc/:id`. Chips for acknowledgement pending and edited-after-delivery; first tag plus `+N`; delivery date.
+ * One inbox row: a compact acrylic link to `/tin-tuc/:id`. Chip for edited-after-delivery; first tag plus `+N`; delivery date.
  */
 export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
   const [firstTag, ...otherTags] = item.tags
@@ -68,7 +67,6 @@ export default function InboxRow({ item, index, search = '' }: InboxRowProps) {
         direction="row"
         sx={{ flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', gap: 0.75, ml: { md: 'auto' }, pl: { xs: 2.5, md: 0 }, pt: { xs: 0.5, md: 0 } }}
       >
-        {needsAck(item) && <Chip size="small" color="warning" variant="outlined" label="Cần xác nhận" />}
         {item.updatedAfterDelivery && <Chip size="small" color="info" variant="outlined" label="Đã cập nhật" />}
         {item.hasAttachments && <AttachFileOutlined fontSize="small" titleAccess="Có tệp đính kèm" sx={{ color: 'text.secondary', opacity: 0.7 }} />}
         {firstTag && <Chip size="small" variant="tag" label={firstTag.name} />}

@@ -26,7 +26,6 @@ export interface FakeNotification {
   publishedAt: string | null
   expiresAt: string | null
   pinnedUntil: string | null
-  requiresAck: boolean
   audienceAll: boolean
   groupIds: number[]
   employeeCodes: string[]
@@ -34,8 +33,6 @@ export interface FakeNotification {
   importId: string | null
   attachments: Attachment[]
   recipientCount: number
-  readCount: number
-  ackCount: number
   version: number
   updatedAt: string
 }
@@ -79,7 +76,6 @@ function note(id: number, patch: Partial<FakeNotification>): FakeNotification {
     publishedAt: day(-id),
     expiresAt: null,
     pinnedUntil: null,
-    requiresAck: false,
     audienceAll: false,
     groupIds: [],
     employeeCodes: [],
@@ -87,8 +83,6 @@ function note(id: number, patch: Partial<FakeNotification>): FakeNotification {
     importId: null,
     attachments: [],
     recipientCount: 0,
-    readCount: 0,
-    ackCount: 0,
     version: 1,
     updatedAt: day(-id),
     ...patch,
@@ -114,22 +108,19 @@ export function seed() {
       variables: SALARY_VARS,
       seriesId: 1,
       tagIds: [1],
-      requiresAck: true,
       importId: '0198c000-0000-7000-8000-000000000001',
       importRows: {
         T0003: [{ Ten_Day_Du: 'Lê Nhân Viên', HeSoLuong: '3,66', NgayHieuLuc: '01/07/2025', MucLuong: '8.500.000 đ' }],
         T0004: [{ Ten_Day_Du: 'Phạm Đào Tạo', HeSoLuong: '4,06', NgayHieuLuc: '01/07/2025', MucLuong: '9.800.000 đ' }],
       },
       recipientCount: 284,
-      readCount: 241,
-      ackCount: 190,
       version: 3,
     }),
-    note(2, { title: 'Mở lớp bồi dưỡng nghiệp vụ sư phạm đợt 3', summary: 'Đăng ký trước ngày 30/06.', tagIds: [4], audienceAll: true, recipientCount: 380, readCount: 120, ackCount: 0 }),
+    note(2, { title: 'Mở lớp bồi dưỡng nghiệp vụ sư phạm đợt 3', summary: 'Đăng ký trước ngày 30/06.', tagIds: [4], audienceAll: true, recipientCount: 380 }),
     note(3, { title: 'Khảo sát mức độ hài lòng quý II', status: 'scheduled', publishedAt: null, publishAt: day(5), seriesId: 2, tagIds: [4], groupIds: [1], recipientCount: 0, updatedAt: day(-1) }),
     note(4, { title: 'Nâng lương thường xuyên năm 2026 (nháp)', status: 'draft', publishedAt: null, seriesId: 1, tagIds: [1], bodyMd: SALARY_BODY.replace('2025', '2026'), variables: SALARY_VARS, updatedAt: day(0) }),
-    note(5, { title: 'Lịch nghỉ hè 2026', status: 'archived', tagIds: [4], audienceAll: true, recipientCount: 380, readCount: 380, publishedAt: day(-40) }),
-    note(6, { title: 'Khen thưởng sáng kiến cấp trường 2025', tagIds: [3], employeeCodes: ['T0003'], recipientCount: 1, readCount: 1 }),
+    note(5, { title: 'Lịch nghỉ hè 2026', status: 'archived', tagIds: [4], audienceAll: true, recipientCount: 380, publishedAt: day(-40) }),
+    note(6, { title: 'Khen thưởng sáng kiến cấp trường 2025', tagIds: [3], employeeCodes: ['T0003'], recipientCount: 1 }),
   ]
   return { tags, series, notifications, nextId: 100 }
 }
@@ -163,7 +154,6 @@ function toDetail(s: State, n: FakeNotification) {
     publishedAt: n.publishedAt,
     expiresAt: n.expiresAt,
     pinnedUntil: n.pinnedUntil,
-    requiresAck: n.requiresAck,
     audience: {
       all: n.audienceAll,
       groups: GROUPS.filter((g) => n.groupIds.includes(g.id)).map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount })),
@@ -172,8 +162,6 @@ function toDetail(s: State, n: FakeNotification) {
     },
     attachments: n.attachments,
     recipientCount: n.recipientCount,
-    readCount: n.readCount,
-    ackCount: n.ackCount,
     version: n.version,
     createdBy: { code: 'T0001', fullName: 'Nguyễn Thử Nghiệm' },
     updatedBy: { code: 'T0001', fullName: 'Nguyễn Thử Nghiệm' },
@@ -186,9 +174,8 @@ function toListItem(s: State, n: FakeNotification) {
   const d = toDetail(s, n)
   return {
     id: n.id, title: n.title, status: n.status, seriesId: n.seriesId, seriesName: d.seriesName, tags: d.tags,
-    publishAt: n.publishAt, publishedAt: n.publishedAt, expiresAt: n.expiresAt, requiresAck: n.requiresAck, audienceAll: n.audienceAll,
-    recipientCount: n.recipientCount, readCount: n.readCount, ackCount: n.ackCount,
-    readPercent: n.recipientCount ? Math.round((n.readCount * 1000) / n.recipientCount) / 10 : 0,
+    publishAt: n.publishAt, publishedAt: n.publishedAt, expiresAt: n.expiresAt, audienceAll: n.audienceAll,
+    recipientCount: n.recipientCount,
     version: n.version, updatedAt: n.updatedAt,
   }
 }
@@ -215,7 +202,6 @@ function applyWrite(n: FakeNotification, body: Record<string, unknown>) {
   n.tagIds = (body.tagIds as number[] | undefined) ?? []
   n.expiresAt = (body.expiresAt as string | null) ?? null
   n.pinnedUntil = (body.pinnedUntil as string | null) ?? null
-  n.requiresAck = Boolean(body.requiresAck)
   n.audienceAll = Boolean(body.audienceAll)
   n.groupIds = (body.groupIds as number[] | undefined) ?? []
   n.employeeCodes = (body.employeeCodes as string[] | undefined) ?? []
@@ -377,7 +363,7 @@ export async function installFake(page: Page, customize?: (s: State) => void): P
       return json(route, toDetail(state, n))
     }
     if (action === 'clone') {
-      const copy = note(state.nextId++, { ...structuredClone(n), id: undefined as never, status: 'draft', publishedAt: null, publishAt: null, version: 1, attachments: [], importId: null, importRows: null, recipientCount: 0, readCount: 0, ackCount: 0 })
+      const copy = note(state.nextId++, { ...structuredClone(n), id: undefined as never, status: 'draft', publishedAt: null, publishAt: null, version: 1, attachments: [], importId: null, importRows: null, recipientCount: 0 })
       copy.id = `0198b000-0000-7000-8000-${String(state.nextId++).padStart(12, '0')}`
       copy.updatedAt = new Date().toISOString()
       state.notifications.push(copy)
@@ -391,19 +377,7 @@ export async function installFake(page: Page, customize?: (s: State) => void): P
         { version: 1, title: n.title, summary: n.summary, bodyMd: '# Bản đầu\n\nNội dung khi đăng.', variables: n.variables, editedBy: { code: 'T0001', fullName: 'Nguyễn Thử Nghiệm' }, editedAt: day(-9) },
       ])
     }
-    if (action === 'stats') {
-      const total = n.recipientCount
-      return json(route, {
-        recipientCount: total, readCount: n.readCount, ackCount: n.ackCount,
-        readPercent: total ? Math.round((n.readCount * 1000) / total) / 10 : 0, ackPercent: total ? Math.round((n.ackCount * 1000) / total) / 10 : 0,
-        requiresAck: n.requiresAck,
-        readsByDay: [
-          { date: '2025-07-01', reads: 120, cumulativeReads: 120, cumulativePercent: 42.3 },
-          { date: '2025-07-02', reads: 80, cumulativeReads: 200, cumulativePercent: 70.4 },
-          { date: '2025-07-03', reads: 41, cumulativeReads: 241, cumulativePercent: 84.9 },
-        ],
-      })
-    }
+    if (action === 'stats') return json(route, { recipientCount: n.recipientCount })
     if (action === 'preview-vars') {
       const code = url.searchParams.get('employee') ?? ''
       const emp = EMPLOYEES.find((e) => e.code === code)

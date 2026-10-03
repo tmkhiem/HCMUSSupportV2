@@ -124,7 +124,7 @@ async function apiSession(playwright: PlaywrightWorkerArgs['playwright'], baseUR
   }
 }
 
-test('inbox: a post published by T0001 reaches T0003, the badge counts it, opening it decrements the badge, ack persists', async ({
+test('inbox: a post published by T0001 reaches T0003 and opens', async ({
   page,
   playwright,
   baseURL,
@@ -147,7 +147,6 @@ test('inbox: a post published by T0001 reaches T0003, the badge counts it, openi
       bodyMd: 'Thông báo thử nghiệm cho hộp thư.\n\nNội dung **in đậm**.',
       variables: [],
       tagIds: [],
-      requiresAck: true,
       audienceAll: false,
     })
     expect(created.status(), await created.text()).toBe(201)
@@ -159,7 +158,6 @@ test('inbox: a post published by T0001 reaches T0003, the badge counts it, openi
       bodyMd: 'Thông báo thử nghiệm cho hộp thư.\n\nNội dung **in đậm**.',
       variables: [],
       tagIds: [],
-      requiresAck: true,
       audienceAll: false,
       groupIds: [],
       employeeCodes: ['T0003'],
@@ -183,24 +181,6 @@ test('inbox: a post published by T0001 reaches T0003, the badge counts it, openi
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByRole('heading', { level: 2, name: title })).toBeVisible()
     await expect(dialog.getByTestId('notification-body')).toContainText('Thông báo thử nghiệm cho hộp thư.')
-
-    // The post asks for an acknowledgement: it is persisted (still acknowledged after a reload).
-    await expect(row).toContainText('Cần xác nhận')
-    await dialog.getByRole('button', { name: 'Xác nhận đã đọc' }).click()
-    await expect(dialog.getByText(/Đã xác nhận lúc/)).toBeVisible()
-    // The ack button unmounted with the focus on it; MUI's focus trap moves it back into the dialog a moment later.
-    // Escape only reaches the dialog from there, so wait for that instead of racing it.
-    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('.MuiDialog-root'))).toBe(true)
-    await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(page).toHaveURL(/\/tin-tuc$/)
-    await expect(row).not.toContainText('Cần xác nhận')
-    await page.reload()
-    await expect(row).toBeVisible()
-    await expect(row).not.toContainText('Cần xác nhận')
-    await row.click()
-    await expect(page.getByRole('dialog')).toContainText('Đã xác nhận lúc')
-    await expect(page.getByRole('dialog').getByRole('button', { name: 'Xác nhận đã đọc' })).toHaveCount(0)
 
     // No live stream is ever requested (employees reload to see new posts).
     expect(streamRequests, 'the app does not open a live stream').toEqual([])

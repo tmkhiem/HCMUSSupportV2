@@ -15,8 +15,6 @@ export interface InboxItem {
   tags: InboxTag[]
   publishedAt: Date | null
   deliveredAt: Date
-  ackAt: Date | null
-  requiresAck: boolean
   /** Delivered after the previous sign-in ("chưa đọc"). Not shown anywhere yet. */
   isNew: boolean
   updatedAfterDelivery: boolean
@@ -62,9 +60,3 @@ export interface InboxPage {
   items: InboxItem[]
   nextCursor: string | null
 }
-
-/** Whether the recipient still has to acknowledge. */
-export const needsAck = (item: Pick<InboxItem, 'requiresAck' | 'ackAt'>) => item.requiresAck && !item.ackAt
-
-/** Tooltip on the write actions while an admin is viewing as someone else (the server answers 403 to them). */
-export const VIEW_AS_HINT = 'Đang xem thử: chỉ đọc, không thể thay đổi trạng thái thông báo.'

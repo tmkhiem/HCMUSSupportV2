@@ -6,7 +6,7 @@ import type { InboxQuery } from './inboxFilters'
 import type { InboxDetail, InboxItem, InboxPage, InboxTag } from './inboxTypes'
 
 /*
- * Inbox calls (`/api/notifications`, `/api/tags`). Lists and ack go through the generated
+ * Inbox calls (`/api/notifications`, `/api/tags`). The list goes through the generated
  * `NotificationsClient`; the detail is hand-written because the generated `InboxDetailDto.vars` is the abstract
  * `JsonNode` (its `fromJS` throws). Under `VITE_MOCK_AUTH` everything is served by `inboxMock.ts`, no network.
  */
@@ -32,8 +32,6 @@ interface ItemSource {
   tags?: Array<{ id?: number; name?: string; color?: string | undefined }>
   publishedAt?: Date | string | undefined
   deliveredAt?: Date | string
-  ackAt?: Date | string | undefined
-  requiresAck?: boolean
   isNew?: boolean
   updatedAfterDelivery?: boolean
   seriesId?: number | undefined
@@ -49,8 +47,6 @@ export function toInboxItem(d: ItemSource): InboxItem {
     tags: (d.tags ?? []).map(toTag),
     publishedAt: toDate(d.publishedAt),
     deliveredAt: toDate(d.deliveredAt) ?? new Date(0),
-    ackAt: toDate(d.ackAt),
-    requiresAck: d.requiresAck ?? false,
     isNew: d.isNew ?? false,
     updatedAfterDelivery: d.updatedAfterDelivery ?? false,
     seriesId: d.seriesId ?? null,
@@ -110,12 +106,6 @@ export async function fetchInboxDetail(id: string): Promise<InboxDetail> {
 export async function fetchTags(): Promise<InboxTag[]> {
   if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).tagsMock()
   return (await tagsClient.list()).map(toTag)
-}
-
-/** Refused with 403 while viewing as someone else. */
-export async function postAck(id: string): Promise<void> {
-  if (import.meta.env.DEV && MOCK_AUTH) return (await mock()).ackMock(id)
-  await notificationsClient.acknowledge(id)
 }
 
 export const attachmentUrl = (notificationId: string, fileId: string) =>

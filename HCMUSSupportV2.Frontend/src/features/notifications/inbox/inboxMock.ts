@@ -5,8 +5,7 @@ import type { InboxAttachment, InboxDetail, InboxItem, InboxPage, InboxTag, Inbo
 
 /**
  * Synthetic inbox for `VITE_MOCK_AUTH=1` (dev only: only `inboxApi.ts` imports this, behind the build-time `MOCK_AUTH`
- * constant). Fixed dates and ids so Playwright can assert on them. State lives in this module: ack sticks until
- * the page is reloaded. `window.__inboxMock.publish(title)` simulates a new delivery (there is no live stream: it appears on the next fetch).
+ * constant). Fixed dates and ids so Playwright can assert on them. `window.__inboxMock.publish(title)` simulates a new delivery (there is no live stream: it appears on the next fetch).
  * MSCB and names are synthetic.
  */
 
@@ -53,7 +52,7 @@ Căn cứ biên bản họp Hội đồng lương, đồng chí được nâng t
 | Hệ số lương mới | :var[HeSoLuong] |
 | Ngày hưởng | :var[NgayHuong] |
 
-Đồng chí vui lòng **xác nhận đã đọc** thông báo này. Mọi thắc mắc liên hệ Phòng Tổ chức - Cán bộ.`
+Mọi thắc mắc liên hệ Phòng Tổ chức - Cán bộ.`
 
 const SENIORITY_VARS: InboxVariable[] = [
   { key: 'HoTen', label: 'Họ tên', type: 'text' },
@@ -91,8 +90,6 @@ interface Spec {
   summary: string
   tags: number[]
   delivered: string
-  requiresAck?: boolean
-  ack?: boolean
   updated?: boolean
   series?: number
   files?: InboxAttachment[]
@@ -108,7 +105,6 @@ const SPECS: Spec[] = [
     tags: [1, 6],
     delivered: '2026-09-28',
     series: 1,
-    requiresAck: true,
     summary: 'Kết quả xét nâng bậc lương thường xuyên đợt 2026 của cán bộ, viên chức.',
     files: [FILE_PDF, FILE_XLSX],
     variables: SALARY_VARS,
@@ -121,8 +117,6 @@ const SPECS: Spec[] = [
     tags: [1],
     delivered: '2025-09-30',
     series: 1,
-    requiresAck: true,
-    ack: true,
     summary: 'Kết quả xét nâng bậc lương thường xuyên đợt 2025.',
     variables: SALARY_VARS,
     body: SALARY_BODY,
@@ -173,8 +167,6 @@ const SPECS: Spec[] = [
     title: 'Cập nhật thông tin hồ sơ cán bộ',
     tags: [6],
     delivered: '2026-08-02',
-    requiresAck: true,
-    ack: true,
     summary: 'Đề nghị rà soát và cập nhật thông tin hồ sơ cá nhân trên hệ thống.',
   },
   { n: 13, title: 'Kết quả bình xét thi đua học kỳ II', tags: [3], delivered: '2026-07-22', summary: 'Công bố kết quả bình xét thi đua học kỳ II năm học 2025-2026.' },
@@ -202,8 +194,6 @@ function buildPosts(): MockPost[] {
       tags: tag(...s.tags),
       publishedAt: day(s.delivered),
       deliveredAt: day(s.delivered),
-      ackAt: s.ack ? day(s.delivered) : null,
-      requiresAck: Boolean(s.requiresAck),
       isNew: false,
       updatedAfterDelivery: Boolean(s.updated),
       seriesId: s.series ?? null,
@@ -218,14 +208,6 @@ function buildPosts(): MockPost[] {
 
 let posts: MockPost[] = buildPosts()
 let nextN = 100
-
-/** `?mock-view-as=1` on the first page load: the mock plays "viewing as someone else", so writes answer 403 like the backend. */
-const VIEWING_AS = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('mock-view-as')
-const VIEW_AS_MESSAGE = 'Đang xem với tư cách người khác (chỉ đọc): không thể thực hiện thao tác này.'
-
-function rejectWhenViewingAs() {
-  if (VIEWING_AS) throw new ApiError(403, VIEW_AS_MESSAGE)
-}
 
 const fold = (text: string) =>
   text
@@ -290,16 +272,6 @@ export async function tagsMock(): Promise<InboxTag[]> {
   return clone(TAGS)
 }
 
-export async function ackMock(id: string): Promise<void> {
-  await delay(30)
-  rejectWhenViewingAs()
-  const post = posts.find((p) => p.item.id === id)
-  if (!post) throw new ApiError(404, 'Không tìm thấy thông báo.')
-  if (!post.item.requiresAck) throw new ApiError(400, 'Thông báo này không yêu cầu xác nhận.')
-  const now = new Date()
-  post.item.ackAt ??= now
-}
-
 // ---- test hook ---------------------------------------------------------------------------------------------------
 
 /** A new post is delivered to the mock inbox: it shows up after the next fetch (route change or reload of the lists). */
@@ -315,8 +287,6 @@ export function publishMockNotification(title: string): string {
         tags: tag(6),
         publishedAt: now,
         deliveredAt: now,
-        ackAt: null,
-        requiresAck: false,
         isNew: true,
         updatedAfterDelivery: false,
         seriesId: null,

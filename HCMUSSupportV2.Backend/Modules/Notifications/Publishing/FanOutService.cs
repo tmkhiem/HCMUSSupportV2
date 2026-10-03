@@ -1,57 +1,9 @@
-using System.Text;
-using System.Text.Json;
 using HCMUSSupportV2.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace HCMUSSupportV2.Backend.Modules.Notifications.Publishing;
-
-public static class NotifyChannel
-{
-    public const string Name = "notifications";
-
-    /// <summary>Payload type: new deliveries (<c>t=d</c>), or "your unread count changed" (<c>t=u</c>).</summary>
-    public const string Delivered = "d";
-    public const string UnreadChanged = "u";
-
-    // NOTIFY payloads must stay below 8000 bytes; keep a margin.
-    private const int MaxPayloadBytes = 7000;
-
-    /// <summary>Sends <c>pg_notify</c> messages for <paramref name="codes"/>, split so every payload stays under the limit.</summary>
-    public static async Task NotifyAsync(NpgsqlConnection conn, string type, Guid? notificationId, string? title,
-        IReadOnlyList<string> codes, CancellationToken ct)
-    {
-        if (codes.Count == 0) return;
-        var head = new Dictionary<string, object?> { ["t"] = type };
-        if (notificationId is not null) head["id"] = notificationId.Value;
-        if (title is not null) head["title"] = title.Length > 500 ? title[..500] : title;
-        var baseBytes = Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(head)) + 12;
-
-        var batch = new List<string>();
-        var size = baseBytes;
-        async Task Flush()
-        {
-            if (batch.Count == 0) return;
-            var payload = new Dictionary<string, object?>(head) { ["codes"] = batch };
-            await using var cmd = new NpgsqlCommand("SELECT pg_notify(@ch, @p)", conn);
-            cmd.Parameters.AddWithValue("ch", Name);
-            cmd.Parameters.AddWithValue("p", JsonSerializer.Serialize(payload));
-            await cmd.ExecuteNonQueryAsync(ct);
-            batch = [];
-            size = baseBytes;
-        }
-
-        foreach (var code in codes)
-        {
-            var add = Encoding.UTF8.GetByteCount(code) + 4;
-            if (size + add > MaxPayloadBytes) await Flush();
-            batch.Add(code);
-            size += add;
-        }
-        await Flush();
-    }
-}
 
 /// <summary>
 /// Resolves a notification's audiences into delivery rows (PLAN 3.3). Idempotent: running it again only adds the
@@ -90,15 +42,15 @@ public class FanOutService(AppDbContext db, ILogger<FanOutService> logger)
         """;
 
     private const string CountersSql = """
-        UPDATE notifications n SET recipient_count = c.total, read_count = c.reads, ack_count = c.acks
-        FROM (SELECT count(*)::int AS total, count(read_at)::int AS reads, count(acknowledged_at)::int AS acks
+        UPDATE notifications n SET recipient_count = c.total, read_count = c.reads
+        FROM (SELECT count(*)::int AS total, count(read_at)::int AS reads
               FROM notification_deliveries WHERE notification_id = @nid) c
         WHERE n.id = @nid
         """;
 
     /// <summary>
     /// Creates the missing deliveries of a published notification (all audiences, or only for <paramref name="codes"/>),
-    /// refreshes the counters and sends the <c>NOTIFY</c> messages. Returns the number of new deliveries.
+    /// refreshes the counters. Returns the number of new deliveries.
     /// </summary>
     public async Task<int> FanOutAsync(Guid notificationId, IReadOnlyCollection<string>? codes, CancellationToken ct)
     {
@@ -106,15 +58,13 @@ public class FanOutService(AppDbContext db, ILogger<FanOutService> logger)
         await db.Database.OpenConnectionAsync(ct);
         try
         {
-            string title;
             bool all;
-            await using (var cmd = new NpgsqlCommand("SELECT title, audience_all FROM notifications WHERE id = @nid AND status = 'published'", conn))
+            await using (var cmd = new NpgsqlCommand("SELECT audience_all FROM notifications WHERE id = @nid AND status = 'published'", conn))
             {
                 cmd.Parameters.AddWithValue("nid", notificationId);
                 await using var r = await cmd.ExecuteReaderAsync(ct);
                 if (!await r.ReadAsync(ct)) return 0; // not published (any more): nothing to deliver
-                title = r.GetString(0);
-                all = r.GetBoolean(1);
+                all = r.GetBoolean(0);
             }
 
             var inserted = new List<string>();
@@ -144,7 +94,6 @@ public class FanOutService(AppDbContext db, ILogger<FanOutService> logger)
                 await cmd.ExecuteNonQueryAsync(ct);
             }
 
-            await NotifyChannel.NotifyAsync(conn, NotifyChannel.Delivered, notificationId, title, inserted, ct);
             logger.LogInformation("Notification {Id}: {Count} new deliveries", notificationId, inserted.Count);
             return inserted.Count;
         }

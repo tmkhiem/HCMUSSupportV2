@@ -117,33 +117,11 @@ public class NotificationOptions
     public const string SectionName = "Notifications";
 
     public SchedulerOptions Scheduler { get; set; } = new();
-    public SseOptions Sse { get; set; } = new();
-    public ListenerOptions Listener { get; set; } = new();
-    public RealtimeOptions Realtime { get; set; } = new();
-
-    /// <summary>
-    /// Live push (SSE <c>/api/notifications/stream</c> + the LISTEN connection). Off by default: the owner decided
-    /// live updates are not essential for v2.0; employees reload to see new notifications (PLAN §2).
-    /// </summary>
-    public class RealtimeOptions
-    {
-        public bool Enabled { get; set; }
-    }
 
     public class SchedulerOptions
     {
         /// <summary>How often the sweeper looks for scheduled notifications that are due but have no pending job.</summary>
         public double PollSeconds { get; set; } = 30;
-    }
-
-    public class SseOptions
-    {
-        public double HeartbeatSeconds { get; set; } = 25;
-    }
-
-    public class ListenerOptions
-    {
-        public bool Enabled { get; set; } = true;
     }
 }
 

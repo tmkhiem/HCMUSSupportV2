@@ -189,8 +189,7 @@ Run these once, in order (PLAN D05 and D15 define the actual commands; check eac
 4. **Datasets** (teaching, research, publications): D15's dataset importers, or the admin Excel imports.
 5. **News**: `tools/legacy-news` posts the 56 converted notifications through the admin import endpoint; review the listed
    series/tags and the posts it flagged.
-6. **Smoke test**: sign in as the owner, open Tin tức, open a Hồ sơ page, check the unread badge updates live
-   (this exercises the SSE location), and look at `/quan-tri` -> Đồng bộ for the sync run history.
+6. **Smoke test**: sign in as the owner, open Tin tức, open a Hồ sơ page, and look at `/quan-tri` -> Đồng bộ for the sync run history.
 
 Take a manual backup right after the load: `sudo systemctl start hcmus-support-backup.service`.
 
@@ -305,8 +304,6 @@ sustained CPU/memory; an alert on certificate expiry below 14 days (`certbot.tim
 
 **Common problems**
 - `502 Bad Gateway`: the app is down or restarting. `systemctl status hcmus-support`, `journalctl -u hcmus-support -n 100`.
-- Live badge does not update but the pages work: something is buffering SSE. Check the `/api/notifications/stream` location is
-  untouched in nginx and that no CDN or proxy sits in front.
 - `429` on sign-in or sync: the nginx rate limits (`hcmus_auth`, `hcmus_integration`) in `support.hcmus.edu.vn.conf`.
 - Upload rejected with `413`: above nginx's 25 MB cap (or the app's own limit).
 - Sign-in loops after a proxy change: the app must see `X-Forwarded-Proto: https`; nginx sets it, and loopback proxies are trusted
@@ -358,6 +355,5 @@ Debian 13 VM or droplet before the real window.
   add others in both places if a later migration needs them, e.g. `pg_stat_statements` also needs `shared_preload_libraries`).
 - The file store is `/var/lib/hcmus-support/files` (`Storage__LocalRoot`), writable by `hcmus-support`; Serilog writes its file under
   `/var/log/hcmus-support` (`Logging__File__Path`). Both are set in the env file because the app directory is read-only.
-- SSE heartbeats arrive at least every few minutes (nginx allows 1 hour of silence on the stream).
 - `/api/auth/*` and `/api/integration/*` are the route prefixes the rate limits attach to.
 - The Sync tool's API-client auth is compatible with the 25 MB body cap and the 300 s read timeout on `/api/integration/`.

@@ -1,5 +1,4 @@
 import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined'
-import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined'
 import CloseIcon from '@mui/icons-material/Close'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -7,30 +6,25 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import { useTheme } from '@mui/material/styles'
-import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../../api/http'
-import { useAuth } from '../../../auth/authContext'
-import { formatDate, formatDateTime } from '../../../lib/format'
+import { formatDate } from '../../../lib/format'
 import { errorMessage } from '../../../ui'
 import NotificationBody from '../body/NotificationBody'
 import { AttachmentList, SeriesPrevious } from './DetailSections'
-import { useAcknowledge, useInboxDetail } from './inboxQueries'
-import { VIEW_AS_HINT, needsAck } from './inboxTypes'
+import { useInboxDetail } from './inboxQueries'
 import PngIcon from '../../../ui/PngIcon'
 
 /**
  * `/tin-tuc/:id`: the detail as a Dialog over the list (the parent route keeps the list mounted). Deep-linkable.
- * Closing returns to
- * `/tin-tuc` with the list's filters (`history -1` when we came from the list, otherwise a replace).
+ * Closing returns to `/tin-tuc` with the list's filters (`history -1` when we came from the list, otherwise a replace).
  */
 export function Component() {
   const { id } = useParams()
@@ -39,18 +33,9 @@ export function Component() {
   const navigate = useNavigate()
   const location = useLocation()
   const titleId = useId()
-  const { me } = useAuth()
-  const viewingAs = Boolean(me?.actingAs)
 
   const [open, setOpen] = useState(true)
   const detail = useInboxDetail(id)
-  const ack = useAcknowledge()
-  // The ack button disappears once acknowledged; move focus to the status chip so it is not lost to the page behind.
-  const ackedRef = useRef<HTMLDivElement>(null)
-  const acked = ack.isSuccess
-  useEffect(() => {
-    if (acked) ackedRef.current?.focus()
-  }, [acked])
 
   const close = () => setOpen(false)
   const leave = () => {
@@ -131,35 +116,6 @@ export function Component() {
         )}
       </DialogContent>
 
-      {data && needsAck(data) && (
-        <DialogActions sx={{ px: { xs: 2.5, md: 5 }, py: 2, justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="body2" color="text.secondary">
-            Thông báo này yêu cầu bạn xác nhận đã đọc.
-          </Typography>
-          <Tooltip title={viewingAs ? VIEW_AS_HINT : ''} disableHoverListener={!viewingAs}>
-            <span>
-              <Button
-                variant="contained"
-                disabled={viewingAs || ack.isPending}
-                startIcon={ack.isPending ? <CircularProgress size={16} color="inherit" /> : <CheckCircleOutlined />}
-                onClick={() => ack.mutate(data.id)}
-              >
-                Xác nhận đã đọc
-              </Button>
-            </span>
-          </Tooltip>
-          {ack.isError && (
-            <Alert severity="error" sx={{ flexBasis: '100%' }}>
-              {errorMessage(ack.error, 'Không xác nhận được. Vui lòng thử lại.')}
-            </Alert>
-          )}
-        </DialogActions>
-      )}
-      {data?.requiresAck && data.ackAt && (
-        <DialogActions sx={{ px: { xs: 2.5, md: 5 }, py: 2, justifyContent: 'flex-start' }}>
-          <Chip ref={ackedRef} tabIndex={-1} role="status" color="success" variant="outlined" icon={<CheckCircleOutlined />} label={`Đã xác nhận lúc ${formatDateTime(data.ackAt)}`} />
-        </DialogActions>
-      )}
     </Dialog>
   )
 }

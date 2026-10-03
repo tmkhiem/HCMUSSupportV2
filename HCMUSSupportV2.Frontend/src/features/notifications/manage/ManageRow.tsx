@@ -75,7 +75,6 @@ export default function ManageRow({ item, index, onAction }: ManageRowProps) {
           {otherTags.length > 0 && (
             <Chip size="small" variant="outlined" label={`+${otherTags.length}`} title={otherTags.map((t) => t.name).join(', ')} />
           )}
-          {item.requiresAck && <Chip size="small" color="warning" variant="outlined" label="Cần xác nhận" />}
           <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums', ml: 0.5 }}>
             {rowDateLabel(item)}
           </Typography>

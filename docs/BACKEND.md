@@ -13,7 +13,7 @@ HCMUSSupportV2.Backend/
   Modules/Identity/             people, roles, groups schema, sign-in, policies (D03)
   Modules/Admin/                roles, view-as, employee status, audit query, dashboard (D14a)
   Modules/Hrm/                  HRM tables, ingest API, me/* reads, Excel datasets, sync visibility (D04)
-  Modules/Notifications/        Markdown contract, editor API, imports, publishing, inbox, SSE (D07)
+  Modules/Notifications/        Markdown contract, editor API, imports, publishing, inbox (D07)
 HCMUSSupportV2.Backend.Tests/   xUnit + WebApplicationFactory against a throw-away PostgreSQL database
 ```
 
@@ -46,7 +46,7 @@ Key settings (defaults in `appsettings.json`):
 | `Hrm:DevApiClient:Token` | Development only: creates the API client `dev` (scope `hrm.ingest`) for this token (24+ chars) at startup |
 | `Dev:SeedEmployees` | Development only: seed the synthetic roster `T0001`..`T0010` at startup (default true in Development) |
 | `OpenTelemetry:Endpoint` | OTLP collector URL; traces and metrics are exported only when set (`OpenTelemetry:Protocol`: `grpc` or `http/protobuf`) |
-| `Notifications:Scheduler:PollSeconds` / `Sse:HeartbeatSeconds` / `Listener:Enabled` | sweeper for due scheduled notifications (default 30 s), SSE heartbeat (25 s), the `LISTEN notifications` connection (true) |
+| `Notifications:Scheduler:PollSeconds` | sweeper for due scheduled notifications (default 30 s) |
 | `Logging:File:*` | rolling file sink (`logs/hcmus-support-.log`, git-ignored); log levels live under `Serilog:MinimumLevel` |
 | `ReverseProxy:KnownProxies` / `KnownNetworks` | forwarded-headers trust |
 
@@ -515,12 +515,11 @@ becomes `SystemClient`).
 
 ## Notifications (D07, `Modules/Notifications`)
 
-The core of the product; the full description (tables, lifecycle, fan-out, endpoints, SSE contract) is in [NOTIFICATIONS.md](NOTIFICATIONS.md) and the Markdown rules in [notification-markdown.md](notification-markdown.md). In short:
+The core of the product; the full description (tables, lifecycle, fan-out, endpoints) is in [NOTIFICATIONS.md](NOTIFICATIONS.md) and the Markdown rules in [notification-markdown.md](notification-markdown.md). In short:
 
 - Editors write Markdown with `:var[Key]` placeholders (`NotificationMarkdown`, Markdig). `body_md` is validated on every save; `content_text` and `summary` are derived.
 - Publishing writes one `notification_deliveries` row per recipient with `INSERT ... SELECT ... ON CONFLICT DO NOTHING` in the job `notifications.publish`; scheduled posts are published by a `run_at` job (plus a sweeper). Late joiners come through `IGroupMembershipObserver` and `IEmployeeActivationObserver` (job `notifications.backfill`).
 - The inbox is one keyset query on the deliveries; ack is rejected while an admin views as someone else.
-- `GET /api/notifications/stream` is server-sent events fed by PostgreSQL `LISTEN/NOTIFY`; the SSE endpoint is excluded from the generated TypeScript client.
 - Gotchas: `ProducesResponseType` cannot take a wildcard content type (`image/*`) because it throws when the controller model is built, which breaks every endpoint; `dotnet ef migrations add/remove` read the compiled snapshot, so build before running them (a stale build makes `remove` delete the wrong migration).
 
 ## Known gaps

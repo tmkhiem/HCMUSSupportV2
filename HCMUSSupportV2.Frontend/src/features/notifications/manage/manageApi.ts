@@ -83,12 +83,8 @@ export function toManageItem(d: G.IManageNotificationListItem): ManageItem {
     publishAt: toDate(d.publishAt),
     publishedAt: toDate(d.publishedAt),
     expiresAt: toDate(d.expiresAt),
-    requiresAck: d.requiresAck ?? false,
     audienceAll: d.audienceAll ?? false,
     recipientCount: d.recipientCount ?? 0,
-    readCount: d.readCount ?? 0,
-    ackCount: d.ackCount ?? 0,
-    readPercent: d.readPercent ?? 0,
     version: d.version ?? 1,
     updatedAt: toDate(d.updatedAt) ?? new Date(0),
   }
@@ -112,7 +108,6 @@ export function toManageDetail(d: G.IManageNotificationDto): ManageDetail {
     publishedAt: toDate(d.publishedAt),
     expiresAt: toDate(d.expiresAt),
     pinnedUntil: toDate(d.pinnedUntil),
-    requiresAck: d.requiresAck ?? false,
     audienceAll: audience?.all ?? false,
     groups: (audience?.groups ?? []).map((g) => ({ id: g.id ?? 0, name: g.name ?? '', memberCount: g.memberCount ?? 0 })),
     employees: (audience?.employees ?? []).map((e) => ({ code: e.code ?? '', fullName: e.fullName ?? null, status: e.status ?? null })),
@@ -127,8 +122,6 @@ export function toManageDetail(d: G.IManageNotificationDto): ManageDetail {
       : null,
     attachments: (d.attachments ?? []).map(toAttachment),
     recipientCount: d.recipientCount ?? 0,
-    readCount: d.readCount ?? 0,
-    ackCount: d.ackCount ?? 0,
     version: d.version ?? 1,
     createdBy: toPerson(d.createdBy),
     updatedBy: toPerson(d.updatedBy),
@@ -218,20 +211,7 @@ export async function fetchRevisions(id: string): Promise<ManageRevision[]> {
 
 export async function fetchStats(id: string): Promise<ManageStats> {
   const s = await notificationsApi.stats(id)
-  return {
-    recipientCount: s.recipientCount ?? 0,
-    readCount: s.readCount ?? 0,
-    ackCount: s.ackCount ?? 0,
-    readPercent: s.readPercent ?? 0,
-    ackPercent: s.ackPercent ?? 0,
-    requiresAck: s.requiresAck ?? false,
-    readsByDay: (s.readsByDay ?? []).map((d) => ({
-      date: d.date ?? '',
-      reads: d.reads ?? 0,
-      cumulativeReads: d.cumulativeReads ?? 0,
-      cumulativePercent: d.cumulativePercent ?? 0,
-    })),
-  }
+  return { recipientCount: s.recipientCount ?? 0 }
 }
 
 interface PreviewVarsJson {

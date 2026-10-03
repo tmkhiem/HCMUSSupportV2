@@ -65,7 +65,6 @@ test('D09: clone last year, upload a sheet, preview as a recipient, publish; the
         { key: 'NgayHieuLuc', label: 'Ngày hiệu lực', type: 'date' },
       ],
       tagIds: [],
-      requiresAck: false,
       audienceAll: false,
       groupIds: [],
       employeeCodes: ['T0003'],

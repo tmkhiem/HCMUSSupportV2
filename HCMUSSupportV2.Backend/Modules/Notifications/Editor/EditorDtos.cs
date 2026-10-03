@@ -22,7 +22,6 @@ public record NotificationWriteRequest(
     List<long>? TagIds,
     DateTimeOffset? ExpiresAt,
     DateTimeOffset? PinnedUntil,
-    bool RequiresAck,
     bool AudienceAll,
     List<long>? GroupIds,
     List<string>? EmployeeCodes);
@@ -51,12 +50,8 @@ public record ManageNotificationListItem(
     DateTimeOffset? PublishAt,
     DateTimeOffset? PublishedAt,
     DateTimeOffset? ExpiresAt,
-    bool RequiresAck,
     bool AudienceAll,
     int RecipientCount,
-    int ReadCount,
-    int AckCount,
-    double ReadPercent,
     int Version,
     DateTimeOffset UpdatedAt);
 
@@ -76,12 +71,9 @@ public record ManageNotificationDto(
     DateTimeOffset? PublishedAt,
     DateTimeOffset? ExpiresAt,
     DateTimeOffset? PinnedUntil,
-    bool RequiresAck,
     AudienceDto Audience,
     IReadOnlyList<AttachmentDto> Attachments,
     int RecipientCount,
-    int ReadCount,
-    int AckCount,
     int Version,
     PersonRef? CreatedBy,
     PersonRef? UpdatedBy,
@@ -90,16 +82,7 @@ public record ManageNotificationDto(
 
 public record RevisionDto(int Version, string Title, string Summary, string BodyMd, IReadOnlyList<VariableDto> Variables, PersonRef? EditedBy, DateTimeOffset EditedAt);
 
-public record DayStat(string Date, int Reads, int CumulativeReads, double CumulativePercent);
-
-public record NotificationStatsDto(
-    int RecipientCount,
-    int ReadCount,
-    int AckCount,
-    double ReadPercent,
-    double AckPercent,
-    bool RequiresAck,
-    IReadOnlyList<DayStat> ReadsByDay);
+public record NotificationStatsDto(int RecipientCount);
 
 public record PreviewVarsDto(
     string EmployeeCode,

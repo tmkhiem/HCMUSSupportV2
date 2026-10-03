@@ -1,6 +1,6 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchInboxDetail, fetchInboxPage, fetchTags, postAck } from './inboxApi'
-import { inboxKeys, patchInboxItem } from './inboxCache'
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { fetchInboxDetail, fetchInboxPage, fetchTags } from './inboxApi'
+import { inboxKeys } from './inboxCache'
 import { toInboxQuery } from './inboxFilters'
 import type { InboxFilters } from './inboxFilters'
 
@@ -28,18 +28,5 @@ export function useInboxDetail(id: string | undefined) {
     queryFn: () => fetchInboxDetail(id!),
     enabled: Boolean(id),
     retry: false,
-  })
-}
-
-/** POST ack, with an optimistic update (the row and the detail show it acknowledged straight away). */
-export function useAcknowledge() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => postAck(id),
-    onMutate: (id) => {
-      const now = new Date()
-      patchInboxItem(qc, id, (i) => ({ ...i, ackAt: i.ackAt ?? now }))
-    },
-    onError: () => void qc.invalidateQueries({ queryKey: inboxKeys.all }),
   })
 }

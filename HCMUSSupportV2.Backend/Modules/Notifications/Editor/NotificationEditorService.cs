@@ -57,8 +57,8 @@ public class NotificationEditorService(
 
         var items = rows.Select(n => new ManageNotificationListItem(
             n.Id, n.Title, n.Status, n.SeriesId, n.SeriesId is { } sid && series.TryGetValue(sid, out var sn) ? sn : null,
-            tags.GetValueOrDefault(n.Id) ?? [], n.PublishAt, n.PublishedAt, n.ExpiresAt, n.RequiresAck, n.AudienceAll,
-            n.RecipientCount, n.ReadCount, n.AckCount, Percent(n.ReadCount, n.RecipientCount), n.Version, n.UpdatedAt)).ToList();
+            tags.GetValueOrDefault(n.Id) ?? [], n.PublishAt, n.PublishedAt, n.ExpiresAt, n.AudienceAll,
+            n.RecipientCount, n.Version, n.UpdatedAt)).ToList();
         return new Page<ManageNotificationListItem>(items, hasMore ? Cursor.Encode(rows[^1].Id.ToString()) : null);
     }
 
@@ -109,9 +109,9 @@ public class NotificationEditorService(
 
         return new ManageNotificationDto(
             n.Id, n.Title, n.Summary, n.SummaryIsCustom, n.BodyMd, n.ContentText, ParseVariables(n.Variables), n.Status,
-            n.SeriesId, seriesName, tags, n.PublishAt, n.PublishedAt, n.ExpiresAt, n.PinnedUntil, n.RequiresAck,
+            n.SeriesId, seriesName, tags, n.PublishAt, n.PublishedAt, n.ExpiresAt, n.PinnedUntil,
             new AudienceDto(n.AudienceAll, groups, employees, import), attachments,
-            n.RecipientCount, n.ReadCount, n.AckCount, n.Version,
+            n.RecipientCount, n.Version,
             people.FirstOrDefault(p => p.Code == n.CreatedBy), people.FirstOrDefault(p => p.Code == n.UpdatedBy),
             n.CreatedAt, n.UpdatedAt);
     }
@@ -271,16 +271,6 @@ public class NotificationEditorService(
                 .SetProperty(x => x.UpdatedAt, DateTimeOffset.UtcNow).SetProperty(x => x.UpdatedBy, user.Code), ct);
         if (changed == 0) throw ApiException.Conflict("Thông báo vừa được thay đổi. Hãy tải lại.");
 
-        // Archiving removes the post from every inbox, so unread badges of the recipients change.
-        var codes = await db.Set<NotificationDelivery>().AsNoTracking()
-            .Where(d => d.NotificationId == id && d.ReadAt == null).Select(d => d.EmployeeCode).ToListAsync(ct);
-        if (codes.Count > 0)
-        {
-            var conn = (NpgsqlConnection)db.Database.GetDbConnection();
-            await db.Database.OpenConnectionAsync(ct);
-            try { await NotifyChannel.NotifyAsync(conn, NotifyChannel.UnreadChanged, null, null, codes, ct); }
-            finally { await db.Database.CloseConnectionAsync(); }
-        }
         await audit.LogAsync("notification.archived", "notification", id.ToString(), null, ct);
         return await GetAsync(id, ct);
     }
@@ -302,7 +292,6 @@ public class NotificationEditorService(
             ContentText = src.ContentText,
             Variables = src.Variables,
             Status = NotificationStatuses.Draft,
-            RequiresAck = src.RequiresAck,
             AudienceAll = src.AudienceAll,
             Version = 1,
             CreatedBy = user.Code,
@@ -359,39 +348,8 @@ public class NotificationEditorService(
     public async Task<NotificationStatsDto> StatsAsync(Guid id, CancellationToken ct)
     {
         var n = await db.Set<Notification>().AsNoTracking().Where(x => x.Id == id)
-            .Select(x => new { x.RequiresAck }).FirstOrDefaultAsync(ct) ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
-        var conn = (NpgsqlConnection)db.Database.GetDbConnection();
-        await db.Database.OpenConnectionAsync(ct);
-        try
-        {
-            int total, read, ack;
-            await using (var cmd = new NpgsqlCommand(
-                "SELECT count(*)::int, count(read_at)::int, count(acknowledged_at)::int FROM notification_deliveries WHERE notification_id = @id", conn))
-            {
-                cmd.Parameters.AddWithValue("id", id);
-                await using var r = await cmd.ExecuteReaderAsync(ct);
-                await r.ReadAsync(ct);
-                (total, read, ack) = (r.GetInt32(0), r.GetInt32(1), r.GetInt32(2));
-            }
-            var days = new List<DayStat>();
-            await using (var cmd = new NpgsqlCommand("""
-                SELECT (read_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS d, count(*)::int
-                FROM notification_deliveries WHERE notification_id = @id AND read_at IS NOT NULL GROUP BY 1 ORDER BY 1
-                """, conn))
-            {
-                cmd.Parameters.AddWithValue("id", id);
-                await using var r = await cmd.ExecuteReaderAsync(ct);
-                var cumulative = 0;
-                while (await r.ReadAsync(ct))
-                {
-                    var reads = r.GetInt32(1);
-                    cumulative += reads;
-                    days.Add(new DayStat(r.GetFieldValue<DateOnly>(0).ToString("yyyy-MM-dd"), reads, cumulative, Percent(cumulative, total)));
-                }
-            }
-            return new NotificationStatsDto(total, read, ack, Percent(read, total), Percent(ack, total), n.RequiresAck, days);
-        }
-        finally { await db.Database.CloseConnectionAsync(); }
+            .Select(x => new { x.RecipientCount }).FirstOrDefaultAsync(ct) ?? throw ApiException.NotFound("Không tìm thấy thông báo.");
+        return new NotificationStatsDto(n.RecipientCount);
     }
 
     /// <summary>The variable rows of an MSCB from the applied (else the latest pending) import, and whether that MSCB is in the audience.</summary>
@@ -593,7 +551,6 @@ public class NotificationEditorService(
         n.SeriesId = req.SeriesId;
         n.ExpiresAt = req.ExpiresAt?.ToUniversalTime();
         n.PinnedUntil = req.PinnedUntil?.ToUniversalTime();
-        n.RequiresAck = req.RequiresAck;
         n.AudienceAll = req.AudienceAll;
     }
 
@@ -627,5 +584,4 @@ public class NotificationEditorService(
 
     internal static string FormatIssue(MarkdownIssue i) => i.Line > 0 ? $"[{i.Code}] Dòng {i.Line}, cột {i.Column}: {i.Message}" : $"[{i.Code}] {i.Message}";
 
-    private static double Percent(int part, int total) => total == 0 ? 0 : Math.Round(part * 100.0 / total, 1);
 }

@@ -46,7 +46,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         // The inbox is open to every signed-in employee, anonymous gets 401.
         Assert.Equal(HttpStatusCode.OK, (await employee.GetAsync("/api/notifications")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/notifications")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/notifications/stream")).StatusCode);
     }
 
     // ------------------------------------------------------------ drafts and validation
@@ -467,7 +466,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var other = await _host.SignInAsync(outsider);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/notifications/{id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/notifications/{id}/attachments/{fileId}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsync($"/api/notifications/{id}/ack")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/files/{fileId}")).StatusCode); // attachments are not served as body images
 
         var mine = await _host.SignInAsync(reader);
@@ -481,41 +479,11 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Ack_keeps_counters_in_step()
-    {
-        var reader = await _host.EmployeeAsync();
-        var other = await _host.EmployeeAsync();
-        var editor = await _host.EditorApiAsync();
-        var plain = await _host.PublishAsync(editor, Draft("Thường", employees: [reader, other]));
-        var needsAck = await _host.PublishAsync(editor, Draft("Cần xác nhận", employees: [reader, other], requiresAck: true));
-        var inbox = await _host.SignInAsync(reader);
-
-        // Acknowledging needs requires_ack (it also counts as a read for the author's stats).
-        await inbox.ExpectAsync(HttpStatusCode.BadRequest, HttpMethod.Post, $"/api/notifications/{plain}/ack");
-        await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{needsAck}/ack");
-        await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/notifications/{needsAck}/ack"); // idempotent
-        var detail = await inbox.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications/{needsAck}");
-        Assert.NotNull(detail["ackAt"]);
-
-        var stats = await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Manage}/{needsAck}/stats");
-        Assert.Equal((2, 1, 1), ((int)stats["recipientCount"]!, (int)stats["readCount"]!, (int)stats["ackCount"]!));
-
-        Assert.Equal((2, 0, 0), await Counters(plain));
-        Assert.Equal((2, 1, 1), await Counters(needsAck));
-    }
-
-    private async Task<(int Recipients, int Reads, int Acks)> Counters(string id)
-    {
-        var n = await _host.Factory.WithDbAsync(db => db.Set<Notification>().AsNoTracking().SingleAsync(x => x.Id == Guid.Parse(id)));
-        return (n.RecipientCount, n.ReadCount, n.AckCount);
-    }
-
-    [Fact]
-    public async Task While_acting_as_someone_reads_follow_the_viewed_employee_but_ack_is_rejected()
+    public async Task While_acting_as_someone_reads_follow_the_viewed_employee()
     {
         var viewed = await _host.EmployeeAsync();
         var editor = await _host.EditorApiAsync();
-        var id = await _host.PublishAsync(editor, Draft("Của người được xem", employees: [viewed], requiresAck: true));
+        var id = await _host.PublishAsync(editor, Draft("Của người được xem", employees: [viewed]));
 
         var admin = await _host.EmployeeAsync(roles: ["admin"]);
         await using var host2 = new NotificationsHost(database, new() { ["Auth:RevalidateSeconds"] = "3600" });
@@ -524,12 +492,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var list = await acting.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/notifications");
         Assert.Equal(id, (string?)list["items"]!.AsArray().Single()!["id"]);
         await acting.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications/{id}");
-
-        Assert.Equal(HttpStatusCode.Forbidden, (await acting.PostAsync($"/api/notifications/{id}/ack")).StatusCode);
-
-        var self = await _host.SignInAsync(viewed);
-        var detail = await self.ExpectAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/notifications/{id}");
-        Assert.Null(detail["ackAt"]); // nothing changed for the viewed employee
     }
 
     [Fact]
@@ -589,7 +551,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var editor = await _host.EditorApiAsync();
         var series = await editor.ExpectAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/manage/series", new { name = "Chuỗi " + Guid.NewGuid().ToString("N")[..6] });
         var source = await CreateAsync(editor, Draft("Nâng lương 2025", "Chào :var[HoTen]", all: true, groups: [group], employees: [target],
-            tags: [1, 2], seriesId: series["id"]!.GetValue<long>(), requiresAck: true,
+            tags: [1, 2], seriesId: series["id"]!.GetValue<long>(),
             variables: new[] { new { key = "HoTen", label = "Họ tên", type = "text" } }));
         var report = await ImportAsync(editor, source, Xlsx(["MSCB", "HoTen"], [target, "A"]));
         await editor.ExpectAsync(HttpStatusCode.OK, HttpMethod.Post, $"{Manage}/{source}/imports/{report["importId"]!.GetValue<string>()}/apply");
@@ -604,7 +566,6 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal("HoTen", (string?)clone["variables"]![0]!["key"]);
         Assert.Equal(2, clone["tags"]!.AsArray().Count);
         Assert.Equal((long?)series["id"], (long?)clone["seriesId"]);
-        Assert.True((bool?)clone["requiresAck"]);
         Assert.True((bool?)clone["audience"]!["all"]);
         Assert.Equal(group, (long?)clone["audience"]!["groups"]![0]!["id"]);
         Assert.Equal(target, (string?)clone["audience"]!["employees"]![0]!["code"]);

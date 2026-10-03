@@ -18,8 +18,6 @@ public record InboxItemDto(
     IReadOnlyList<TagDto> Tags,
     DateTimeOffset? PublishedAt,
     DateTimeOffset DeliveredAt,
-    DateTimeOffset? AckAt,
-    bool RequiresAck,
     bool IsNew,
     bool UpdatedAfterDelivery,
     long? SeriesId,
@@ -38,8 +36,6 @@ public record InboxDetailDto(
     IReadOnlyList<TagDto> Tags,
     DateTimeOffset? PublishedAt,
     DateTimeOffset DeliveredAt,
-    DateTimeOffset? AckAt,
-    bool RequiresAck,
     bool IsNew,
     bool UpdatedAfterDelivery,
     long? SeriesId,
@@ -50,8 +46,6 @@ public record InboxDetailDto(
     IReadOnlyList<InboxAttachmentDto> Attachments,
     InboxSeriesDto? Series);
 
-
-public record UnreadCountDto(int Count);
 
 public record InboxFilter(string? Q, List<long>? Tags, DateTimeOffset? From, DateTimeOffset? To);
 
@@ -66,7 +60,7 @@ public class InboxService(AppDbContext db, IFileStore files)
         limit = Math.Clamp(limit, 1, 100);
         var sql = new StringBuilder($"""
             SELECT * FROM (
-              SELECT n.id, n.title, n.summary, n.published_at, d.delivered_at, d.acknowledged_at, n.requires_ack,
+              SELECT n.id, n.title, n.summary, n.published_at, d.delivered_at,
                      (e.previous_login_at IS NULL OR d.delivered_at > e.previous_login_at) AS is_new,
                      (n.content_updated_at IS NOT NULL AND n.content_updated_at > d.delivered_at) AS updated,
                      n.series_id,
@@ -114,7 +108,7 @@ public class InboxService(AppDbContext db, IFileStore files)
         cmd.CommandText = sql.ToString();
 
         var rows = new List<(Guid Id, string Title, string Summary, DateTimeOffset? PublishedAt, DateTimeOffset DeliveredAt,
-            DateTimeOffset? AckAt, bool RequiresAck, bool IsNew, bool Updated, long? SeriesId, bool HasAtt)>();
+            bool IsNew, bool Updated, long? SeriesId, bool HasAtt)>();
         await db.Database.OpenConnectionAsync(ct);
         try
         {
@@ -122,8 +116,7 @@ public class InboxService(AppDbContext db, IFileStore files)
             while (await r.ReadAsync(ct))
                 rows.Add((r.GetGuid(0), r.GetString(1), r.GetString(2),
                     r.IsDBNull(3) ? null : r.GetFieldValue<DateTimeOffset>(3), r.GetFieldValue<DateTimeOffset>(4),
-                    r.IsDBNull(5) ? null : r.GetFieldValue<DateTimeOffset>(5),
-                    r.GetBoolean(6), r.GetBoolean(7), r.GetBoolean(8), r.IsDBNull(9) ? null : r.GetInt64(9), r.GetBoolean(10)));
+                    r.GetBoolean(5), r.GetBoolean(6), r.IsDBNull(7) ? null : r.GetInt64(7), r.GetBoolean(8)));
         }
         finally { await db.Database.CloseConnectionAsync(); }
 
@@ -139,7 +132,7 @@ public class InboxService(AppDbContext db, IFileStore files)
         var byId = tags.GroupBy(t => t.NotificationId).ToDictionary(g => g.Key, g => g.Select(t => t.Tag).ToList());
 
         var items = rows.Select(x => new InboxItemDto(x.Id, x.Title, x.Summary, byId.GetValueOrDefault(x.Id) ?? [], x.PublishedAt,
-            x.DeliveredAt, x.AckAt, x.RequiresAck, x.IsNew, x.Updated, x.SeriesId, x.HasAtt)).ToList();
+            x.DeliveredAt, x.IsNew, x.Updated, x.SeriesId, x.HasAtt)).ToList();
         string? next = null;
         if (hasMore)
         {
@@ -191,41 +184,10 @@ public class InboxService(AppDbContext db, IFileStore files)
             }
         }
 
-        return new InboxDetailDto(n.Id, n.Title, n.Summary, tags, n.PublishedAt, d.DeliveredAt, d.AcknowledgedAt,
-            n.RequiresAck, row.prev == null || d.DeliveredAt > row.prev, n.ContentUpdatedAt != null && n.ContentUpdatedAt > d.DeliveredAt,
+        return new InboxDetailDto(n.Id, n.Title, n.Summary, tags, n.PublishedAt, d.DeliveredAt,
+            row.prev == null || d.DeliveredAt > row.prev, n.ContentUpdatedAt != null && n.ContentUpdatedAt > d.DeliveredAt,
             n.SeriesId, attachments.Count > 0, n.BodyMd, NotificationEditorService.ParseVariables(n.Variables),
             JsonNode.Parse(d.Vars ?? "[]")!, attachments, series);
-    }
-
-    /// <summary>Acknowledges a delivery (also marks it read). 400 when the notification does not require acknowledgment.</summary>
-    public async Task<UnreadCountDto> AcknowledgeAsync(string code, Guid id, CancellationToken ct)
-    {
-        var counts = await ExecuteCountsAsync($"""
-            WITH v AS (SELECT d.notification_id, d.read_at, d.acknowledged_at, n.requires_ack
-                       FROM notification_deliveries d JOIN notifications n ON n.id = d.notification_id
-                       WHERE d.employee_code = @code AND d.notification_id = @id AND {Visible}),
-            u AS (UPDATE notification_deliveries d SET acknowledged_at = now(), read_at = COALESCE(d.read_at, now()) FROM v
-                  WHERE d.employee_code = @code AND d.notification_id = v.notification_id AND v.acknowledged_at IS NULL AND v.requires_ack
-                  RETURNING d.notification_id),
-            c AS (UPDATE notifications n SET ack_count = n.ack_count + 1,
-                         read_count = n.read_count + (CASE WHEN v.read_at IS NULL THEN 1 ELSE 0 END)
-                  FROM u JOIN v ON v.notification_id = u.notification_id WHERE n.id = u.notification_id RETURNING 1)
-            SELECT (SELECT count(*) FROM v), (SELECT count(*) FROM v WHERE requires_ack), (SELECT count(*) FROM u)
-            """, code, id, ct, 3);
-        if (counts[0] == 0) throw ApiException.NotFound("Không tìm thấy thông báo.");
-        if (counts[1] == 0) throw ApiException.BadRequest("Thông báo này không yêu cầu xác nhận.");
-        if (counts[2] > 0) await NotifyUnreadChangedAsync(code, ct);
-        return await UnreadCountAsync(code, ct);
-    }
-
-    /// <summary>Deliveries not yet read; only the live stream's seed value (the inbox UI has no read state).</summary>
-    public async Task<UnreadCountDto> UnreadCountAsync(string code, CancellationToken ct)
-    {
-        var counts = await ExecuteCountsAsync($"""
-            SELECT count(*) FROM notification_deliveries d JOIN notifications n ON n.id = d.notification_id
-            WHERE d.employee_code = @code AND d.read_at IS NULL AND {Visible}
-            """, code, null, ct, 1);
-        return new UnreadCountDto((int)counts[0]);
     }
 
     /// <summary>Opens an attachment for download; 404 unless the employee has a visible delivery of the notification.</summary>
@@ -240,28 +202,5 @@ public class InboxService(AppDbContext db, IFileStore files)
             select at.Id).AnyAsync(ct);
         if (!allowed) throw ApiException.NotFound("Không tìm thấy tệp đính kèm.");
         return await files.OpenReadAsync(fileId, ct) ?? throw ApiException.NotFound("Không tìm thấy tệp đính kèm.");
-    }
-
-    private async Task<long[]> ExecuteCountsAsync(string sql, string code, Guid? id, CancellationToken ct, int columns = 2)
-    {
-        await db.Database.OpenConnectionAsync(ct);
-        try
-        {
-            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)db.Database.GetDbConnection());
-            cmd.Parameters.AddWithValue("code", code);
-            if (id is not null) cmd.Parameters.AddWithValue("id", id.Value);
-            await using var r = await cmd.ExecuteReaderAsync(ct);
-            await r.ReadAsync(ct);
-            return Enumerable.Range(0, Math.Min(columns, r.FieldCount)).Select(i => r.GetInt64(i)).ToArray();
-        }
-        finally { await db.Database.CloseConnectionAsync(); }
-    }
-
-    /// <summary>Tells the other open tabs of this employee that the unread count moved.</summary>
-    private async Task NotifyUnreadChangedAsync(string code, CancellationToken ct)
-    {
-        await db.Database.OpenConnectionAsync(ct);
-        try { await NotifyChannel.NotifyAsync((NpgsqlConnection)db.Database.GetDbConnection(), NotifyChannel.UnreadChanged, null, null, [code], ct); }
-        finally { await db.Database.CloseConnectionAsync(); }
     }
 }

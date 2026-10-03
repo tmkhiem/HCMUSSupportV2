@@ -45,12 +45,8 @@ export interface ManageItem {
   publishAt: Date | null
   publishedAt: Date | null
   expiresAt: Date | null
-  requiresAck: boolean
   audienceAll: boolean
   recipientCount: number
-  readCount: number
-  ackCount: number
-  readPercent: number
   version: number
   updatedAt: Date
 }
@@ -115,15 +111,12 @@ export interface ManageDetail {
   publishedAt: Date | null
   expiresAt: Date | null
   pinnedUntil: Date | null
-  requiresAck: boolean
   audienceAll: boolean
   groups: GroupRef[]
   employees: EmployeeRef[]
   import: ImportSummary | null
   attachments: ManageAttachment[]
   recipientCount: number
-  readCount: number
-  ackCount: number
   version: number
   createdBy: PersonRef | null
   updatedBy: PersonRef | null
@@ -143,12 +136,6 @@ export interface ManageRevision {
 
 export interface ManageStats {
   recipientCount: number
-  readCount: number
-  ackCount: number
-  readPercent: number
-  ackPercent: number
-  requiresAck: boolean
-  readsByDay: Array<{ date: string; reads: number; cumulativeReads: number; cumulativePercent: number }>
 }
 
 export interface ImportColumn {
@@ -207,7 +194,6 @@ export interface DraftForm {
   tagIds: number[]
   expiresAt: string | null
   pinnedUntil: string | null
-  requiresAck: boolean
   audienceAll: boolean
   groups: GroupRef[]
   employees: EmployeeRef[]
@@ -223,7 +209,6 @@ export interface WriteRequest {
   tagIds: number[]
   expiresAt: string | null
   pinnedUntil: string | null
-  requiresAck: boolean
   audienceAll: boolean
   groupIds: number[]
   employeeCodes: string[]

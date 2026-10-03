@@ -156,7 +156,7 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
         {
             Id = id, SeriesId = seriesId, Title = title, Summary = analysis!.Summary, SummaryIsCustom = false, BodyMd = body,
             ContentText = analysis.ContentText, Variables = variablesJson, Status = NotificationStatuses.Published,
-            PublishAt = publishedAt, PublishedAt = publishedAt, PinnedUntil = pinnedUntil, RequiresAck = post.RequiresAck,
+            PublishAt = publishedAt, PublishedAt = publishedAt, PinnedUntil = pinnedUntil,
             AudienceAll = all, Version = 1, CreatedAt = publishedAt, UpdatedAt = publishedAt,
         };
         db.Set<Notification>().Add(n);
@@ -256,7 +256,7 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
         var canonical = JsonSerializer.Serialize(new
         {
             title, publishedOn = publishedOn.ToString("yyyy-MM-dd"), body, variables, rows,
-            series = post.SeriesName, tags = (post.TagNames ?? []).Order().ToList(), post.AudienceAll, post.PinnedUntil, post.RequiresAck,
+            series = post.SeriesName, tags = (post.TagNames ?? []).Order().ToList(), post.AudienceAll, post.PinnedUntil,
         }, HashJson);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
     }

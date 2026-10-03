@@ -147,43 +147,6 @@ export class NotificationsClient {
         return Promise.resolve<InboxDetailDto>(null as any);
     }
 
-    acknowledge(id: string): Promise<UnreadCountDto> {
-        let url_ = this.baseUrl + "/api/notifications/{id}/ack";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processAcknowledge(_response);
-        });
-    }
-
-    protected processAcknowledge(response: Response): Promise<UnreadCountDto> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UnreadCountDto.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<UnreadCountDto>(null as any);
-    }
-
     attachment(id: string, fileId: string): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/notifications/{id}/attachments/{fileId}";
         if (id === undefined || id === null)
@@ -4900,8 +4863,6 @@ export class InboxItemDto implements IInboxItemDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    ackAt?: Date | undefined;
-    requiresAck?: boolean;
     isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
@@ -4928,8 +4889,6 @@ export class InboxItemDto implements IInboxItemDto {
             }
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.deliveredAt = _data["deliveredAt"] ? new Date(_data["deliveredAt"].toString()) : undefined as any;
-            this.ackAt = _data["ackAt"] ? new Date(_data["ackAt"].toString()) : undefined as any;
-            this.requiresAck = _data["requiresAck"];
             this.isNew = _data["isNew"];
             this.updatedAfterDelivery = _data["updatedAfterDelivery"];
             this.seriesId = _data["seriesId"];
@@ -4956,8 +4915,6 @@ export class InboxItemDto implements IInboxItemDto {
         }
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["deliveredAt"] = this.deliveredAt ? this.deliveredAt.toISOString() : undefined as any;
-        data["ackAt"] = this.ackAt ? this.ackAt.toISOString() : undefined as any;
-        data["requiresAck"] = this.requiresAck;
         data["isNew"] = this.isNew;
         data["updatedAfterDelivery"] = this.updatedAfterDelivery;
         data["seriesId"] = this.seriesId;
@@ -4973,8 +4930,6 @@ export interface IInboxItemDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    ackAt?: Date | undefined;
-    requiresAck?: boolean;
     isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
@@ -5036,8 +4991,6 @@ export class InboxDetailDto implements IInboxDetailDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    ackAt?: Date | undefined;
-    requiresAck?: boolean;
     isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
@@ -5069,8 +5022,6 @@ export class InboxDetailDto implements IInboxDetailDto {
             }
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.deliveredAt = _data["deliveredAt"] ? new Date(_data["deliveredAt"].toString()) : undefined as any;
-            this.ackAt = _data["ackAt"] ? new Date(_data["ackAt"].toString()) : undefined as any;
-            this.requiresAck = _data["requiresAck"];
             this.isNew = _data["isNew"];
             this.updatedAfterDelivery = _data["updatedAfterDelivery"];
             this.seriesId = _data["seriesId"];
@@ -5110,8 +5061,6 @@ export class InboxDetailDto implements IInboxDetailDto {
         }
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["deliveredAt"] = this.deliveredAt ? this.deliveredAt.toISOString() : undefined as any;
-        data["ackAt"] = this.ackAt ? this.ackAt.toISOString() : undefined as any;
-        data["requiresAck"] = this.requiresAck;
         data["isNew"] = this.isNew;
         data["updatedAfterDelivery"] = this.updatedAfterDelivery;
         data["seriesId"] = this.seriesId;
@@ -5140,8 +5089,6 @@ export interface IInboxDetailDto {
     tags?: TagDto[];
     publishedAt?: Date | undefined;
     deliveredAt?: Date;
-    ackAt?: Date | undefined;
-    requiresAck?: boolean;
     isNew?: boolean;
     updatedAfterDelivery?: boolean;
     seriesId?: number | undefined;
@@ -5439,42 +5386,6 @@ export interface ISeriesPreviousDto {
     publishedAt?: Date | undefined;
 }
 
-export class UnreadCountDto implements IUnreadCountDto {
-    count?: number;
-
-    constructor(data?: IUnreadCountDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.count = _data["count"];
-        }
-    }
-
-    static fromJS(data: any): UnreadCountDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new UnreadCountDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["count"] = this.count;
-        return data;
-    }
-}
-
-export interface IUnreadCountDto {
-    count?: number;
-}
-
 export class AudienceEstimateDto implements IAudienceEstimateDto {
     count?: number;
 
@@ -5681,12 +5592,8 @@ export class ManageNotificationListItem implements IManageNotificationListItem {
     publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
     expiresAt?: Date | undefined;
-    requiresAck?: boolean;
     audienceAll?: boolean;
     recipientCount?: number;
-    readCount?: number;
-    ackCount?: number;
-    readPercent?: number;
     version?: number;
     updatedAt?: Date;
 
@@ -5714,12 +5621,8 @@ export class ManageNotificationListItem implements IManageNotificationListItem {
             this.publishAt = _data["publishAt"] ? new Date(_data["publishAt"].toString()) : undefined as any;
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
-            this.requiresAck = _data["requiresAck"];
             this.audienceAll = _data["audienceAll"];
             this.recipientCount = _data["recipientCount"];
-            this.readCount = _data["readCount"];
-            this.ackCount = _data["ackCount"];
-            this.readPercent = _data["readPercent"];
             this.version = _data["version"];
             this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : undefined as any;
         }
@@ -5747,12 +5650,8 @@ export class ManageNotificationListItem implements IManageNotificationListItem {
         data["publishAt"] = this.publishAt ? this.publishAt.toISOString() : undefined as any;
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
-        data["requiresAck"] = this.requiresAck;
         data["audienceAll"] = this.audienceAll;
         data["recipientCount"] = this.recipientCount;
-        data["readCount"] = this.readCount;
-        data["ackCount"] = this.ackCount;
-        data["readPercent"] = this.readPercent;
         data["version"] = this.version;
         data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : undefined as any;
         return data;
@@ -5769,12 +5668,8 @@ export interface IManageNotificationListItem {
     publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
     expiresAt?: Date | undefined;
-    requiresAck?: boolean;
     audienceAll?: boolean;
     recipientCount?: number;
-    readCount?: number;
-    ackCount?: number;
-    readPercent?: number;
     version?: number;
     updatedAt?: Date;
 }
@@ -5795,12 +5690,9 @@ export class ManageNotificationDto implements IManageNotificationDto {
     publishedAt?: Date | undefined;
     expiresAt?: Date | undefined;
     pinnedUntil?: Date | undefined;
-    requiresAck?: boolean;
     audience?: AudienceDto;
     attachments?: AttachmentDto[];
     recipientCount?: number;
-    readCount?: number;
-    ackCount?: number;
     version?: number;
     createdBy?: PersonRef | undefined;
     updatedBy?: PersonRef | undefined;
@@ -5841,7 +5733,6 @@ export class ManageNotificationDto implements IManageNotificationDto {
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
             this.pinnedUntil = _data["pinnedUntil"] ? new Date(_data["pinnedUntil"].toString()) : undefined as any;
-            this.requiresAck = _data["requiresAck"];
             this.audience = _data["audience"] ? AudienceDto.fromJS(_data["audience"]) : undefined as any;
             if (Array.isArray(_data["attachments"])) {
                 this.attachments = [] as any;
@@ -5849,8 +5740,6 @@ export class ManageNotificationDto implements IManageNotificationDto {
                     this.attachments!.push(AttachmentDto.fromJS(item));
             }
             this.recipientCount = _data["recipientCount"];
-            this.readCount = _data["readCount"];
-            this.ackCount = _data["ackCount"];
             this.version = _data["version"];
             this.createdBy = _data["createdBy"] ? PersonRef.fromJS(_data["createdBy"]) : undefined as any;
             this.updatedBy = _data["updatedBy"] ? PersonRef.fromJS(_data["updatedBy"]) : undefined as any;
@@ -5891,7 +5780,6 @@ export class ManageNotificationDto implements IManageNotificationDto {
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
         data["pinnedUntil"] = this.pinnedUntil ? this.pinnedUntil.toISOString() : undefined as any;
-        data["requiresAck"] = this.requiresAck;
         data["audience"] = this.audience ? this.audience.toJSON() : undefined as any;
         if (Array.isArray(this.attachments)) {
             data["attachments"] = [];
@@ -5899,8 +5787,6 @@ export class ManageNotificationDto implements IManageNotificationDto {
                 data["attachments"].push(item ? item.toJSON() : undefined as any);
         }
         data["recipientCount"] = this.recipientCount;
-        data["readCount"] = this.readCount;
-        data["ackCount"] = this.ackCount;
         data["version"] = this.version;
         data["createdBy"] = this.createdBy ? this.createdBy.toJSON() : undefined as any;
         data["updatedBy"] = this.updatedBy ? this.updatedBy.toJSON() : undefined as any;
@@ -5926,12 +5812,9 @@ export interface IManageNotificationDto {
     publishedAt?: Date | undefined;
     expiresAt?: Date | undefined;
     pinnedUntil?: Date | undefined;
-    requiresAck?: boolean;
     audience?: AudienceDto;
     attachments?: AttachmentDto[];
     recipientCount?: number;
-    readCount?: number;
-    ackCount?: number;
     version?: number;
     createdBy?: PersonRef | undefined;
     updatedBy?: PersonRef | undefined;
@@ -6245,7 +6128,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
     tagIds?: number[] | undefined;
     expiresAt?: Date | undefined;
     pinnedUntil?: Date | undefined;
-    requiresAck?: boolean;
     audienceAll?: boolean;
     groupIds?: number[] | undefined;
     employeeCodes?: string[] | undefined;
@@ -6278,7 +6160,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
             }
             this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
             this.pinnedUntil = _data["pinnedUntil"] ? new Date(_data["pinnedUntil"].toString()) : undefined as any;
-            this.requiresAck = _data["requiresAck"];
             this.audienceAll = _data["audienceAll"];
             if (Array.isArray(_data["groupIds"])) {
                 this.groupIds = [] as any;
@@ -6319,7 +6200,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
         }
         data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
         data["pinnedUntil"] = this.pinnedUntil ? this.pinnedUntil.toISOString() : undefined as any;
-        data["requiresAck"] = this.requiresAck;
         data["audienceAll"] = this.audienceAll;
         if (Array.isArray(this.groupIds)) {
             data["groupIds"] = [];
@@ -6345,7 +6225,6 @@ export interface INotificationWriteRequest {
     tagIds?: number[] | undefined;
     expiresAt?: Date | undefined;
     pinnedUntil?: Date | undefined;
-    requiresAck?: boolean;
     audienceAll?: boolean;
     groupIds?: number[] | undefined;
     employeeCodes?: string[] | undefined;
@@ -6457,12 +6336,6 @@ export interface IRevisionDto {
 
 export class NotificationStatsDto implements INotificationStatsDto {
     recipientCount?: number;
-    readCount?: number;
-    ackCount?: number;
-    readPercent?: number;
-    ackPercent?: number;
-    requiresAck?: boolean;
-    readsByDay?: DayStat[];
 
     constructor(data?: INotificationStatsDto) {
         if (data) {
@@ -6476,16 +6349,6 @@ export class NotificationStatsDto implements INotificationStatsDto {
     init(_data?: any) {
         if (_data) {
             this.recipientCount = _data["recipientCount"];
-            this.readCount = _data["readCount"];
-            this.ackCount = _data["ackCount"];
-            this.readPercent = _data["readPercent"];
-            this.ackPercent = _data["ackPercent"];
-            this.requiresAck = _data["requiresAck"];
-            if (Array.isArray(_data["readsByDay"])) {
-                this.readsByDay = [] as any;
-                for (let item of _data["readsByDay"])
-                    this.readsByDay!.push(DayStat.fromJS(item));
-            }
         }
     }
 
@@ -6499,76 +6362,12 @@ export class NotificationStatsDto implements INotificationStatsDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["recipientCount"] = this.recipientCount;
-        data["readCount"] = this.readCount;
-        data["ackCount"] = this.ackCount;
-        data["readPercent"] = this.readPercent;
-        data["ackPercent"] = this.ackPercent;
-        data["requiresAck"] = this.requiresAck;
-        if (Array.isArray(this.readsByDay)) {
-            data["readsByDay"] = [];
-            for (let item of this.readsByDay)
-                data["readsByDay"].push(item ? item.toJSON() : undefined as any);
-        }
         return data;
     }
 }
 
 export interface INotificationStatsDto {
     recipientCount?: number;
-    readCount?: number;
-    ackCount?: number;
-    readPercent?: number;
-    ackPercent?: number;
-    requiresAck?: boolean;
-    readsByDay?: DayStat[];
-}
-
-export class DayStat implements IDayStat {
-    date?: string;
-    reads?: number;
-    cumulativeReads?: number;
-    cumulativePercent?: number;
-
-    constructor(data?: IDayStat) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.date = _data["date"];
-            this.reads = _data["reads"];
-            this.cumulativeReads = _data["cumulativeReads"];
-            this.cumulativePercent = _data["cumulativePercent"];
-        }
-    }
-
-    static fromJS(data: any): DayStat {
-        data = typeof data === 'object' ? data : {};
-        let result = new DayStat();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["date"] = this.date;
-        data["reads"] = this.reads;
-        data["cumulativeReads"] = this.cumulativeReads;
-        data["cumulativePercent"] = this.cumulativePercent;
-        return data;
-    }
-}
-
-export interface IDayStat {
-    date?: string;
-    reads?: number;
-    cumulativeReads?: number;
-    cumulativePercent?: number;
 }
 
 export class PreviewVarsDto implements IPreviewVarsDto {

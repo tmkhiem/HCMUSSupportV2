@@ -5,7 +5,7 @@ import { DESKTOP, MOBILE, expectNoHorizontalScroll } from './helpers.ts'
 
 /**
  * D08 Tin tức inbox against the synthetic mock inbox (`inboxMock.ts`, VITE_MOCK_AUTH=1, port 5483).
- * The mock holds 26 posts (page size 20): #1 needs ack + series with 2 earlier posts, #4 two vars
+ * The mock holds 26 posts (page size 20): #1 has attachments + series with 2 earlier posts, #4 two vars
  * rows, #5 updated after delivery. Newest delivery is always first; there is no read or pin state. `window.__inboxMock.publish(title)` delivers a new post (no live stream).
  * Screenshots go to docs/screenshots/d08/.
  */
@@ -50,13 +50,12 @@ async function scrollListToEnd(page: Page) {
 test.describe('desktop 1440', () => {
   test.use({ viewport: DESKTOP })
 
-  test('the list renders newest first with ack and attachment markers and no read or pin state', async ({ page }) => {
+  test('the list renders newest first with attachment markers and no read or pin state', async ({ page }) => {
     await openInbox(page)
     await expect(page).toHaveTitle(/Tin tức/)
     await expect(rows(page)).toHaveCount(20)
 
     const first = row(page, SALARY_2026)
-    await expect(first).toContainText('Cần xác nhận')
     await expect(first).toContainText('Lương')
     await expect(first).toContainText('+1')
     await expect(first).toContainText('28/09/2026')
@@ -217,7 +216,6 @@ test.describe('desktop 1440', () => {
     await dialog(page).getByTestId('series-previous').getByRole('link', { name: new RegExp(SALARY_2025) }).click()
     await expect(page).toHaveURL(/\/tin-tuc\/0198a000-0000-7000-8000-000000000002\?tags=1$/)
     await expect(dialog(page).getByRole('heading', { level: 2, name: SALARY_2025 })).toBeVisible()
-    await expect(dialog(page)).toContainText('Đã xác nhận lúc')
     await expect(dialog(page).getByTestId('series-previous').getByRole('link')).toHaveCount(1)
 
     await page.keyboard.press('Escape')
@@ -251,26 +249,6 @@ test.describe('desktop 1440', () => {
     await expect(dialog(page).getByRole('heading', { level: 2, name: 'Không tìm thấy thông báo' })).toBeVisible()
   })
 
-  test('acknowledge: the button asks once, the chip replaces it, the row loses "Cần xác nhận"', async ({ page }) => {
-    await openInbox(page)
-    await row(page, SALARY_2026).click()
-    const ack = dialog(page).getByRole('button', { name: 'Xác nhận đã đọc' })
-    await expect(ack).toBeEnabled()
-    await ack.click()
-    await expect(dialog(page).getByText(/Đã xác nhận lúc \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)).toBeVisible()
-    await expect(ack).toHaveCount(0)
-
-    // The button that had focus is gone, so focus sits on <body> and a page-level Escape never reaches the dialog.
-    await dialog(page).press('Escape')
-    await expect(dialog(page)).toHaveCount(0)
-    await expect(row(page, SALARY_2026)).not.toContainText('Cần xác nhận')
-
-    // Persisted for the session: reopening shows the acknowledged state, no button.
-    await row(page, SALARY_2026).click()
-    await expect(dialog(page)).toContainText('Đã xác nhận lúc')
-    await expect(dialog(page).getByRole('button', { name: 'Xác nhận đã đọc' })).toHaveCount(0)
-  })
-
   test('there is no live stream: a new delivery shows when the inbox is entered again, at the top', async ({ page }) => {
     const streams: string[] = []
     page.on('request', (r) => r.url().includes('/api/notifications/stream') && streams.push(r.url()))
@@ -287,14 +265,6 @@ test.describe('desktop 1440', () => {
     await rows(page).first().click()
     await expect(dialog(page).getByRole('heading', { level: 2, name: 'Họp khẩn đột xuất' })).toBeVisible()
     expect(streams).toEqual([])
-  })
-
-  test('while viewing as someone else acknowledging is disabled', async ({ page }) => {
-    await openInbox(page, '/tin-tuc?mock-view-as=1')
-    await expect(page.getByText('Đang xem với tư cách')).toBeVisible()
-
-    await row(page, SALARY_2026).click()
-    await expect(dialog(page).getByRole('button', { name: 'Xác nhận đã đọc' })).toBeDisabled()
   })
 
   test('the nav entry and the landing redirect point at the inbox', async ({ page }) => {
@@ -338,7 +308,7 @@ test.describe('mobile 375', () => {
     await shot(page, 'inbox-filters-375')
   })
 
-  test('the detail is full screen, readable without horizontal scroll, and can be acknowledged', async ({ page }) => {
+  test('the detail is full screen and readable without horizontal scroll', async ({ page }) => {
     await openInbox(page)
     await row(page, SALARY_2026).click()
     const dlg = dialog(page)
@@ -350,8 +320,6 @@ test.describe('mobile 375', () => {
     await expect(dlg.getByTestId('notification-body')).toContainText('4,98')
     await shot(page, 'detail-375')
 
-    await dlg.getByRole('button', { name: 'Xác nhận đã đọc' }).click()
-    await expect(dlg.getByText(/Đã xác nhận lúc/)).toBeVisible()
     await dlg.getByRole('button', { name: 'Đóng' }).click()
     await expect(dialog(page)).toHaveCount(0)
     await expect(page).toHaveURL(/\/tin-tuc$/)
