@@ -42,8 +42,8 @@ public class FanOutService(AppDbContext db, ILogger<FanOutService> logger)
         """;
 
     private const string CountersSql = """
-        UPDATE notifications n SET recipient_count = c.total, read_count = c.reads
-        FROM (SELECT count(*)::int AS total, count(read_at)::int AS reads
+        UPDATE notifications n SET recipient_count = c.total
+        FROM (SELECT count(*)::int AS total
               FROM notification_deliveries WHERE notification_id = @nid) c
         WHERE n.id = @nid
         """;

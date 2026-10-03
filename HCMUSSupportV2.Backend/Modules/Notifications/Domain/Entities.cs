@@ -50,10 +50,8 @@ public class Notification
     public DateTimeOffset? PublishAt { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }
     public DateTimeOffset? ExpiresAt { get; set; }
-    public DateTimeOffset? PinnedUntil { get; set; }
     public bool AudienceAll { get; set; }
     public int RecipientCount { get; set; }
-    public int ReadCount { get; set; }
     public int Version { get; set; } = 1;
 
     /// <summary>Set when the content is edited after publishing; the inbox shows "updated" for deliveries older than this.</summary>
@@ -114,7 +112,6 @@ public class NotificationDelivery
     /// <summary>jsonb array of row objects (one item per imported row); null when the recipient has no variables.</summary>
     public string? Vars { get; set; }
     public DateTimeOffset DeliveredAt { get; set; }
-    public DateTimeOffset? ReadAt { get; set; }
     public DateTimeOffset? DismissedAt { get; set; }
 }
 

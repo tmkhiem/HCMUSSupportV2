@@ -107,7 +107,6 @@ export function toManageDetail(d: G.IManageNotificationDto): ManageDetail {
     publishAt: toDate(d.publishAt),
     publishedAt: toDate(d.publishedAt),
     expiresAt: toDate(d.expiresAt),
-    pinnedUntil: toDate(d.pinnedUntil),
     audienceAll: audience?.all ?? false,
     groups: (audience?.groups ?? []).map((g) => ({ id: g.id ?? 0, name: g.name ?? '', memberCount: g.memberCount ?? 0 })),
     employees: (audience?.employees ?? []).map((e) => ({ code: e.code ?? '', fullName: e.fullName ?? null, status: e.status ?? null })),

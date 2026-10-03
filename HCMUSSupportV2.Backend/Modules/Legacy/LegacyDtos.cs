@@ -47,11 +47,10 @@ public record LegacyNewsPostDto(
     Dictionary<string, List<Dictionary<string, string?>>>? Rows,
     string? SeriesName,
     List<string>? TagNames,
-    bool? AudienceAll,
-    string? PinnedUntil);
+    bool? AudienceAll);
 
 /// <summary><c>Kind</c> is <c>news</c> (default) or <c>banner</c>. <c>AllCoverage</c> is the share of the active roster (people with an email) a post without variables must cover to become <c>audience_all</c>.</summary>
-public record LegacyNewsRequest(List<LegacyNewsPostDto>? Posts, string? Kind = null, bool MarkRead = true, double AllCoverage = 0.9);
+public record LegacyNewsRequest(List<LegacyNewsPostDto>? Posts, string? Kind = null, double AllCoverage = 0.9);
 
 /// <summary>Action: <c>created</c>, <c>would_create</c>, <c>unchanged</c>, <c>changed_skipped</c> (the v1 file changed since it was imported; nothing is touched) or <c>rejected</c>.</summary>
 public record LegacyNewsItemDto(

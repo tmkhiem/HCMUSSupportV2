@@ -134,16 +134,16 @@ describe('loadNews and loadBanner', () => {
     expect(loadNews(news, { includeTest: true }).posts).toHaveLength(3)
   })
 
-  it('turns the update-info template into a pinned post for everyone', () => {
+  it('turns the update-info template into a post for everyone', () => {
     const file = join(dir, 'request-update-info-0.json')
     writeFileSync(file, JSON.stringify({
       header: '', datestr: '2023-11-18', category: 'request-update-info',
       template: '<p>Điền <a href="https://forms.gle/zzz">phiếu</a></p>', values: { T0001: [{ '{MA}': 'T0001' }] },
     }))
-    const { post, info } = loadBanner(file, '2036-01-01')
+    const { post, info } = loadBanner(file)
     expect(post).toMatchObject({
       key: 'request-update-info', title: 'Đề nghị cập nhật thông tin', publishedOn: '2023-11-18', bodyMd: 'Điền [phiếu](https://forms.gle/zzz)',
-      audienceAll: true, pinnedUntil: '2036-01-01', rows: {}, variables: [], seriesName: null, tagNames: ['Chung'],
+      audienceAll: true, rows: {}, variables: [], seriesName: null, tagNames: ['Chung'],
     })
     expect(info.warnings).toEqual([])
   })
@@ -160,19 +160,19 @@ describe('postNews', () => {
       return new Response(JSON.stringify({ dryRun: true, created: 1, unchanged: 0, changed: 0, rejected: 0, items: [] }), { status: 200 })
     }) as unknown as typeof fetch
     const { post } = buildPost('2025-05-15-a.json', envelope())
-    const report = await postNews([post], { baseUrl: 'http://x.test/', token: 'tok', dryRun: true, kind: 'news', markRead: true, allCoverage: 0.9, fetchImpl })
+    const report = await postNews([post], { baseUrl: 'http://x.test/', token: 'tok', dryRun: true, kind: 'news', allCoverage: 0.9, fetchImpl })
     expect(report.created).toBe(1)
     expect(seen!.url).toBe('http://x.test/api/integration/v1/legacy/news?dryRun=true')
     expect(seen!.headers.Authorization).toBe('ApiKey tok')
     expect(seen!.headers['Content-Encoding']).toBe('gzip')
-    expect(seen!.body).toMatchObject({ kind: 'news', markRead: true, allCoverage: 0.9 })
+    expect(seen!.body).toMatchObject({ kind: 'news', allCoverage: 0.9 })
     expect(seen!.body.posts[0].key).toBe('2025-05-15-a')
   })
 
   it('throws with the status on an error response', async () => {
     const fetchImpl = (async () => new Response('nope', { status: 403 })) as unknown as typeof fetch
     const { post } = buildPost('a.json', envelope())
-    await expect(postNews([post], { baseUrl: 'http://x', token: 't', dryRun: true, kind: 'news', markRead: true, allCoverage: 1, fetchImpl })).rejects.toThrow('HTTP 403')
+    await expect(postNews([post], { baseUrl: 'http://x', token: 't', dryRun: true, kind: 'news', allCoverage: 1, fetchImpl })).rejects.toThrow('HTTP 403')
   })
 })
 
@@ -182,11 +182,10 @@ describe('parseArgs', () => {
     expect(parseArgs(['--path', 'd', '--apply'], {})).toBe('--apply needs --api')
     expect(parseArgs(['--path', 'd', '--api', 'http://x'], {})).toBe('--api needs --token (or LEGACY_API_TOKEN)')
     const ok = parseArgs(['--path', 'd', '--api', 'http://x'], { LEGACY_API_TOKEN: 't' })
-    expect(ok).toMatchObject({ path: 'd', api: 'http://x', token: 't', apply: false, markRead: true, allCoverage: 0.9, banner: true })
+    expect(ok).toMatchObject({ path: 'd', api: 'http://x', token: 't', apply: false, allCoverage: 0.9, banner: true })
   })
-  it('validates numbers and dates', () => {
+  it('validates numbers', () => {
     expect(parseArgs(['--path', 'd', '--all-coverage', '2'], {})).toContain('--all-coverage')
-    expect(parseArgs(['--path', 'd', '--banner-pinned-until', 'soon'], {})).toContain('--banner-pinned-until')
     expect(parseArgs(['--path', 'd', '--nope'], {})).toBe('Unknown argument: --nope')
   })
 })

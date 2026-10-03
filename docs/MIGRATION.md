@@ -119,12 +119,11 @@ which validates each body with the same Markdig contract as the editor (an inval
   `2023-01-04-...-2022-3.json` (datestr 2022-12-14) and `2026-02-03-TNNG-2026.json` (datestr **2026-03-02**, probably day and month swapped); datestr is used as the plan says.
 - **Audience.** `audience_all` when the post has no variables and covers at least 90% (`--all-coverage`) of the active roster (active employees with a mapped
   email): the two 2025 surveys. Otherwise an applied recipient import built from the rows (only active employees get a delivery).
-- **Read state.** v1 had none, so imported deliveries are **marked read** (`--no-mark-read` to leave them unread): 56 old announcements must not become 56 unread badges.
 - **Series and tags** are guessed from the title (`src/guess.ts`: Nâng lương thường xuyên, Nâng lương trước hạn, Phụ cấp thâm niên nhà giáo, Thâm niên vượt khung,
   Phụ cấp ưu đãi nhà giáo, Đánh giá xếp loại viên chức, Khảo sát, Sáng kiến, Nghiên cứu khoa học; tags from the seeded set) and listed for review in the output and the report.
   Series are created by name; a guessed tag that does not exist is ignored with a message.
-- **Banner.** `request-update-info` (the Google Form link and the list of who handles which request) becomes one **pinned** post for everyone
-  (`pinned_until` 2036-01-01, `--banner-pinned-until`), imported with `kind=banner`. `apps.json` is not migrated. The other v1 form links (the stale Sáng kiến card and the
+- **Banner.** `request-update-info` (the Google Form link and the list of who handles which request) becomes one post for everyone
+  (not pinned: there is no pinning), imported with `kind=banner`. `apps.json` is not migrated. The other v1 form links (the stale Sáng kiến card and the
   NCKH card) lived in the v1 frontend repo, not in the data repo, and are not migrated; the form links inside the news posts are kept as links.
 
 ## API (`/api/integration/v1/legacy`, scope `legacy.import`, gzip bodies accepted)
@@ -133,7 +132,7 @@ which validates each body with the same Markdig contract as the editor (an inval
 |---|---|---|
 | `POST roster-emails?dryRun=` | `{users: [{id, name, emails[]}]}` | `LegacyRosterReportDto` (the D14c email report + counts) |
 | `POST roles?dryRun=` | `{grants: [{role, code?, email?}], mapEmail}` | outcome per grant |
-| `POST news?dryRun=` | `{posts: [...], kind: news\|banner, markRead, allCoverage}` | action per post: `created`, `would_create`, `unchanged`, `changed_skipped`, `rejected` |
+| `POST news?dryRun=` | `{posts: [...], kind: news\|banner, allCoverage}` | action per post: `created`, `would_create`, `unchanged`, `changed_skipped`, `rejected` |
 | `POST datasets/teaching\|research\|publications?dryRun=` | `{rows: [...]}` | new / updated / removed, unknown and normalised MSCBs, bad rows, skipped scopes |
 
 `dryRun` defaults to **true**.

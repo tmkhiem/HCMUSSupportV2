@@ -422,8 +422,7 @@ public class NotificationEngineTests(PostgresFixture database) : IAsyncLifetime
         var ids = new List<string>();
         for (var i = 1; i <= 5; i++)
         {
-            ids.Add(await _host.PublishAsync(editor, Draft($"Bài {i}", employees: [reader], tags: i == 2 ? [tagId] : [],
-                pinnedUntil: i == 1 ? DateTimeOffset.UtcNow.AddDays(1) : null)));
+            ids.Add(await _host.PublishAsync(editor, Draft($"Bài {i}", employees: [reader], tags: i == 2 ? [tagId] : [])));
             await Task.Delay(30);
         }
         var inbox = await _host.SignInAsync(reader);

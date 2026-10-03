@@ -16,7 +16,6 @@ export interface LegacyPost {
   seriesName: string | null
   tagNames: string[]
   audienceAll: boolean | null
-  pinnedUntil: string | null
 }
 
 /** What the tool learned about one file besides the payload (never posted). */

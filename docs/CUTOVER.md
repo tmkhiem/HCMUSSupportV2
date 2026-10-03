@@ -27,7 +27,7 @@ Not done by D18 (it needs a week and the HRM box).
 
 - [ ] Stand up a staging host (a throwaway droplet or the dev server), deploy v2 with `deploy.ps1`, load the data in the order of OPERATIONS 3.2 (`sync legacy-git`, `legacy-migrate --apply`, `legacy-news --apply`), then switch to the live HRM feed.
 - [ ] Task Scheduler on the HRM box runs `sync hrm --datasets all` nightly (PLAN Q3). Use the same `--admin`-free command as production; do **not** run `legacy-git` on a schedule as well.
-- [ ] Daily: Quản trị -> Đồng bộ shows a successful run per dataset; issues (`bad_date`, `unknown_employee`, `duplicate_mscb`) are no worse than the first run; the unread badge and Tin tức behave for two or three real colleagues (give them an editor-mapped test email).
+- [ ] Daily: Quản trị -> Đồng bộ shows a successful run per dataset; issues (`bad_date`, `unknown_employee`, `duplicate_mscb`) are no worse than the first run; Tin tức behaves for two or three real colleagues (give them an editor-mapped test email).
 - [ ] Re-run `tools/parity-check` against the soak database on the last day. HRM-sourced rows replace the synthetic `legacy-git` rows on the first `sync hrm` run (SYNC.md "Limitations of legacy-git"), so for HRM data the comparison is then against HRM, not against the v1 JSON: expect differences only where HRM differs from what v1 last exported, and list them.
 - [ ] Backups: one scheduled backup and one restore drill (OPERATIONS 5) on the staging host.
 

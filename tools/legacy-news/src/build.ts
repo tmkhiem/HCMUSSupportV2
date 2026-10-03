@@ -15,8 +15,6 @@ export interface V1Envelope {
 }
 
 export interface BuildOptions {
-  /** Pins the post until this date (yyyy-MM-dd); used for the update-info banner. */
-  pinnedUntil?: string
   /** Forces the audience: `true` = everyone (banner); `null`/undefined = let the server decide from the roster coverage. */
   audienceAll?: boolean | null
   /** Overrides the title (the banner has an empty header). */
@@ -96,7 +94,6 @@ export function buildPost(file: string, envelope: V1Envelope, options: BuildOpti
     key, title, publishedOn, bodyMd: markdown, variables, rows,
     seriesName: guess.seriesName, tagNames: guess.tagNames,
     audienceAll: options.audienceAll ?? null,
-    pinnedUntil: options.pinnedUntil ?? null,
   }
   return { post, info: { file, rows: rowCount, employees: Object.keys(rows).length, unusedColumns, warnings } }
 }
@@ -127,13 +124,12 @@ export function loadNews(newsDir: string, options: { includeTest?: boolean } = {
   return { posts, skipped }
 }
 
-/** The `request-update-info` banner: one pinned post for everyone; its per-person rows (5,761 identical entries) are not needed. */
-export function loadBanner(file: string, pinnedUntil: string): BuiltPost {
+/** The `request-update-info` banner: one post for everyone; its per-person rows (5,761 identical entries) are not needed. */
+export function loadBanner(file: string): BuiltPost {
   const envelope = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, '')) as V1Envelope
   const built = buildPost('request-update-info', { ...envelope, values: {} }, {
     title: 'Đề nghị cập nhật thông tin',
     audienceAll: true,
-    pinnedUntil,
     noGuess: true,
   })
   built.post.tagNames = ['Chung']

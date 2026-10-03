@@ -21,7 +21,6 @@ public record NotificationWriteRequest(
     List<VariableDto>? Variables,
     List<long>? TagIds,
     DateTimeOffset? ExpiresAt,
-    DateTimeOffset? PinnedUntil,
     bool AudienceAll,
     List<long>? GroupIds,
     List<string>? EmployeeCodes);
@@ -70,7 +69,6 @@ public record ManageNotificationDto(
     DateTimeOffset? PublishAt,
     DateTimeOffset? PublishedAt,
     DateTimeOffset? ExpiresAt,
-    DateTimeOffset? PinnedUntil,
     AudienceDto Audience,
     IReadOnlyList<AttachmentDto> Attachments,
     int RecipientCount,

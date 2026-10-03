@@ -25,7 +25,6 @@ const detail = (patch: Partial<ManageDetail> = {}): ManageDetail => ({
   publishAt: null,
   publishedAt: null,
   expiresAt: new Date('2026-12-31T00:00:00Z'),
-  pinnedUntil: null,
   audienceAll: false,
   groups: [{ id: 7, name: 'Nhóm A', memberCount: 4 }],
   employees: [{ code: 'T0003', fullName: 'Lê Nhân Viên', status: 'active' }],

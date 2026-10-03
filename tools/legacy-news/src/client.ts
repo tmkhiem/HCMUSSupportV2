@@ -28,7 +28,6 @@ export interface PostOptions {
   token: string
   dryRun: boolean
   kind: 'news' | 'banner'
-  markRead: boolean
   allCoverage: number
   fetchImpl?: typeof fetch
 }
@@ -36,7 +35,7 @@ export interface PostOptions {
 /** `POST /api/integration/v1/legacy/news` (ApiKey scope `legacy.import`), gzip body. */
 export async function postNews(posts: LegacyPost[], o: PostOptions): Promise<NewsReport> {
   const url = `${o.baseUrl.replace(/\/+$/, '')}/api/integration/v1/legacy/news?dryRun=${o.dryRun}`
-  const body = gzipSync(Buffer.from(JSON.stringify({ posts, kind: o.kind, markRead: o.markRead, allCoverage: o.allCoverage })))
+  const body = gzipSync(Buffer.from(JSON.stringify({ posts, kind: o.kind, allCoverage: o.allCoverage })))
   const response = await (o.fetchImpl ?? fetch)(url, {
     method: 'POST',
     headers: { Authorization: `ApiKey ${o.token}`, 'Content-Type': 'application/json', 'Content-Encoding': 'gzip' },

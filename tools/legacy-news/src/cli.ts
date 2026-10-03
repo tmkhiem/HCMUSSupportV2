@@ -18,8 +18,6 @@ Options:
   --token <token>           API token, or env LEGACY_API_TOKEN
   --apply                   write (default is a server-side dry run)
   --all-coverage <0..1>     a post without variables covering this share of the active roster becomes audience_all (default 0.9)
-  --no-mark-read            leave imported deliveries unread (default: read, v1 had no read state)
-  --banner-pinned-until <d> pin the update-info banner until yyyy-MM-dd (default 2036-01-01)
   --no-banner               do not import the request-update-info banner
   --include-test            also import posts that look like tests
   --report <file>           write the review report (titles, series and tags guessed, warnings, counts; no recipient data)
@@ -32,8 +30,6 @@ export interface CliOptions {
   token?: string
   apply: boolean
   allCoverage: number
-  markRead: boolean
-  bannerPinnedUntil: string
   banner: boolean
   includeTest: boolean
   report?: string
@@ -41,8 +37,7 @@ export interface CliOptions {
 
 export function parseArgs(argv: string[], env: Record<string, string | undefined> = process.env): CliOptions | string {
   const o: CliOptions = {
-    api: env.LEGACY_API_BASE, token: env.LEGACY_API_TOKEN, apply: false, allCoverage: 0.9, markRead: true,
-    bannerPinnedUntil: '2036-01-01', banner: true, includeTest: false,
+    api: env.LEGACY_API_BASE, token: env.LEGACY_API_TOKEN, apply: false, allCoverage: 0.9, banner: true, includeTest: false,
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
@@ -58,8 +53,6 @@ export function parseArgs(argv: string[], env: Record<string, string | undefined
         case '--token': o.token = value(); break
         case '--apply': o.apply = true; break
         case '--all-coverage': o.allCoverage = Number(value()); break
-        case '--no-mark-read': o.markRead = false; break
-        case '--banner-pinned-until': o.bannerPinnedUntil = value(); break
         case '--no-banner': o.banner = false; break
         case '--include-test': o.includeTest = true; break
         case '--report': o.report = value(); break
@@ -72,7 +65,6 @@ export function parseArgs(argv: string[], env: Record<string, string | undefined
   }
   if (!o.path) return '--path is required'
   if (!(o.allCoverage > 0 && o.allCoverage <= 1)) return '--all-coverage must be in (0, 1]'
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(o.bannerPinnedUntil)) return '--banner-pinned-until must be yyyy-MM-dd'
   if (o.apply && !o.api) return '--apply needs --api'
   if (o.api && !o.token) return '--api needs --token (or LEGACY_API_TOKEN)'
   return o
@@ -94,7 +86,7 @@ export async function run(argv: string[], out: (line: string) => void = console.
   const { posts, skipped } = loadNews(newsDir, { includeTest: o.includeTest })
   const built: BuiltPost[] = [...posts]
   const bannerFile = join(notifications, 'request-update-info', 'request-update-info-0.json')
-  const bannerPost = o.banner && existsSync(bannerFile) ? loadBanner(bannerFile, o.bannerPinnedUntil) : null
+  const bannerPost = o.banner && existsSync(bannerFile) ? loadBanner(bannerFile) : null
 
   const flagged = built.filter(b => b.info.warnings.length > 0)
   out(`converted ${built.length} news file(s)${bannerPost ? ' + the update-info banner' : ''}; ${skipped.length} skipped as test post(s); ${flagged.length} with warnings`)
@@ -117,7 +109,7 @@ export async function run(argv: string[], out: (line: string) => void = console.
 
   let exit = 0
   if (o.api) {
-    const base = { baseUrl: o.api, token: o.token!, dryRun: !o.apply, markRead: o.markRead, allCoverage: o.allCoverage }
+    const base = { baseUrl: o.api, token: o.token!, dryRun: !o.apply, allCoverage: o.allCoverage }
     const results: NewsItemResult[] = []
     try {
       for (let i = 0; i < built.length; i += BATCH) {

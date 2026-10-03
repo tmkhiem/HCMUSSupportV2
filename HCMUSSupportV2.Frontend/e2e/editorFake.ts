@@ -25,7 +25,6 @@ export interface FakeNotification {
   publishAt: string | null
   publishedAt: string | null
   expiresAt: string | null
-  pinnedUntil: string | null
   audienceAll: boolean
   groupIds: number[]
   employeeCodes: string[]
@@ -75,7 +74,6 @@ function note(id: number, patch: Partial<FakeNotification>): FakeNotification {
     publishAt: null,
     publishedAt: day(-id),
     expiresAt: null,
-    pinnedUntil: null,
     audienceAll: false,
     groupIds: [],
     employeeCodes: [],
@@ -153,7 +151,6 @@ function toDetail(s: State, n: FakeNotification) {
     publishAt: n.publishAt,
     publishedAt: n.publishedAt,
     expiresAt: n.expiresAt,
-    pinnedUntil: n.pinnedUntil,
     audience: {
       all: n.audienceAll,
       groups: GROUPS.filter((g) => n.groupIds.includes(g.id)).map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount })),
@@ -201,7 +198,6 @@ function applyWrite(n: FakeNotification, body: Record<string, unknown>) {
   n.seriesId = (body.seriesId as number | null) ?? null
   n.tagIds = (body.tagIds as number[] | undefined) ?? []
   n.expiresAt = (body.expiresAt as string | null) ?? null
-  n.pinnedUntil = (body.pinnedUntil as string | null) ?? null
   n.audienceAll = Boolean(body.audienceAll)
   n.groupIds = (body.groupIds as number[] | undefined) ?? []
   n.employeeCodes = (body.employeeCodes as string[] | undefined) ?? []

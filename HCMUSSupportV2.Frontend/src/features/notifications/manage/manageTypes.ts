@@ -110,7 +110,6 @@ export interface ManageDetail {
   publishAt: Date | null
   publishedAt: Date | null
   expiresAt: Date | null
-  pinnedUntil: Date | null
   audienceAll: boolean
   groups: GroupRef[]
   employees: EmployeeRef[]
@@ -193,7 +192,6 @@ export interface DraftForm {
   seriesId: number | null
   tagIds: number[]
   expiresAt: string | null
-  pinnedUntil: string | null
   audienceAll: boolean
   groups: GroupRef[]
   employees: EmployeeRef[]
@@ -208,7 +206,6 @@ export interface WriteRequest {
   variables: DeclaredVariable[]
   tagIds: number[]
   expiresAt: string | null
-  pinnedUntil: string | null
   audienceAll: boolean
   groupIds: number[]
   employeeCodes: string[]

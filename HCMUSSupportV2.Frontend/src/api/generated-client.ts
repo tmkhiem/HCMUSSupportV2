@@ -5689,7 +5689,6 @@ export class ManageNotificationDto implements IManageNotificationDto {
     publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
     expiresAt?: Date | undefined;
-    pinnedUntil?: Date | undefined;
     audience?: AudienceDto;
     attachments?: AttachmentDto[];
     recipientCount?: number;
@@ -5732,7 +5731,6 @@ export class ManageNotificationDto implements IManageNotificationDto {
             this.publishAt = _data["publishAt"] ? new Date(_data["publishAt"].toString()) : undefined as any;
             this.publishedAt = _data["publishedAt"] ? new Date(_data["publishedAt"].toString()) : undefined as any;
             this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
-            this.pinnedUntil = _data["pinnedUntil"] ? new Date(_data["pinnedUntil"].toString()) : undefined as any;
             this.audience = _data["audience"] ? AudienceDto.fromJS(_data["audience"]) : undefined as any;
             if (Array.isArray(_data["attachments"])) {
                 this.attachments = [] as any;
@@ -5779,7 +5777,6 @@ export class ManageNotificationDto implements IManageNotificationDto {
         data["publishAt"] = this.publishAt ? this.publishAt.toISOString() : undefined as any;
         data["publishedAt"] = this.publishedAt ? this.publishedAt.toISOString() : undefined as any;
         data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
-        data["pinnedUntil"] = this.pinnedUntil ? this.pinnedUntil.toISOString() : undefined as any;
         data["audience"] = this.audience ? this.audience.toJSON() : undefined as any;
         if (Array.isArray(this.attachments)) {
             data["attachments"] = [];
@@ -5811,7 +5808,6 @@ export interface IManageNotificationDto {
     publishAt?: Date | undefined;
     publishedAt?: Date | undefined;
     expiresAt?: Date | undefined;
-    pinnedUntil?: Date | undefined;
     audience?: AudienceDto;
     attachments?: AttachmentDto[];
     recipientCount?: number;
@@ -6127,7 +6123,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
     variables?: VariableDto[] | undefined;
     tagIds?: number[] | undefined;
     expiresAt?: Date | undefined;
-    pinnedUntil?: Date | undefined;
     audienceAll?: boolean;
     groupIds?: number[] | undefined;
     employeeCodes?: string[] | undefined;
@@ -6159,7 +6154,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
                     this.tagIds!.push(item);
             }
             this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : undefined as any;
-            this.pinnedUntil = _data["pinnedUntil"] ? new Date(_data["pinnedUntil"].toString()) : undefined as any;
             this.audienceAll = _data["audienceAll"];
             if (Array.isArray(_data["groupIds"])) {
                 this.groupIds = [] as any;
@@ -6199,7 +6193,6 @@ export class NotificationWriteRequest implements INotificationWriteRequest {
                 data["tagIds"].push(item);
         }
         data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : undefined as any;
-        data["pinnedUntil"] = this.pinnedUntil ? this.pinnedUntil.toISOString() : undefined as any;
         data["audienceAll"] = this.audienceAll;
         if (Array.isArray(this.groupIds)) {
             data["groupIds"] = [];
@@ -6224,7 +6217,6 @@ export interface INotificationWriteRequest {
     variables?: VariableDto[] | undefined;
     tagIds?: number[] | undefined;
     expiresAt?: Date | undefined;
-    pinnedUntil?: Date | undefined;
     audienceAll?: boolean;
     groupIds?: number[] | undefined;
     employeeCodes?: string[] | undefined;

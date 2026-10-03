@@ -198,8 +198,8 @@ public class LegacyMigrationTests(PostgresFixture database) : IAsyncLifetime
     // ------------------------------------------------------------------ news
 
     private static object Post(string key, string title, string date, string body, object? variables = null, object? rows = null, bool? all = null,
-        string? series = null, string[]? tags = null, string? pinnedUntil = null) =>
-        new { key, title, publishedOn = date, bodyMd = body, variables, rows, audienceAll = all, seriesName = series, tagNames = tags, pinnedUntil };
+        string? series = null, string[]? tags = null) =>
+        new { key, title, publishedOn = date, bodyMd = body, variables, rows, audienceAll = all, seriesName = series, tagNames = tags };
 
     [Fact]
     public async Task News_import_creates_published_posts_with_rows_audience_and_history()
@@ -244,9 +244,8 @@ public class LegacyMigrationTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(1, revision);
         Assert.Equal(2, n.RecipientCount);
         Assert.Equal(["T0501", "T0502"], deliveries.Select(d => d.EmployeeCode).ToArray());
-        // v1 date, and read (v1 had no read state: imported posts are history, not new unread badges)
-        Assert.All(deliveries, d => { Assert.Equal(n.PublishedAt, d.DeliveredAt); Assert.Equal(n.PublishedAt, d.ReadAt); });
-        Assert.Equal(2, n.ReadCount);
+        // delivered at the v1 date
+        Assert.All(deliveries, d => Assert.Equal(n.PublishedAt, d.DeliveredAt));
         // the variable keys keep their case, values per MSCB
         var stored = JsonNode.Parse(import.Rows)!.AsObject();
         Assert.Equal("3,00", (string)stored["T0501"]![0]!["HeSoLuong"]!);
@@ -315,13 +314,11 @@ public class LegacyMigrationTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(0, await _factory.WithDbAsync(db => db.Set<Notification>().CountAsync(x => x.Title.StartsWith("LEGACY-TEST"))));
 
         var banner = Post("request-update-info", "LEGACY-TEST Cập nhật thông tin", "2023-05-01",
-            "Điền [phiếu đề nghị](https://forms.gle/xyz) nếu cần cập nhật.", all: true, pinnedUntil: "2099-12-31");
-        var ok = await PostAsync("news", new { kind = "banner", markRead = false, posts = new[] { banner } });
+            "Điền [phiếu đề nghị](https://forms.gle/xyz) nếu cần cập nhật.", all: true);
+        var ok = await PostAsync("news", new { kind = "banner", posts = new[] { banner } });
         Assert.Equal("created", (string)ok["items"]![0]!["action"]!);
         var n = await _factory.WithDbAsync(db => db.Set<Notification>().AsNoTracking().SingleAsync(x => x.Title == "LEGACY-TEST Cập nhật thông tin"));
         Assert.True(n.AudienceAll);
-        Assert.Equal(new DateTimeOffset(2099, 12, 31, 0, 0, 0, TimeSpan.FromHours(7)), n.PinnedUntil);
-        Assert.Equal(0, n.ReadCount); // markRead=false keeps the banner unread
         Assert.True(await _factory.WithDbAsync(db => db.Set<LegacyImportMark>().AnyAsync(m => m.Kind == "banner" && m.Key == "request-update-info")));
     }
 

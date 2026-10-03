@@ -23,11 +23,11 @@ Fan-out happens on write, so an inbox read is one index range scan on `notificat
 |---|---|
 | `tags` | `id, name UNIQUE, color, sort`. Seeded: Lương, Thâm niên, Khen thưởng, Khảo sát, Đào tạo, Chung |
 | `notification_series` | `id, name UNIQUE, description` ("Nâng lương thường xuyên", ...) |
-| `notifications` | uuid v7 PK, `series_id`, `title`, `summary` (+ `summary_is_custom`), `body_md`, `content_text`, `variables jsonb [{key,label,type}]`, `status draft/scheduled/published/archived`, `publish_at`, `published_at`, `expires_at`, `pinned_until`, `audience_all`, counters `recipient_count/read_count`, `version`, `content_updated_at`, `created_by/updated_by`, `xmin` concurrency token, stored generated `search tsvector` (`vn_unaccent`: title A, summary B, content_text C) with a GIN index |
+| `notifications` | uuid v7 PK, `series_id`, `title`, `summary` (+ `summary_is_custom`), `body_md`, `content_text`, `variables jsonb [{key,label,type}]`, `status draft/scheduled/published/archived`, `publish_at`, `published_at`, `expires_at`, `audience_all`, counter `recipient_count`, `version`, `content_updated_at`, `created_by/updated_by`, `xmin` concurrency token, stored generated `search tsvector` (`vn_unaccent`: title A, summary B, content_text C) with a GIN index |
 | `notification_tags` | `(notification_id, tag_id)` |
 | `notification_revisions` | `(notification_id, version)` + title, summary, content, variables, editor, time. The first row is the content as published; one more row per edit after publishing |
 | `notification_audiences` | what the editor chose: `kind group` (`group_id`), `employee` (`employee_code`), `import` (`import_id`). `audience_all` lives on the notification row; the `all` kind is reserved and not written |
-| `notification_deliveries` | PK `(employee_code, notification_id)`, `vars jsonb` (array of row objects), `delivered_at`, `read_at` (only the legacy import sets it), `dismissed_at` (unused). Indexes: `(employee_code, delivered_at desc) include (read_at)`, partial `(employee_code) where read_at is null`, `(notification_id)` |
+| `notification_deliveries` | PK `(employee_code, notification_id)`, `vars jsonb` (array of row objects), `delivered_at`, `dismissed_at` (unused). Indexes: `(employee_code, delivered_at desc)`, `(notification_id)` |
 | `notification_attachments` | `id uuid v7, notification_id, file_id -> files, sort` |
 | `notification_recipient_imports` | `id uuid v7, notification_id, file_id, status validated/applied/rejected, columns jsonb, rows jsonb (MSCB -> [row objects]), report jsonb, created_by, applied_at` |
 
@@ -76,7 +76,7 @@ targeting it). Archived and expired posts are not backfilled. Removing someone f
 |---|---|
 | `GET notifications?status&tag&series&q&cursor&limit` | newest first (keyset on id); `{items, nextCursor}`; `q` is full text |
 | `GET notifications/{id}` | full detail incl. `audience {all, groups, employees, import}`, attachments, tags, variables |
-| `POST notifications` / `PUT notifications/{id}` | body `{version?, title, seriesId, summary, bodyMd, variables[{key,label,type}], tagIds[], expiresAt, pinnedUntil, audienceAll, groupIds[], employeeCodes[]}`. `summary` empty = automatic. 400 `errors` map per field (`bodyMd` entries read `[CODE] Dòng n, cột m: ...`); unknown group ids and employee codes are listed; 409 `{currentVersion}` on a stale version |
+| `POST notifications` / `PUT notifications/{id}` | body `{version?, title, seriesId, summary, bodyMd, variables[{key,label,type}], tagIds[], expiresAt, audienceAll, groupIds[], employeeCodes[]}`. `summary` empty = automatic. 400 `errors` map per field (`bodyMd` entries read `[CODE] Dòng n, cột m: ...`); unknown group ids and employee codes are listed; 409 `{currentVersion}` on a stale version |
 | `POST notifications/{id}/schedule\|publish\|archive\|clone`, `DELETE notifications/{id}` | see Lifecycle |
 | `GET notifications/{id}/revisions` | newest first |
 | `GET notifications/{id}/stats` | `{recipientCount}` |

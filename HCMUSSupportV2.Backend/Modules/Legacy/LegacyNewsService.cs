@@ -21,8 +21,7 @@ namespace HCMUSSupportV2.Backend.Modules.Legacy;
 /// with <c>published_at</c> (and the deliveries' <c>delivered_at</c>) set to the v1 <c>datestr</c>. Audience: <c>audience_all</c> when the
 /// post has no variables and covers at least <c>AllCoverage</c> of the active roster (people with a mapped email), otherwise an applied
 /// recipient import built from the rows. Idempotent through <c>legacy_import_marks</c> (key = v1 file name): an imported key is reported
-/// as <c>unchanged</c> (or <c>changed_skipped</c> when the file changed since), never imported twice. Imported deliveries are marked
-/// read by default, because v1 had no read state and 56 old announcements must not become 56 unread badges.
+/// as <c>unchanged</c> (or <c>changed_skipped</c> when the file changed since), never imported twice.
 /// </summary>
 public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogger audit)
 {
@@ -81,13 +80,6 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
             if (variables.Any(x => x.Key == vk)) { issues.Add($"Biến \"{vk}\" bị trùng."); continue; }
             variables.Add(new VariableDto(vk, string.IsNullOrWhiteSpace(v.Label) ? vk : v.Label.Trim(), string.IsNullOrWhiteSpace(v.Type) ? "text" : v.Type.Trim().ToLowerInvariant()));
         }
-        DateTimeOffset? pinnedUntil = null;
-        if (!string.IsNullOrWhiteSpace(post.PinnedUntil))
-        {
-            if (DateOnly.TryParseExact(post.PinnedUntil, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var pu))
-                pinnedUntil = MidnightVn(pu);
-            else issues.Add("pinnedUntil phải có dạng yyyy-MM-dd.");
-        }
         var analysis = string.IsNullOrWhiteSpace(body) ? null : NotificationMarkdown.Analyze(body, variables.Select(v => v.Key).ToList());
         if (analysis is not null)
             foreach (var issue in analysis.Issues) issues.Add(NotificationEditorService.FormatIssue(issue));
@@ -116,7 +108,7 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
             // A crash between "post created" and "deliveries created" leaves a post with no recipients: finish it. Otherwise nothing is touched.
             if (!dryRun && Guid.TryParse(mark.TargetId, out var existingId)
                 && await db.Set<Notification>().AsNoTracking().AnyAsync(x => x.Id == existingId && x.RecipientCount == 0 && x.Status == NotificationStatuses.Published, ct))
-                await HealFanOutAsync(existingId, publishedOn, request.MarkRead, ct);
+                await HealFanOutAsync(existingId, publishedOn, ct);
             return new LegacyNewsItemDto(key, action, audience, recipients, unknown, inactive, coverage, post.SeriesName, post.TagNames ?? [], issues);
         }
 
@@ -156,7 +148,7 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
         {
             Id = id, SeriesId = seriesId, Title = title, Summary = analysis!.Summary, SummaryIsCustom = false, BodyMd = body,
             ContentText = analysis.ContentText, Variables = variablesJson, Status = NotificationStatuses.Published,
-            PublishAt = publishedAt, PublishedAt = publishedAt, PinnedUntil = pinnedUntil,
+            PublishAt = publishedAt, PublishedAt = publishedAt,
             AudienceAll = all, Version = 1, CreatedAt = publishedAt, UpdatedAt = publishedAt,
         };
         db.Set<Notification>().Add(n);
@@ -182,7 +174,7 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
         db.Set<LegacyImportMark>().Add(new LegacyImportMark { Kind = kind, Key = key, TargetId = id.ToString(), ContentHash = hash, CreatedAt = DateTimeOffset.UtcNow });
         await db.SaveChangesAsync(ct);
 
-        await HealFanOutAsync(id, publishedOn, request.MarkRead, ct);
+        await HealFanOutAsync(id, publishedOn, ct);
         await audit.LogAsync("legacy.news_imported", "notification", id.ToString(), new { key, kind, audience, recipients }, ct);
         db.ChangeTracker.Clear();
         return new LegacyNewsItemDto(key, "created", audience, recipients, unknown, inactive, coverage, post.SeriesName, tags.Select(t => t.Name).ToList(), issues);
@@ -190,9 +182,9 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
 
     /// <summary>
     /// Creates the missing deliveries of an imported post (a no-op when they exist) and, for the ones this call created, sets
-    /// <c>delivered_at</c> to the v1 date and (by default) <c>read_at</c> to the same moment.
+    /// <c>delivered_at</c> to the v1 date.
     /// </summary>
-    private async Task HealFanOutAsync(Guid id, DateOnly publishedOn, bool markRead, CancellationToken ct)
+    private async Task HealFanOutAsync(Guid id, DateOnly publishedOn, CancellationToken ct)
     {
         var started = DateTimeOffset.UtcNow.AddSeconds(-1);
         var inserted = await fanOut.FanOutAsync(id, null, ct);
@@ -204,22 +196,15 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
         try
         {
             await using (var cmd = new NpgsqlCommand("""
-                UPDATE notification_deliveries SET delivered_at = @when, read_at = CASE WHEN @read THEN @when END
+                UPDATE notification_deliveries SET delivered_at = @when
                 WHERE notification_id = @id AND delivered_at >= @started
                 """, conn))
             {
                 cmd.Parameters.AddWithValue("when", when);
-                cmd.Parameters.AddWithValue("read", markRead);
                 cmd.Parameters.AddWithValue("id", id);
                 cmd.Parameters.AddWithValue("started", started);
                 await cmd.ExecuteNonQueryAsync(ct);
             }
-            await using var counters = new NpgsqlCommand("""
-                UPDATE notifications SET read_count = (SELECT count(read_at)::int FROM notification_deliveries WHERE notification_id = @id)
-                WHERE id = @id
-                """, conn);
-            counters.Parameters.AddWithValue("id", id);
-            await counters.ExecuteNonQueryAsync(ct);
         }
         finally { await db.Database.CloseConnectionAsync(); }
     }
@@ -256,7 +241,7 @@ public class LegacyNewsService(AppDbContext db, FanOutService fanOut, IAuditLogg
         var canonical = JsonSerializer.Serialize(new
         {
             title, publishedOn = publishedOn.ToString("yyyy-MM-dd"), body, variables, rows,
-            series = post.SeriesName, tags = (post.TagNames ?? []).Order().ToList(), post.AudienceAll, post.PinnedUntil,
+            series = post.SeriesName, tags = (post.TagNames ?? []).Order().ToList(), post.AudienceAll,
         }, HashJson);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
     }

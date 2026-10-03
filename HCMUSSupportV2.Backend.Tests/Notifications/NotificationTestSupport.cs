@@ -146,10 +146,10 @@ public sealed class NotificationsHost : IAsyncDisposable
 
     public static object Draft(string title = "Thông báo thử", string body = "Nội dung", object? variables = null, bool all = false,
         long[]? groups = null, string[]? employees = null, long[]? tags = null, int? version = null,
-        long? seriesId = null, DateTimeOffset? expiresAt = null, DateTimeOffset? pinnedUntil = null, string? summary = null) => new
+        long? seriesId = null, DateTimeOffset? expiresAt = null, string? summary = null) => new
     {
         version, title, bodyMd = body, summary, variables = variables ?? Array.Empty<object>(), audienceAll = all,
-        groupIds = groups ?? [], employeeCodes = employees ?? [], tagIds = tags ?? [], seriesId, expiresAt, pinnedUntil,
+        groupIds = groups ?? [], employeeCodes = employees ?? [], tagIds = tags ?? [], seriesId, expiresAt,
     };
 
     public static async Task<string> CreateAsync(Api editor, object draft) =>

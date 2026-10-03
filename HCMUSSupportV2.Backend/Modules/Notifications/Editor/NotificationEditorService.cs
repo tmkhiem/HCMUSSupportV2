@@ -109,7 +109,7 @@ public class NotificationEditorService(
 
         return new ManageNotificationDto(
             n.Id, n.Title, n.Summary, n.SummaryIsCustom, n.BodyMd, n.ContentText, ParseVariables(n.Variables), n.Status,
-            n.SeriesId, seriesName, tags, n.PublishAt, n.PublishedAt, n.ExpiresAt, n.PinnedUntil,
+            n.SeriesId, seriesName, tags, n.PublishAt, n.PublishedAt, n.ExpiresAt,
             new AudienceDto(n.AudienceAll, groups, employees, import), attachments,
             n.RecipientCount, n.Version,
             people.FirstOrDefault(p => p.Code == n.CreatedBy), people.FirstOrDefault(p => p.Code == n.UpdatedBy),
@@ -550,7 +550,6 @@ public class NotificationEditorService(
         n.Variables = p.VariablesJson;
         n.SeriesId = req.SeriesId;
         n.ExpiresAt = req.ExpiresAt?.ToUniversalTime();
-        n.PinnedUntil = req.PinnedUntil?.ToUniversalTime();
         n.AudienceAll = req.AudienceAll;
     }
 

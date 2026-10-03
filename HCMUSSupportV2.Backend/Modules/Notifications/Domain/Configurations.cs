@@ -134,9 +134,7 @@ public class NotificationDeliveryConfiguration : IEntityTypeConfiguration<Notifi
 
         b.HasIndex(x => new { x.EmployeeCode, x.DeliveredAt })
             .IsDescending(false, true)
-            .IncludeProperties(x => x.ReadAt)
             .HasDatabaseName("ix_notification_deliveries_inbox");
-        b.HasIndex(x => x.EmployeeCode).HasFilter("read_at IS NULL").HasDatabaseName("ix_notification_deliveries_unread");
         b.HasIndex(x => x.NotificationId);
 
         b.HasOne<Employee>().WithMany().HasForeignKey(x => x.EmployeeCode).OnDelete(DeleteBehavior.Cascade);
