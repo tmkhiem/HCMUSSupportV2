@@ -207,48 +207,4 @@ public class TeachingProgramsTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal("tien_si", TeachingLoadRules.ParseProgram("Tiến Sĩ"));
         Assert.Null(TeachingLoadRules.ParseProgram("khác"));
     }
-
-    // ------------------------------------------------------------ migration backfill
-
-    [Fact]
-    public async Task Migration_backfills_existing_rows_as_dai_hoc_and_renames_level_to_activity()
-    {
-        var admin = new NpgsqlConnectionStringBuilder(database.ConnectionString) { Database = "postgres", Pooling = false };
-        var name = $"hcmus_support_test_{Guid.NewGuid():N}";
-        await using (var conn = new NpgsqlConnection(admin.ConnectionString))
-        {
-            await conn.OpenAsync();
-            await new NpgsqlCommand($"CREATE DATABASE \"{name}\"", conn).ExecuteNonQueryAsync();
-        }
-        try
-        {
-            var connectionString = new NpgsqlConnectionStringBuilder(admin.ConnectionString) { Database = name, Pooling = false }.ConnectionString;
-            var options = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(connectionString).UseSnakeCaseNamingConvention().Options;
-            await using var db = new AppDbContext(options);
-            var migrator = db.GetService<IMigrator>();
-            await migrator.MigrateAsync("20261002050800_D14c_EmployeeEmails");   // the schema before D13b
-
-            await db.Database.ExecuteSqlRawAsync("""
-                SET session_replication_role = replica;
-                INSERT INTO teaching_loads (employee_code, academic_year, term, course_name, level, periods, standard_hours)
-                VALUES ('T0001', '2023-2024', 2, 'Giải tích', 'dh', 45, 45.5), ('T0001', '2023-2024', 3, 'Đại số', NULL, 30, 30);
-                SET session_replication_role = DEFAULT;
-                """);
-
-            await migrator.MigrateAsync();
-            var rows = await db.Set<TeachingLoad>().AsNoTracking().OrderBy(t => t.Term).ToListAsync();
-            Assert.Equal(2, rows.Count);
-            Assert.All(rows, r => { Assert.Equal(TeachingPrograms.DaiHoc, r.Program); Assert.Null(r.Module); Assert.Null(r.Track); });
-            Assert.Equal([2, 3], rows.Select(r => r.Term!.Value).ToArray());
-            Assert.Equal("dh", rows[0].Activity);   // the old free-text level is preserved in activity
-            Assert.Null(rows[1].Activity);
-        }
-        finally
-        {
-            NpgsqlConnection.ClearAllPools();
-            await using var conn = new NpgsqlConnection(admin.ConnectionString);
-            await conn.OpenAsync();
-            await new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)", conn).ExecuteNonQueryAsync();
-        }
-    }
 }

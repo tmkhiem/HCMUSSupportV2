@@ -23,7 +23,7 @@ again**: a re-run reports nothing to do. Run each tool without `--apply` first, 
 
 ## One-time setup
 
-- The backend must have the migration `D15_LegacyMigration` (table `legacy_import_marks`); in Development it migrates on start.
+- The backend must have the migration `InitialCreate` (table `legacy_import_marks`); in Development it migrates on start.
 - The tools post to `/api/integration/v1/legacy/*` with an API client that has the scope **`legacy.import`** (admin-grade: it writes
   emails, roles and posts). In Development the client `dev` made from `Hrm:DevApiClient:Token` gets both `hrm.ingest` and
   `legacy.import` (an older dev database gets the new scope on the next start). For another database create the client in *Quản trị -> API clients* (scope `legacy.import`, revoke it there afterwards); the SQL below is the fallback

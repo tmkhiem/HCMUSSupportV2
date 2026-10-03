@@ -17,7 +17,7 @@ editor ──PUT/POST manage/notifications──► notifications (draft) ──
 
 Fan-out happens on write, so an inbox read is one index range scan on `notification_deliveries (employee_code, delivered_at desc)`.
 
-### Tables (migration `D07_Notifications`)
+### Tables (migration `InitialCreate`)
 
 | Table | Purpose |
 |---|---|

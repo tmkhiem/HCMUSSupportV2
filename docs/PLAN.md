@@ -381,7 +381,7 @@ Wave 4   D15 Legacy migration (D04, D05, D07) → D18 Parity & cutover
   - [x] rate limiter (`auth/*`, `integration/*`)
   - [x] forwarded headers
 - [x] The `Modules/` pattern and the `jobs` queue: entity, `IJobQueue.Enqueue`, a hosted worker with SKIP LOCKED, retry and backoff, and a test job.
-- [x] `IFileStore` (local disk), the `files` table, `audit_log` with `IAuditLogger`, and `data_protection_keys`. Migration `D01_Platform`.
+- [x] `IFileStore` (local disk), the `files` table, `audit_log` with `IAuditLogger`, and `data_protection_keys`. Migration `InitialCreate`.
 - [x] `HCMUSSupportV2.Backend.Tests` with a PG fixture.
 - **Done when:** `dotnet test` is green, `/healthz` is Healthy, a queued test job runs, and `generate-api.cmd` emits `SystemClient`.
 

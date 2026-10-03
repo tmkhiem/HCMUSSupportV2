@@ -207,7 +207,7 @@ active admin. The Admin module calls it before revoking the admin role (and refu
 no active admin: at startup, and again when one of those emails signs in (so it also works when the roster is synced
 after the first start). The grant is audited as `roles.bootstrap_admin`.
 
-### Tables (migration `D03_Identity`)
+### Tables (migration `InitialCreate`)
 
 `org_units`, `employees` (PK `code` = MSCB; `full_name_unaccent` is a stored generated column `f_unaccent(full_name)`
 with a trigram GIN index), `employee_emails` (`email citext` PK), `role_assignments` (role CHECK `editor|admin`),
@@ -280,7 +280,7 @@ that throws is logged and skipped. Use a `module.thing` key (`identity.employees
 `notifications.read_rate`). Identity ships five tiles: active employees, employees with an email, editors, admins and
 distinct `auth.login` sign-ins in the last 7 days.
 
-### Schema (migration `D14a_Admin`)
+### Schema (migration `InitialCreate`)
 
 Only indexes on `audit_log`: `ix_audit_log_at_id (at DESC, id DESC)` for keyset paging and `ix_audit_log_action_at`.
 
@@ -353,7 +353,7 @@ case-insensitively; repeated MSCB rows are merged; rows without an MSCB or witho
 Counts are exact; each list is capped at 1,000 items (`truncated`). Applying runs in one transaction under the same advisory lock;
 a bad file answers 400 (unsupported type, unreadable workbook, no MSCB column, no Email column, too many rows).
 
-**Schema (migration `D14c_EmployeeEmails`).** Adds `ux_employee_emails_one_primary` and replaces the plain `employee_code` index by
+**Schema (migration `InitialCreate`).** Adds `ux_employee_emails_one_primary` and replaces the plain `employee_code` index by
 `(employee_code, added_at)` (EF cannot keep two indexes on the same column). The migration first demotes duplicate primaries
 (keeps the oldest). Code that flips the primary of an existing row must clear the old primary and save before setting the new
 one (see `AuthEndpointTests.Dev_login_signs_in_and_me_returns_the_profile`).
@@ -390,7 +390,7 @@ registered `IGroupMembershipObserver` is called once per group with the added co
 rethrown (the members are already committed). `RosterSyncGroupsObserver` implements `IRosterSyncObserver`: D04 calls it
 after a sync and it queues one `groups.recompute` (deduplicated while one is waiting).
 
-**Schema (migration `D06_Groups`)**: unique partial index `ux_groups_org_unit` (one auto group per org unit) and
+**Schema (migration `InitialCreate`)**: unique partial index `ux_groups_org_unit` (one auto group per org unit) and
 `ck_groups_shape` (org-unit groups have `org_unit_id`, rule groups have `rule`). `ClosedXML` reads the xlsx imports.
 ## HRM module (D04, `Modules/Hrm`)
 
@@ -398,7 +398,7 @@ Folders: `Domain/` (entities and configurations), `Integration/` (ApiKey auth, i
 `IntegrationController`), `Me/` (`MeController`, `MeService`, DTOs), `Datasets/` (Excel imports), `Sync/` (admin sync runs
 and issues). The ingest contract with examples is in [INGEST.md](INGEST.md).
 
-**Tables (migration `D04_Hrm`).** `employee_profiles`, `employee_sensitive`, `salary_history`, `position_history`,
+**Tables (migration `InitialCreate`).** `employee_profiles`, `employee_sensitive`, `salary_history`, `position_history`,
 `commendations`, `academic_degrees`, `trainings`, `business_trips`, `innovations` (child tables have `hrm_id` unique and an
 `(employee_code, date desc)` index), `teaching_loads`, `research_projects`, `research_project_members`, `publications`,
 `publication_authors`, `api_clients`, `sync_runs`, `sync_issues`, `dataset_imports` (the Excel dataset imports; D07 has its
@@ -468,7 +468,7 @@ unless `?dryRun=false`**. The runbook, the report fields and the conversion rule
 - `LegacyRosterService` feeds `employee_emails` through `EmployeeEmailImportService.ImportEntriesAsync` (the D14c engine, now shared; additive, no removals).
 - `LegacyRolesService` grants roles additively and audits `roles.granted` (identities come from the request, not from code).
 - `LegacyNewsService` creates **published** notifications (`published_at` / `delivered_at` = the v1 date, import audience or `audience_all`, deliveries read by default,
-  one revision, series and tags by name) and fans them out with `FanOutService`. Idempotency is `legacy_import_marks (kind, key, content_hash)` (migration `D15_LegacyMigration`):
+  one revision, series and tags by name) and fans them out with `FanOutService`. Idempotency is `legacy_import_marks (kind, key, content_hash)` (migration `InitialCreate`):
   unchanged content is a no-op, changed content is reported (`changed_skipped`) and never re-applied.
 - `LegacyDatasetsService` writes teaching, research and publications with `source_import_id` NULL and **never touches a scope an admin import owns**; teaching rows are
   compared as a multiset (v1 repeats rows); hand-typed MSCBs (`_0246`, `408`) are normalised only when that makes them known.
@@ -495,7 +495,7 @@ conflicts, delete your migration, rebase and regenerate it. Never edit a merged 
 
 ```
 cd HCMUSSupportV2.Backend
-dotnet ef migrations add D03_Auth -o Migrations
+dotnet ef migrations add <Name> -o Migrations
 dotnet ef database update
 ```
 
@@ -503,7 +503,7 @@ The EF tools start the app to read configuration, so `ConnectionStrings:Default`
 loaded when `ASPNETCORE_ENVIRONMENT=Development`, which `dotnet ef` uses by default). Put raw SQL (functions,
 `CREATE TEXT SEARCH ...`, generated tsvector columns) in `migrationBuilder.Sql(...)`.
 
-The `D01_Platform` baseline creates the `citext`, `unaccent` and `pg_trgm` extensions, the `public.f_unaccent(text)`
+The `InitialCreate` baseline creates the `citext`, `unaccent` and `pg_trgm` extensions, the `public.f_unaccent(text)`
 IMMUTABLE wrapper and the `vn_unaccent` text search configuration (`simple` mapped through `unaccent`), so use
 `to_tsvector('vn_unaccent', ...)` and `f_unaccent(...)` in generated columns and trigram indexes.
 
