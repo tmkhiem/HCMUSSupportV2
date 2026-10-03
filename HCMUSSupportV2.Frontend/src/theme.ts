@@ -323,7 +323,10 @@ export const theme = createTheme({
         },
         { props: { variant: 'outlined', size: 'small' }, style: { padding: '4px 12px' } },
         { props: { variant: 'outlined', size: 'large' }, style: { padding: '8px 24px' } },
-        { props: { variant: 'outlined', color: 'inherit' }, style: { backgroundColor: alpha(TEXT_PRIMARY, 0.1), '&:hover': { border: 'none', backgroundColor: alpha(TEXT_PRIMARY, 0.16) } } },
+        {
+          // Grey (the neutral button, "Tải thêm", "Thẻ và chuỗi"): a translucent grey over a blurred backdrop.
+          props: { variant: 'outlined', color: 'inherit' },
+          style: { backgroundColor: alpha(TEXT_PRIMARY, 0.1), backdropFilter: ACRYLIC_BLUR, WebkitBackdropFilter: ACRYLIC_BLUR, '&:hover': { border: 'none', backgroundColor: alpha(TEXT_PRIMARY, 0.16) } } },
         ...TINT_COLORS.map((color) => ({
           props: { variant: 'outlined' as const, color },
           style: ({ theme: t }: { theme: Theme }) => ({
