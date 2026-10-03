@@ -13,7 +13,7 @@ const audit = (id: number, action: string, actor = 'T0001', actorName = 'Nguyễ
   details: target ? { role: 'editor' } : undefined,
 })
 
-const employees = [
+const employees: Array<{ code: string; fullName: string; unit: string; status: string; primaryEmail: string | undefined; roles: string[] }> = [
   { code: 'T0001', fullName: 'Nguyễn Thử Nghiệm', unit: 'Khoa Công nghệ thông tin', status: 'active', primaryEmail: 't0001@example.test', roles: ['editor', 'admin'] },
   { code: 'T0002', fullName: 'Trần Mẫu Thử', unit: 'Khoa Toán - Tin học', status: 'active', primaryEmail: 't0002@example.test', roles: ['editor'] },
   { code: 'T0003', fullName: 'Lê Nhân Viên', unit: 'Khoa Vật lý', status: 'active', primaryEmail: 't0003@example.test', roles: [] },
@@ -96,8 +96,9 @@ export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<
     if (p === '/api/admin/roles' && m === 'GET') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase()
       const cursor = url.searchParams.get('cursor')
-      const items = employees.filter((e) => !q || `${e.code} ${e.fullName}`.toLowerCase().includes(q))
-      if (!q && !url.searchParams.get('role') && !cursor && url.searchParams.get('limit') === '50')
+      const role = url.searchParams.get('role')
+      const items = employees.filter((e) => (!q || `${e.code} ${e.fullName}`.toLowerCase().includes(q)) && (!role || e.roles.includes(role)))
+      if (!q && !role && !cursor && url.searchParams.get('limit') === '50')
         return json({ items: items.slice(0, 3), nextCursor: 'c1' })
       return json({ items: cursor ? items.slice(3) : items, nextCursor: undefined })
     }
