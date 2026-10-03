@@ -1,0 +1,23 @@
+{
+  "name": "legacy-news",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One-off converter for the v1 news posts (SupportHCMUSData/notifications/news) into v2 Markdown notifications (D15).",
+  "scripts": {
+    "start": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

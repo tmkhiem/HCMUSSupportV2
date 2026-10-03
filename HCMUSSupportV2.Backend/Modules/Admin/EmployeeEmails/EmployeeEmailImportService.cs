@@ -37,7 +37,8 @@ public class EmployeeEmailImportService(
         "ho ten", "ho va ten", "ten", "full name", "name",
     };
 
-    private sealed class Entry(int row, string code, string? name)
+    /// <summary>One person of an import: the MSCB, an optional name (only compared) and the raw email texts.</summary>
+    public sealed class Entry(int row, string code, string? name)
     {
         public int Row { get; } = row;
         public string Code { get; } = code;
@@ -45,9 +46,22 @@ public class EmployeeEmailImportService(
         public List<string> RawEmails { get; } = [];
     }
 
+    /// <summary>Where the rows came from: the note stored on new mappings and the name written to the audit log.</summary>
+    public sealed record Source(string Note, string AuditName, object? AuditExtra = null);
+
     public async Task<EmailImportReportDto> ImportAsync(Stream file, string fileName, bool dryRun, bool removeMissing, CancellationToken ct)
     {
         var entries = ReadEntries(file, fileName, out var rowCount, out var skippedEmpty);
+        return await ImportEntriesAsync(entries, rowCount, skippedEmpty, dryRun, removeMissing, new Source("Nhập từ tệp", Path.GetFileName(fileName)), ct);
+    }
+
+    /// <summary>
+    /// The shared core of the import: resolves, checks and (unless <paramref name="dryRun"/>) applies already-parsed entries.
+    /// Used by the xlsx/csv upload and by the legacy migration (D15), which reads <c>users.json</c>.
+    /// </summary>
+    public async Task<EmailImportReportDto> ImportEntriesAsync(IReadOnlyList<Entry> entries, int rowCount, int skippedEmpty,
+        bool dryRun, bool removeMissing, Source source, CancellationToken ct)
+    {
 
         // Resolve MSCB (case-insensitive).
         var loweredCodes = entries.Select(e => e.Code.ToLowerInvariant()).Distinct().ToList();
@@ -190,15 +204,15 @@ public class EmployeeEmailImportService(
         var firstEmailActive = codesWithNewFirst.Where(c => employees[c.ToLowerInvariant()].Status == EmployeeStatuses.Active).ToList();
 
         if (!dryRun && (toAdd.Count > 0 || toRemove.Count > 0))
-            await ApplyAsync(toAdd, toRemove, finalPrimary, ct);
+            await ApplyAsync(toAdd, toRemove, finalPrimary, source.Note, ct);
 
         if (!dryRun)
         {
             await audit.LogAsync(EmployeeEmailAuditActions.Imported, "employee_emails", null, new
             {
-                fileName = Path.GetFileName(fileName), rows = rowCount, employees = distinctEmployees.Count, added = counts.Added,
+                fileName = source.AuditName, rows = rowCount, employees = distinctEmployees.Count, added = counts.Added,
                 unchanged = counts.Unchanged, removed = counts.Removed, conflicts = counts.Conflicts, unknown = counts.Unknown,
-                invalid = counts.Invalid, removeMissing,
+                invalid = counts.Invalid, removeMissing, via = source.AuditExtra,
             }, ct);
             if (firstEmailActive.Count > 0)
                 foreach (var observer in activationObservers)
@@ -224,7 +238,7 @@ public class EmployeeEmailImportService(
     }
 
     private async Task ApplyAsync(List<(string Code, string Email, int Row)> toAdd, List<EmployeeEmail> toRemove,
-        Dictionary<string, string> finalPrimary, CancellationToken ct)
+        Dictionary<string, string> finalPrimary, string note, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({EmployeeEmailsService.WriteLockKey})", ct);
@@ -233,7 +247,7 @@ public class EmployeeEmailImportService(
         // Step 1: deletes and inserts (new rows start non-primary so the one-primary index is never hit mid-way).
         foreach (var m in toRemove) db.Set<EmployeeEmail>().Remove(m);
         foreach (var (code, email, _) in toAdd)
-            db.Set<EmployeeEmail>().Add(new EmployeeEmail { Email = email, EmployeeCode = code, IsPrimary = false, Note = "Nhập từ tệp", AddedBy = user.Code, AddedAt = now });
+            db.Set<EmployeeEmail>().Add(new EmployeeEmail { Email = email, EmployeeCode = code, IsPrimary = false, Note = note, AddedBy = user.Code, AddedAt = now });
         await db.SaveChangesAsync(ct);
 
         // Step 2: exactly one primary for every touched employee.
@@ -254,7 +268,7 @@ public class EmployeeEmailImportService(
 
     // ---- file ----
 
-    private List<Entry> ReadEntries(Stream file, string fileName, out int rowCount, out int skippedEmpty)
+    private static List<Entry> ReadEntries(Stream file, string fileName, out int rowCount, out int skippedEmpty)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         var rows = ext switch

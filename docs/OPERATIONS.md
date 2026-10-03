@@ -317,7 +317,7 @@ sustained CPU/memory; an alert on certificate expiry below 14 days (`certbot.tim
 ## 7. Cutover checklist
 
 The full cutover (parity report, one-week soak, Google redirect URIs and secret rotation, removing the `/tchc` remnants and the
-v1 tmux process, telling the KHCN and Documents owners that the v1 user-dump endpoint has gone) is **PLAN D18**. The credential
+v1 tmux process, telling the KHCN and Documents owners that the v1 user-dump endpoint has gone) is **PLAN D18**: the checklist is [CUTOVER.md](CUTOVER.md) and the parity report is [PARITY.md](PARITY.md). The credential
 rotations and the HRM read-only login are in [`SECURITY-CHECKLIST.md`](SECURITY-CHECKLIST.md) (D17). In short, around the
 upgrade window: snapshot and v1 backup (1.1) -> OS upgrade (1.2) -> bootstrap (2) -> deploy and data load (3) -> smoke test -> rotate
 the Google secret and the other items in the security checklist -> uptime monitoring on -> first restore drill (5) -> stop the v1

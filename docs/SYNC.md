@@ -157,9 +157,11 @@ lone `9`) is sent as the original text so the API stores null and records a `bad
 - Fields v1 never exported stay null: `salary.gradeName`, `overGradePct` on profiles, `youthUnionJoinedOn`, `commendation.academicYear`,
   `position.endedOn`.
 
+The same executable also runs the one-off **`sync legacy-migrate`** (roster emails, roles, teaching, research, papers; D15): see [MIGRATION.md](MIGRATION.md). It is a dry run unless `--apply`.
+
 Transition use: run `legacy-git` once into a fresh database (D15) so the portal can be exercised with real facts, then switch
 the nightly task to `hrm` as soon as the read-only login exists. Do not run both on a schedule. Teaching, research and
-publications are Excel imports, not part of this tool.
+publications are Excel imports, not part of `sync legacy-git` (D15 brings the v1 ones in through `sync legacy-migrate`).
 
 ## Development
 

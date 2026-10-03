@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated 2026-10-02 (late). Plan: [PLAN.md](PLAN.md). Everything below is on `origin/main`. Nothing is deployed and the live server is untouched.
+Updated 2026-10-02 (night). Plan: [PLAN.md](PLAN.md). Everything below is on `origin/main`. Nothing is deployed and the live server is untouched.
 
 ## Merged into `main`
 
@@ -33,12 +33,16 @@ Also merged: `fix/build-wwwroot-flake`, `fix/ef-bundle-release` and `docs/env-ex
 
 ## In progress
 
-Nothing. The branches `feat/d09-notification-editor`, `feat/d14b-admin-pages`, `feat/d14c-employee-emails`, `feat/d12-education-pages`, `feat/d13-research-teaching-pages`, `integration/d12-d13-followups` and the three follow-up branches are merged and can be deleted from `origin`.
+**D15 legacy migration**: done on the branch `feat/d15-legacy-migration` (not pushed, **not merged**; the owner reviews first). Runbook and results: [MIGRATION.md](MIGRATION.md).
+Verified against the real data repo on a temporary database (since dropped): a full run and a second run that reported nothing to do. Tests: 16 backend (`Legacy/LegacyMigrationTests`),
+18 sync (`LegacyMigrationTests`), 52 `tools/legacy-news` (vitest). The migration `D15_LegacyMigration` adds `legacy_import_marks`.
+
+**D18 parity check and cutover**: done on the branch `feat/d18-parity-cutover` (branched from `feat/d15-legacy-migration`, not pushed, **not merged**). The parity tool is `tools/parity-check` and the report [PARITY.md](PARITY.md): 5 sampled real employees, the edge cases and all 1,917 other roster people compared with v1, 0 mismatches (documented differences only). The owner's cutover steps (soak, Google redirect URIs and secret rotation, server upgrade, DNS, removing v1) are the checklist [CUTOVER.md](CUTOVER.md); none was run. The temporary database `hcmus_support_dev_m2_d18_a` is dropped.
+
+Otherwise nothing. The branches `feat/d09-notification-editor`, `feat/d14b-admin-pages`, `feat/d14c-employee-emails`, `feat/d12-education-pages`, `feat/d13-research-teaching-pages`, `integration/d12-d13-followups` and the three follow-up branches are merged and can be deleted from `origin`.
 
 ## Not started
 
-- **D15**: legacy migration. The users.json emails, the 56 news posts (HTML → Markdown) and the datasets aren't imported yet. The HRM data itself can already come in through `sync legacy-git`. The roles step needs your decision on the 8 ViewAs/Lookup holders (PLAN Q5), and it needs a clone of the private data repo outside this repo.
-- **D18**: parity check and cutover.
 - **API clients admin UI** (D14b leftover): create, show token once, revoke `api_clients`. The backend has no HTTP endpoints for it yet.
 
 ## Decisions taken on my own overnight
@@ -78,6 +82,22 @@ Nothing. The branches `feat/d09-notification-editor`, `feat/d14b-admin-pages`, `
 17. **Two employee lookups:** D09 added `GET /api/manage/notifications/employees` and D14c added `GET /api/manage/employees`. The editor's targeting panel could switch to the latter.
 18. **D09 and D14c gaps:** the editor has no download link for attachments (the only download endpoint is the recipient's). Removing someone's last email (D14c) does not end an open session; they just cannot sign in again.
 19. **Sign-in is not exercised end to end:** Google sign-in cannot run in e2e. D14c proves "that person can sign in" through `/api/auth/me` and a backend test of the sign-in service.
+
+20. **D15 decisions for you** (details in [MIGRATION.md](MIGRATION.md)):
+    - the six other v1 ViewAs/Lookup holders are listed by the roles step, not granted (editor, admin or nothing);
+    - v1 sheet findings for HR: 4 invalid emails, 10 emails that are another employee's HRM personal email, 2 MSCBs not in HRM;
+    - `2026-02-03-TNNG-2026.json` has `datestr` 2026-03-02 (day and month look swapped) and the `-2022-3` file has an older date than its name; `datestr` is used;
+    - imported news deliveries are marked **read** (v1 had no read state); `--no-mark-read` changes that;
+    - guessed series and tags are listed for review, not final;
+    - the update-info banner is pinned until 2036-01-01, and the stale v1 form cards (Sáng kiến, NCKH) lived in the v1 frontend repo, not the data repo, so they are not migrated.
+21. **No admin screen for API clients**: running the migration outside Development needs an `api_clients` row with scope `legacy.import` (SQL in MIGRATION.md), revoked afterwards.
+22. **Late joiners and `audience_all`**: a person who later gets a first email is backfilled with the two 2025 surveys and the banner (normal behaviour); the legacy posts have no `expires_at`.
+
+23. **D18 decisions for you** (details in [PARITY.md](PARITY.md) and [CUTOVER.md](CUTOVER.md)):
+    - the 7 MSCBs that v1 has twice are quarantined in v2 (no data, no sign-in): HR must make them unique before cutover;
+    - 2 people (4 invalid emails in the roster) have no mapped email and receive nothing until HR fixes it;
+    - the two 2025 surveys reach everyone in v2, while v1 had listed 93 to 96% of the roster (189 extra deliveries among the people compared);
+    - the soak with `sync hrm` has not run (needs the HRM box and a week); after the first `sync hrm` the parity against v1 JSON stops applying (HRM replaces the synthetic rows).
 
 ## Way of working from now on (owner, 2026-10-02)
 

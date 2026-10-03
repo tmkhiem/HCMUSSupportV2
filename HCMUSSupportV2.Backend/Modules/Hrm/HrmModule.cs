@@ -12,6 +12,7 @@ namespace HCMUSSupportV2.Backend.Modules.Hrm;
 public static class HrmModule
 {
     public const string IngestHrmPolicy = "IngestHrm";
+    public const string ImportLegacyPolicy = "ImportLegacy";
 
     public static IServiceCollection AddHrmModule(this IServiceCollection services, IConfiguration configuration)
     {
@@ -23,6 +24,10 @@ public static class HrmModule
             .AddAuthenticationSchemes(ApiKeyDefaults.Scheme)
             .RequireAuthenticatedUser()
             .RequireClaim(ApiKeyDefaults.ScopeClaim, ApiScopes.HrmIngest)));
+        services.AddAuthorization(o => o.AddPolicy(ImportLegacyPolicy, p => p
+            .AddAuthenticationSchemes(ApiKeyDefaults.Scheme)
+            .RequireAuthenticatedUser()
+            .RequireClaim(ApiKeyDefaults.ScopeClaim, ApiScopes.LegacyImport)));
 
         services.AddScoped<ApiClientService>();
         services.AddHostedService<DevApiClientSeeder>();

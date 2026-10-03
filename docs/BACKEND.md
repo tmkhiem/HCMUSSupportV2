@@ -441,6 +441,21 @@ guard compares with earlier runs), creates API clients (`CreateIngestClientAsync
 `HrmTestSignInController` (`POST /api/test/hrm/sign-in/{code}?actingAs=`) simulates the `acting_as` claim; use a factory with
 `Auth:RevalidateSeconds=3600` so the session keeps it.
 
+## Legacy migration (D15, `Modules/Legacy`)
+
+One-off endpoints for the v1 migration: `/api/integration/v1/legacy/{roster-emails, roles, news, datasets/teaching, datasets/research, datasets/publications}`,
+ApiKey scope `legacy.import` (policy `ImportLegacy`, under `/api/integration` so the cookie antiforgery check does not apply), gzip bodies, **dry run
+unless `?dryRun=false`**. The runbook, the report fields and the conversion rules are in [MIGRATION.md](MIGRATION.md). In short:
+
+- `LegacyRosterService` feeds `employee_emails` through `EmployeeEmailImportService.ImportEntriesAsync` (the D14c engine, now shared; additive, no removals).
+- `LegacyRolesService` grants roles additively and audits `roles.granted` (identities come from the request, not from code).
+- `LegacyNewsService` creates **published** notifications (`published_at` / `delivered_at` = the v1 date, import audience or `audience_all`, deliveries read by default,
+  one revision, series and tags by name) and fans them out with `FanOutService`. Idempotency is `legacy_import_marks (kind, key, content_hash)` (migration `D15_LegacyMigration`):
+  unchanged content is a no-op, changed content is reported (`changed_skipped`) and never re-applied.
+- `LegacyDatasetsService` writes teaching, research and publications with `source_import_id` NULL and **never touches a scope an admin import owns**; teaching rows are
+  compared as a multiset (v1 repeats rows); hand-typed MSCBs (`_0246`, `408`) are normalised only when that makes them known.
+- `DevApiClientSeeder` gives the Development client `dev` both `hrm.ingest` and `legacy.import`. Tests: `Legacy/LegacyMigrationTests` (16 cases).
+
 ## Background jobs
 
 ```csharp
