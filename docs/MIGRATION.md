@@ -26,8 +26,8 @@ again**: a re-run reports nothing to do. Run each tool without `--apply` first, 
 - The backend must have the migration `D15_LegacyMigration` (table `legacy_import_marks`); in Development it migrates on start.
 - The tools post to `/api/integration/v1/legacy/*` with an API client that has the scope **`legacy.import`** (admin-grade: it writes
   emails, roles and posts). In Development the client `dev` made from `Hrm:DevApiClient:Token` gets both `hrm.ingest` and
-  `legacy.import` (an older dev database gets the new scope on the next start). For another database there is no admin screen yet
-  (D14b leftover), so insert a client once, with your own random token (keep it out of the repo), and revoke it afterwards:
+  `legacy.import` (an older dev database gets the new scope on the next start). For another database create the client in *Quản trị -> API clients* (scope `legacy.import`, revoke it there afterwards); the SQL below is the fallback
+  when the admin UI is not reachable (use your own random token, keep it out of the repo):
 
 ```sql
 INSERT INTO api_clients (name, token_hash, scopes, created_at)

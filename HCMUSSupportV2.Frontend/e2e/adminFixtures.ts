@@ -46,6 +46,8 @@ export interface Calls {
   /** Raw query strings of audit calls. */
   auditQueries: string[]
   syncIssueQueries: string[]
+  clientCreates: { name: string; scopes: string[] }[]
+  clientRevokes: string[]
 }
 
 export interface StubOptions {
@@ -54,8 +56,12 @@ export interface StubOptions {
 }
 
 export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<Calls> {
-  const calls: Calls = { rolePuts: [], viewAs: [], groupPuts: [], groupPosts: [], previews: [], archived: [], restored: [], memberAdds: [], memberRemoves: [], memberImports: [], resolved: [], applied: [], auditQueries: [], syncIssueQueries: [] }
+  const calls: Calls = { rolePuts: [], viewAs: [], groupPuts: [], groupPosts: [], previews: [], archived: [], restored: [], memberAdds: [], memberRemoves: [], memberImports: [], resolved: [], applied: [], auditQueries: [], syncIssueQueries: [], clientCreates: [], clientRevokes: [] }
   const groups: Group[] = baseGroups()
+  const apiClients: { id: number; name: string; scopes: string[]; createdAt: string; lastUsedAt?: string; revokedAt?: string }[] = [
+    { id: 2, name: 'sync-hrm', scopes: ['hrm.ingest'], createdAt: '2026-09-20T02:00:00Z', lastUsedAt: '2026-10-03T01:00:00Z' },
+    { id: 1, name: 'legacy-migration', scopes: ['legacy.import'], createdAt: '2026-09-10T02:00:00Z', revokedAt: '2026-09-11T02:00:00Z' },
+  ]
   const roleOf = (code: string) => employees.find((e) => e.code === code) ?? employees[2]
   const detail = (code: string, roles?: string[]) => {
     const e = roleOf(code)
@@ -150,6 +156,29 @@ export async function stubAdminApi(page: Page, opts: StubOptions = {}): Promise<
       return json(report('applied'))
     }
     if (/^\/api\/admin\/datasets\/\w+\/template$/.test(p)) return route.fulfill({ status: 200, contentType: 'application/octet-stream', body: 'x' })
+
+
+    // API clients
+    if (p === '/api/admin/api-clients/scopes')
+      return json([
+        { scope: 'hrm.ingest', description: 'Đẩy dữ liệu HRM vào hệ thống (công cụ Sync)' },
+        { scope: 'legacy.import', description: 'Nhập dữ liệu từ hệ thống cũ (một lần)' },
+      ])
+    if (p === '/api/admin/api-clients' && m === 'GET') return json(apiClients)
+    if (p === '/api/admin/api-clients' && m === 'POST') {
+      const body = req.postDataJSON() as { name: string; scopes: string[] }
+      calls.clientCreates.push(body)
+      const client = { id: 10 + apiClients.length, name: body.name, scopes: body.scopes, createdAt: '2026-10-03T02:00:00Z' }
+      apiClients.unshift(client)
+      return json({ client, token: 'tok_SYNTHETIC-not-a-real-token-0123456789abcdef' }, 201)
+    }
+    const revokeClient = /^\/api\/admin\/api-clients\/(\d+)\/revoke$/.exec(p)
+    if (revokeClient && m === 'POST') {
+      calls.clientRevokes.push(revokeClient[1])
+      const c = apiClients.find((x) => String(x.id) === revokeClient[1])!
+      Object.assign(c, { revokedAt: '2026-10-03T03:00:00Z' })
+      return json(c)
+    }
 
     // Groups
     if (p === '/api/manage/groups' && m === 'GET') {

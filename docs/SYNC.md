@@ -51,7 +51,7 @@ and restrict its NTFS ACL to the service account and administrators.
 2. **SQL login.** A DBA runs `deploy/sql/hrm-readonly-login.sql` (replace `<CHANGE_ME>` with a random password first). It grants
    `SELECT` on the 26 tables the queries use, and denies writes, DDL and `EXECUTE`. Put the connection string in
    `appsettings.local.json`. Never use `sa` or the Windows account that runs HRM.
-3. **API client.** An admin creates an API client with scope `hrm.ingest` (admin page, D14b) and copies the token (shown once).
+3. **API client.** An admin creates an API client with scope `hrm.ingest` (Quản trị -> API clients) and copies the token (shown once).
    Put it in `Sync:ApiToken`.
 4. **Smoke test**, as the service account:
    `C:\HCMUSSupportV2.Sync\HCMUSSupportV2.Sync.exe sync hrm --dry-run` and compare the row counts with HRM. Then run without

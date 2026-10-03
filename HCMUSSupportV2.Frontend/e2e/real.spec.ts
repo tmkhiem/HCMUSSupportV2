@@ -355,6 +355,7 @@ test('admin pages: every Quản trị page loads real data without an error', as
     ['/quan-tri/nhat-ky', 'Nhật ký'],
     ['/quan-tri/dong-bo', 'Đồng bộ'],
     ['/quan-tri/du-lieu', 'Dữ liệu'],
+    ['/quan-tri/api-clients', 'API clients'],
     ['/quan-ly/nhom', 'Nhóm'],
   ]) {
     await page.goto(path)
@@ -367,4 +368,43 @@ test('admin pages: every Quản trị page loads real data without an error', as
   await expect(page.getByRole('table', { name: 'Nhật ký thao tác' }).getByRole('row').nth(1)).toBeVisible()
   await page.goto('/quan-tri/phan-quyen')
   await expect(page.getByRole('button', { name: /^Mở / }).filter({ hasText: 'T0002' })).toBeVisible()
+})
+
+test('API clients: an admin creates a key, it is shown once and the integration API accepts it until it is revoked', async ({ page, request }) => {
+  test.setTimeout(90_000)
+  await devLogin(page, 'T0001', '/quan-tri/api-clients')
+  await expect(page.getByRole('heading', { level: 1, name: 'API clients' })).toBeVisible()
+
+  const name = `e2e-${Date.now()}`
+  await page.getByRole('button', { name: 'Tạo API client' }).click()
+  const create = page.getByRole('dialog', { name: 'Tạo API client' })
+  await create.getByLabel(/^Tên/).fill(name)
+  await create.getByRole('checkbox', { name: /hrm\.ingest/ }).check()
+  await create.getByRole('button', { name: 'Tạo', exact: true }).click()
+
+  const tokenDialog = page.getByRole('dialog', { name: /Token của/ })
+  const token = await tokenDialog.getByTestId('api-token').inputValue()
+  expect(token.length).toBeGreaterThanOrEqual(40)
+  await tokenDialog.getByRole('button', { name: 'Tôi đã lưu token' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByText(token)).toHaveCount(0)
+
+  const row = page.getByRole('table', { name: 'API clients' }).getByRole('row', { name })
+  await expect(row).toContainText('Đang hoạt động')
+  const ingest = () => request.post('/api/integration/v1/employees', { headers: { Authorization: `ApiKey ${token}` }, data: [] })
+  // A deliberately malformed body (400): authentication and the scope check pass, yet nothing is ingested (a real snapshot would replace data).
+  expect((await ingest()).status()).toBe(400)
+
+  // The list endpoint never echoes the token.
+  const listed = await page.evaluate(async () => (await fetch('/api/admin/api-clients')).text())
+  expect(listed).not.toContain(token)
+
+  await row.getByRole('button', { name: `Thu hồi ${name}` }).click()
+  await page.getByRole('dialog', { name: /Thu hồi/ }).getByRole('button', { name: 'Thu hồi', exact: true }).click()
+  await expect(row).toContainText('Đã thu hồi')
+  expect((await ingest()).status()).toBe(401)
+
+  // Both actions are in the audit log.
+  await page.goto('/quan-tri/nhat-ky')
+  await expect(page.getByRole('table', { name: 'Nhật ký thao tác' })).toContainText('Thu hồi API client')
 })
