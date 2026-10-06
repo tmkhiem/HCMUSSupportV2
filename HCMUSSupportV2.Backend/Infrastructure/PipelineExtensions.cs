@@ -1,6 +1,7 @@
 using HCMUSSupportV2.Backend.Data;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Serilog;
 
 namespace HCMUSSupportV2.Backend.Infrastructure;
@@ -20,8 +21,11 @@ public static class PipelineExtensions
 
         app.UseHttpsRedirection();
 
-        app.UseDefaultFiles();
-        app.UseStaticFiles(new StaticFileOptions { OnPrepareResponse = NoCacheIndexHtml });
+        // Read wwwroot straight from disk on every request. The default web root provider (in Development, the static web
+        // assets manifest) is a snapshot of the files present at build/startup, so a rebuilt frontend would need a restart.
+        var files = WebRootFiles(app);
+        app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
+        app.UseStaticFiles(new StaticFileOptions { FileProvider = files, OnPrepareResponse = NoCacheIndexHtml });
 
         app.UseRateLimiter();
         return app;
@@ -36,9 +40,12 @@ public static class PipelineExtensions
         // Paths ending in a file extension (/icons/32/bell.png, /bg-logo.svg) are excluded too: the static file middleware
         // skips a request that already matched an endpoint, so a catch-all that matched them would answer index.html.
         app.MapFallbackToFile("{*path:regex(^(?!(api|assets)(/|$))(?!.*[.][A-Za-z0-9]+$).*$)}", "index.html",
-            new StaticFileOptions { OnPrepareResponse = NoCacheIndexHtml });
+            new StaticFileOptions { FileProvider = WebRootFiles(app), OnPrepareResponse = NoCacheIndexHtml });
         return app;
     }
+
+    private static IFileProvider? WebRootFiles(WebApplication app) =>
+        Directory.Exists(app.Environment.WebRootPath) ? new PhysicalFileProvider(app.Environment.WebRootPath) : null;
 
     // index.html names the content-hashed bundles, and the other files in wwwroot (bg-logo.svg, icons/) keep their
     // names across builds, so all of them must be revalidated (ETag, 304 when unchanged) after every frontend build.
