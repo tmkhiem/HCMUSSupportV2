@@ -14,8 +14,8 @@ using NpgsqlTypes;
 namespace HCMUSSupportV2.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261003132446_RemoveScheduledArchivedExpiry")]
-    partial class RemoveScheduledArchivedExpiry
+    [Migration("20261006005217_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

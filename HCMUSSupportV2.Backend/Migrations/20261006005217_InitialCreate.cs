@@ -477,7 +477,9 @@ namespace HCMUSSupportV2.Backend.Migrations
                     is_primary = table.Column<bool>(type: "boolean", nullable: false),
                     note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     added_by = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    added_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                    added_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    hrm_conflict_accepted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    hrm_conflict_accepted_by = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -663,9 +665,7 @@ namespace HCMUSSupportV2.Backend.Migrations
                     content_text = table.Column<string>(type: "text", nullable: false, defaultValue: ""),
                     variables = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
                     status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "draft"),
-                    publish_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     published_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    expires_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     audience_all = table.Column<bool>(type: "boolean", nullable: false),
                     recipient_count = table.Column<int>(type: "integer", nullable: false),
                     version = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
@@ -680,7 +680,7 @@ namespace HCMUSSupportV2.Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_notifications", x => x.id);
-                    table.CheckConstraint("ck_notifications_status", "status IN ('draft','scheduled','published','archived')");
+                    table.CheckConstraint("ck_notifications_status", "status IN ('draft','published')");
                     table.ForeignKey(
                         name: "fk_notifications_employees_created_by",
                         column: x => x.created_by,
@@ -978,7 +978,9 @@ namespace HCMUSSupportV2.Backend.Migrations
                     notification_id = table.Column<Guid>(type: "uuid", nullable: false),
                     vars = table.Column<string>(type: "jsonb", nullable: true),
                     delivered_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                    dismissed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    dismissed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    fetched = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    opened = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -1407,9 +1409,9 @@ namespace HCMUSSupportV2.Backend.Migrations
                 column: "series_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_notifications_status_publish_at",
+                name: "ix_notifications_status",
                 table: "notifications",
-                columns: new[] { "status", "publish_at" });
+                column: "status");
 
             migrationBuilder.CreateIndex(
                 name: "ix_notifications_updated_by",
